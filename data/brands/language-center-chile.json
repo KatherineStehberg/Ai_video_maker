@@ -1,0 +1,11 @@
+{
+  "id": "language-center-chile",
+  "name": "Language Center Chile",
+  "colors": { "primary": "#1e3a8a", "secondary": "#3b82f6", "accent": "#fbbf24", "text": "#ffffff", "captionText": "#ffffff", "captionOutline": "#0b1220" },
+  "fontFamily": "Arial",
+  "logoPosition": "top-left",
+  "logoScale": 0.10,
+  "cta": "Aprende ingles con nosotros",
+  "urls": { "web": "https://languagecenterchile.com" },
+  "hashtags": ["Ingles", "LanguageCenterChile", "AprenderIngles", "English"]
+}

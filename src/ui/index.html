@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Video Maker</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand-mark">AI Video Maker</div>
+  <div class="env" id="env">cargando…</div>
+  <button class="btn btn-ghost" id="btn-doctor">Diagnóstico</button>
+  <button class="btn btn-primary" id="btn-new">Nuevo video</button>
+</header>
+
+<main class="layout">
+
+  <!-- ------------------------------------------------ lista de proyectos -->
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <h2>Proyectos</h2>
+      <button class="btn btn-mini" id="btn-refresh" title="Actualizar">↻</button>
+    </div>
+    <ul class="project-list" id="project-list"></ul>
+  </aside>
+
+  <!-- ------------------------------------------------ editor -->
+  <section class="editor" id="editor">
+    <div class="empty" id="empty-state">
+      <h2>Sin proyecto abierto</h2>
+      <p>Crea un video nuevo o elige uno de la lista.</p>
+      <button class="btn btn-primary" id="btn-new-2">Nuevo video</button>
+    </div>
+
+    <div class="editor-body" id="editor-body" hidden>
+      <div class="editor-head">
+        <input class="title-input" id="f-title" placeholder="Título del video">
+        <span class="status-pill" id="status-pill">draft</span>
+      </div>
+
+      <nav class="tabs" id="tabs">
+        <button class="tab is-active" data-tab="setup">1. Configuración</button>
+        <button class="tab" data-tab="script">2. Guion</button>
+        <button class="tab" data-tab="scenes">3. Escenas</button>
+        <button class="tab" data-tab="audio">4. Voz y música</button>
+        <button class="tab" data-tab="render">5. Render</button>
+      </nav>
+
+      <!-- ---- 1. setup ---- -->
+      <div class="pane is-active" data-pane="setup">
+        <div class="grid-2">
+          <label>Marca
+            <select id="f-brand"></select>
+          </label>
+          <label>Template
+            <select id="f-template"></select>
+          </label>
+          <label>Formato principal
+            <select id="f-aspect"></select>
+          </label>
+          <label>Idioma
+            <select id="f-language">
+              <option value="es">Español</option>
+              <option value="en">Inglés</option>
+            </select>
+          </label>
+        </div>
+
+        <fieldset class="fieldset">
+          <legend>Formatos a exportar</legend>
+          <div class="chips" id="f-formats"></div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Plataformas (solo metadatos, no publica)</legend>
+          <div class="chips" id="f-platforms"></div>
+        </fieldset>
+
+        <div class="grid-2">
+          <label>Objetivo
+            <input id="f-objective" placeholder="Qué debe lograr el video">
+          </label>
+          <label>Audiencia
+            <input id="f-audience" placeholder="A quién le habla">
+          </label>
+          <label class="span-2">CTA final
+            <input id="f-cta" placeholder="Llamada a la acción del cierre">
+          </label>
+          <label class="span-2">Brief / tema
+            <textarea id="f-brief" rows="3" placeholder="Describe el tema. Solo se usa si hay un LLM conectado."></textarea>
+          </label>
+        </div>
+      </div>
+
+      <!-- ---- 2. guion ---- -->
+      <div class="pane" data-pane="script">
+        <div class="toolbar">
+          <button class="btn" id="btn-gen-script">Generar guion con IA</button>
+          <button class="btn" id="btn-plan-scenes">Dividir en escenas →</button>
+          <span class="hint" id="llm-hint"></span>
+        </div>
+        <p class="hint">
+          Una línea por escena. Las líneas que empiezan con <code>##</code> se
+          tratan como escenas. Sin LLM conectado, escribe o pega tu guion aquí.
+        </p>
+        <textarea id="f-script" class="script-area" rows="18"
+          placeholder="## Primera escena&#10;## Segunda escena&#10;## Tercera escena"></textarea>
+      </div>
+
+      <!-- ---- 3. escenas ---- -->
+      <div class="pane" data-pane="scenes">
+        <div class="toolbar">
+          <button class="btn" id="btn-add-scene">+ Escena</button>
+          <button class="btn" id="btn-autofill">Rellenar visuales faltantes</button>
+          <span class="hint" id="scenes-summary"></span>
+        </div>
+        <div id="scene-list" class="scene-list"></div>
+      </div>
+
+      <!-- ---- 4. audio ---- -->
+      <div class="pane" data-pane="audio">
+        <div class="grid-2">
+          <label>Narración
+            <select id="f-voice-enabled">
+              <option value="true">Activada</option>
+              <option value="false">Sin voz (silencio)</option>
+            </select>
+          </label>
+          <label>Voz
+            <select id="f-voice"></select>
+          </label>
+          <label>Velocidad <span class="val" id="rate-val">0</span>
+            <input type="range" id="f-rate" min="-6" max="6" step="1" value="0">
+          </label>
+          <label>&nbsp;
+            <button class="btn" id="btn-preview-voice">Escuchar prueba</button>
+          </label>
+        </div>
+        <audio id="voice-preview" controls hidden></audio>
+
+        <fieldset class="fieldset">
+          <legend>Música de fondo</legend>
+          <div class="grid-2">
+            <label>Pista
+              <select id="f-music"><option value="">Sin música</option></select>
+            </label>
+            <label>Volumen <span class="val" id="music-val">0.12</span>
+              <input type="range" id="f-music-volume" min="0" max="0.6" step="0.02" value="0.12">
+            </label>
+          </div>
+          <p class="hint">
+            Coloca archivos libres de derechos en <code>data/assets/music/</code>
+            o súbelos abajo. No se descarga música automáticamente.
+          </p>
+          <input type="file" id="upload-music" accept="audio/*">
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Subtítulos</legend>
+          <div class="grid-2">
+            <label>Generar
+              <select id="f-captions-enabled">
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label>Quemar en el video
+              <select id="f-captions-burn">
+                <option value="true">Sí</option>
+                <option value="false">No (solo .srt)</option>
+              </select>
+            </label>
+            <label>Caracteres por línea
+              <input type="number" id="f-captions-chars" min="16" max="60" value="38">
+            </label>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- ---- 5. render ---- -->
+      <div class="pane" data-pane="render">
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btn-render">Renderizar</button>
+          <button class="btn" id="btn-render-full">Pipeline completo (con IA)</button>
+          <button class="btn" id="btn-export">Empaquetar para publicar</button>
+        </div>
+
+        <div class="progress-wrap" id="progress-wrap" hidden>
+          <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+          <div class="progress-msg" id="progress-msg"></div>
+        </div>
+
+        <div id="validation" class="validation"></div>
+
+        <div class="outputs" id="outputs"></div>
+
+        <details class="meta-details">
+          <summary>Metadatos de publicación (copiar y pegar)</summary>
+          <div id="metadata-box"></div>
+        </details>
+
+        <details class="meta-details">
+          <summary>Registro</summary>
+          <pre id="render-log" class="log"></pre>
+        </details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ------------------------------------------------ modales -->
+<dialog id="dlg-new">
+  <form method="dialog" class="dlg-form">
+    <h2>Nuevo video</h2>
+    <label>Título<input id="n-title" required placeholder="Ej: 5 aves nativas de Chile"></label>
+    <label>Marca<select id="n-brand"></select></label>
+    <label>Template<select id="n-template"></select></label>
+    <label>Tema / brief<textarea id="n-brief" rows="3" placeholder="Opcional. Se usa solo si hay LLM."></textarea></label>
+    <menu>
+      <button value="cancel" class="btn btn-ghost">Cancelar</button>
+      <button value="create" class="btn btn-primary" id="n-create">Crear</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="dlg-doctor">
+  <div class="dlg-form">
+    <h2>Diagnóstico del entorno</h2>
+    <div id="doctor-body" class="doctor-body">cargando…</div>
+    <menu><button class="btn" id="doctor-close">Cerrar</button></menu>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

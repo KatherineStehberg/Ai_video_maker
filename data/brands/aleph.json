@@ -1,0 +1,11 @@
+{
+  "id": "aleph",
+  "name": "ALEPH",
+  "colors": { "primary": "#18181b", "secondary": "#3f3f46", "accent": "#a78bfa", "text": "#ffffff", "captionText": "#ffffff", "captionOutline": "#000000" },
+  "fontFamily": "Arial",
+  "logoPosition": "top-right",
+  "logoScale": 0.08,
+  "cta": "ALEPH",
+  "urls": {},
+  "hashtags": ["ALEPH"]
+}

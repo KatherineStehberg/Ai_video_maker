@@ -1,0 +1,11 @@
+{
+  "id": "famores",
+  "name": "Famores",
+  "colors": { "primary": "#7c2d12", "secondary": "#c2410c", "accent": "#fbbf24", "text": "#ffffff", "captionText": "#ffffff", "captionOutline": "#1c0a03" },
+  "fontFamily": "Arial",
+  "logoPosition": "top-right",
+  "logoScale": 0.09,
+  "cta": "Conoce Famores",
+  "urls": {},
+  "hashtags": ["Famores"]
+}

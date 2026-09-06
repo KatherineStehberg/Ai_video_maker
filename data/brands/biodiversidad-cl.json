@@ -1,0 +1,11 @@
+{
+  "id": "biodiversidad-cl",
+  "name": "Biodiversidad.cl",
+  "colors": { "primary": "#14532d", "secondary": "#166534", "accent": "#84cc16", "text": "#ffffff", "captionText": "#ffffff", "captionOutline": "#052e16" },
+  "fontFamily": "Arial",
+  "logoPosition": "bottom-right",
+  "logoScale": 0.10,
+  "cta": "Descubre la biodiversidad de Chile",
+  "urls": { "web": "https://biodiversidad.cl" },
+  "hashtags": ["Biodiversidad", "Chile", "Naturaleza", "FaunaNativa", "FloraNativa"]
+}
