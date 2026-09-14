@@ -106,6 +106,9 @@ export async function runPipeline(project, {
         onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`),
       });
       report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0 };
+      if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {
+        throw new Error('La narración solicitada no se pudo completar. Configura la voz o elige explícitamente sin narración.');
+      }
 
       if (res.provider === 'none') {
         report.warnings.push('Sin motor TTS disponible: el video se renderiza en silencio.');
@@ -183,7 +186,7 @@ export async function runPipeline(project, {
       saveProject(project);
     }
 
-    project.status = STATUS.COMPLETED;
+    project.status = want.has('render') ? STATUS.COMPLETED : STATUS.DRAFT;
     project.error = null;
     saveProject(project);
     emit('done', 100, 'Completado');

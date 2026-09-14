@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { ffmpegRun, probeDuration, escapeFilterPath, escapeDrawtext } from '../lib/ffmpeg.js';
 import { PATHS, ensureDir, workDir, rel, abs } from '../lib/paths.js';
@@ -108,6 +109,13 @@ async function renderSceneClip(scene, index, ctx) {
   const srcRel = scene.assetPath;
   const srcAbs = srcRel ? abs(srcRel) : null;
   const kind = srcAbs && fs.existsSync(srcAbs) ? assetKind(srcAbs) : 'none';
+  const fingerprint = createHash('sha256').update(JSON.stringify({
+    version:1, scene:{duration:scene.duration,assetPath:scene.assetPath,kenBurns:scene.kenBurns,transition:scene.transition,onScreenTitle:scene.onScreenTitle},
+    index,W,H,fps,profile,brand,font:ctx.fontFile,
+    source:srcAbs && fs.existsSync(srcAbs) ? [fs.statSync(srcAbs).size,fs.statSync(srcAbs).mtimeMs] : null,
+  })).digest('hex');
+  const stamp = out+'.json';
+  if(fs.existsSync(out) && fs.existsSync(stamp) && fs.readFileSync(stamp,'utf8')===fingerprint)return out;
 
   const kb = scene.kenBurns === 'auto' ? (index % 2 === 0 ? 'in' : 'out') : (scene.kenBurns || 'none');
 
@@ -126,7 +134,7 @@ async function renderSceneClip(scene, index, ctx) {
     // Imagen fija (o fondo generado). Se pre-escala a 2x para que el zoom sea suave.
     const zoomW = kb === 'none' ? W : W * 2;
     const zoomH = kb === 'none' ? H : H * 2;
-    const key = `${project.id}_${scene.id}`;
+    const key = `${project.id}_${scene.id}_${fingerprint.slice(0,12)}`;
     const still = kind === 'image'
       ? await prepareStill(srcAbs, zoomW, zoomH, cacheDir, key)
       : await solidBackground(brand, zoomW, zoomH, cacheDir, key);
@@ -173,6 +181,7 @@ async function renderSceneClip(scene, index, ctx) {
   args.push(out);
 
   await ffmpegRun(args);
+  fs.writeFileSync(stamp,fingerprint);
   return out;
 }
 
@@ -214,7 +223,7 @@ async function concatClips(clips, workingDir) {
  */
 async function buildAudioTrack(project, workingDir, totalSeconds) {
   const narration = path.join(workingDir, 'narration.wav');
-  const hasNarration = fs.existsSync(narration);
+  const hasNarration = project.voice?.enabled !== false && fs.existsSync(narration);
   const musicRel = project.music?.enabled ? project.music?.path : null;
   const musicAbs = musicRel ? abs(musicRel) : null;
   const hasMusic = Boolean(musicAbs && fs.existsSync(musicAbs));
@@ -234,7 +243,7 @@ async function buildAudioTrack(project, workingDir, totalSeconds) {
     i++;
   }
   if (hasMusic) {
-    const vol = clamp(Number(project.music.volume) || 0.12, 0, 1);
+    const vol = clamp(Number(project.music.volume ?? 0.12), 0, 1);
     const fadeIn = clamp(Number(project.music.fadeIn) || 0, 0, 10);
     const fadeOut = clamp(Number(project.music.fadeOut) || 0, 0, 10);
     inputs.push('-stream_loop', '-1', '-i', musicAbs); // repite si es mas corta que el video
@@ -397,7 +406,7 @@ export async function renderProject(project, brand, {
     ? abs(project.assets.logo)
     : brandLogoPath(brand);
 
-  const outName = `${slugify(project.title)}_${aspect.replace(':', 'x')}.mp4`;
+  const outName = `${slugify(project.title)}_${project.id}_${aspect.replace(':', 'x')}.mp4`;
   const outFile = path.join(ensureDir(PATHS.final), outName);
 
   const compose = async (useSubs) => {

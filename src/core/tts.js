@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { resolveProvider } from '../providers/tts/index.js';
 import { probeDuration, ffmpegRun } from '../lib/ffmpeg.js';
@@ -43,9 +44,10 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
 
     const rawFile = path.join(dir, `${scene.id}.raw.wav`);
     const outFile = path.join(dir, `${scene.id}.wav`);
+    const narrationKey = createHash('sha256').update(JSON.stringify({text,engine:engine.id,voice:project.voice})).digest('hex');
 
     // Reutiliza audio ya generado si el texto no cambio (ahorra minutos de CPU).
-    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationText === text) {
+    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey) {
       narrations.push(scene.narrationPath);
       durations.push(await probeDuration(abs(scene.narrationPath)));
       continue;
@@ -72,6 +74,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       narrations.push(rel(outFile));
       durations.push(d);
       scene.narrationText = text; // marca de cache
+      scene.narrationKey = narrationKey;
     } catch (e) {
       log.error(`Escena ${i + 1} sin narracion:`, e.message);
       errors.push({ sceneId: scene.id, error: e.message });
@@ -114,7 +117,7 @@ export async function buildNarrationTrack(project) {
   const totalSec = (offsetMs / 1000).toFixed(3);
   const mixInputs = Array.from({ length: idx }, (_, i) => `[a${i}]`).join('');
   // amix con normalize=0 para que el volumen no baje al aumentar las entradas.
-  const graph = `${filters.join(';')};${mixInputs}amix=inputs=${idx}:normalize=0:dropout_transition=0[mix]`;
+  const graph = `${filters.join(';')};${mixInputs}amix=inputs=${idx}:normalize=0:dropout_transition=0,apad[mix]`;
 
   await ffmpegRun([
     ...inputs,

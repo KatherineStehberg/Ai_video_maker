@@ -1,4 +1,6 @@
 # Secrets
+data/analyses/
+data/jobs/
 .env
 .env.local
 *.key

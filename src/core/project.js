@@ -28,6 +28,10 @@ export function makeScene(partial = {}) {
     assetPath: partial.assetPath ?? null,      // imagen o clip de video (relativo al ROOT)
     assetKind: partial.assetKind ?? 'auto',    // auto | image | video | color
     narrationPath: partial.narrationPath ?? null,
+    narrationText: partial.narrationText ?? null,
+    narrationKey: partial.narrationKey ?? null,
+    durationLocked: partial.durationLocked ?? false,
+    provenance: partial.provenance ?? { kind: 'unverified', authorized: false, originalReference: null },
     transition: TRANSITIONS.includes(partial.transition) ? partial.transition : 'fade',
     caption: partial.caption ?? null,          // null => se usa `text`
     kenBurns: partial.kenBurns ?? 'auto',      // auto | in | out | none
@@ -57,6 +61,7 @@ export function makeProject(partial = {}) {
     language: partial.language || 'es',
     brief: partial.brief || '',
     script: partial.script || '',
+    studio: partial.studio ?? null,
     scenes: (partial.scenes || []).map(makeScene),
     voice: {
       provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | none
@@ -78,6 +83,7 @@ export function makeProject(partial = {}) {
       fontSize: partial.captions?.fontSize ?? null,  // null => calculado por aspecto
       maxCharsPerLine: partial.captions?.maxCharsPerLine ?? 38,
       provider: partial.captions?.provider ?? 'auto',
+      file: partial.captions?.file ?? null,
     },
     assets: {
       intro: partial.assets?.intro ?? null,

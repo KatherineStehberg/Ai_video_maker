@@ -33,7 +33,7 @@ export async function probe(file) {
 export function onsetDetector(offset = 0) {
   let pending = Buffer.alloc(0), index = 0, previous = 0, last = -1, history = [];
   const events = [];
-  return { events, push(chunk) {
+  return { events, get seconds(){ return index*.01; }, push(chunk) {
     pending = Buffer.concat([pending, chunk]);
     let pos = 0;
     while (pos + 320 <= pending.length) {
@@ -67,7 +67,7 @@ export async function analyzeLocal(file, metadata, progress = () => {}) {
   progress(60, 'Detectando onsets de audio (no equivalen a beats)');
   const audio = metadata.audio[0];
   const detector = onsetDetector(audio ? Math.max(0,audio.startTime-metadata.startTime) : 0);
-  if (audio) await streamProcess(ffmpeg, ['-hide_banner','-nostdin','-v','error','-i',file,'-map',`0:${audio.index}`,'-vn','-ac','1','-ar','16000','-c:a','pcm_s16le','-f','s16le','pipe:1'], b => detector.push(b));
+  if (audio) await streamProcess(ffmpeg, ['-hide_banner','-nostdin','-v','error','-i',file,'-map',`0:${audio.index}`,'-vn','-ac','1','-ar','16000','-c:a','pcm_s16le','-f','s16le','pipe:1'], b => {detector.push(b);progress(60+15*Math.min(1,detector.seconds/metadata.duration),'Detectando onsets de audio');});
   return { scenes, onsets: detector.events.filter(e=>e.timestamp < metadata.duration), beats: [],
     notes:['Onsets: detector de energía implementado en JavaScript; FFmpeg sólo decodifica audio. No se estima tempo ni rejilla de beats.', 'Umbral visual 0.3 a ancho 320; puede omitir fundidos y cambios sutiles. Scores no son probabilidades.', 'Timestamps en segundos sobre la línea temporal de reproducción; FPS promedio no implica CFR.'], audioStream:audio?.index ?? null };
 }
