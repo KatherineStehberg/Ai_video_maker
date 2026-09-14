@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { studioRoute } from './studio/routes.js';
 import { analysisRoute } from './analysis/routes.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -408,6 +409,7 @@ export function createServer() {
     }
 
     try {
+      if (await studioRoute(req, res, url)) return;
       if (await analysisRoute(req, res, url)) return;
       if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
 
@@ -420,7 +422,7 @@ export function createServer() {
       }
 
       // UI estatica
-      let file = url.pathname === '/' ? 'index.html' : url.pathname.slice(1);
+      let file = url.pathname === '/' ? 'studio.html' : url.pathname.slice(1);
       const target = path.resolve(PATHS.ui, file);
       if (!target.startsWith(PATHS.ui) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
         return fail(res, 404, 'No encontrado');

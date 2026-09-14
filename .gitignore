@@ -1,6 +1,7 @@
 # Secrets
 data/analyses/
 data/jobs/
+data/studio-imports/
 .env
 .env.local
 *.key

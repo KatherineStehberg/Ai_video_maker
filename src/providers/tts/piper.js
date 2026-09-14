@@ -4,10 +4,11 @@ import { spawn } from 'node:child_process';
 import { CONFIG } from '../../config.js';
 
 /**
- * Piper TTS (open source, MIT, corre en CPU).
+ * Piper TTS (local, corre en CPU). El proyecto actual OHF-Voice es GPL-3.0;
+ * verificar también la licencia del modelo de voz elegido.
  * NO se descarga nada automaticamente: el usuario instala piper.exe y baja
  * un modelo de voz (~60 MB) manualmente, y apunta PIPER_PATH / PIPER_MODEL en .env.
- * Es la mejor opcion para voces en espanol de calidad a costo $0.
+ * La calidad depende del modelo. No tiene tarifa de API; requiere recursos locales.
  */
 
 export const id = 'piper';
