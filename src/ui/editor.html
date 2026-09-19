@@ -1,157 +1,220 @@
 <!doctype html>
+<!-- ============================================================================
+     AI VIDEO MAKER · EDITOR
+     ----------------------------------------------------------------------------
+     Mapa de secciones (busca los comentarios en MAYÚSCULAS para editar):
+       [CABECERA]        logo, menú y pasos del proceso
+       [PANEL]           panel lateral: archivo, ajustes, aprobar y exportar
+       [ESTADO]          barra de progreso y mensajes
+       [AVISOS]          errores y advertencias
+       [VIDEOS]          reproductores original y exportado
+       [RESUMEN]         cifras principales del análisis
+       [TIMELINE]        línea de tiempo visual
+       [SEGMENTOS]       panel de segmentos editable
+       [DETALLE]         tablas técnicas plegadas
+     Estilos: editor.css   ·   Lógica: editor/main.js (API en editor/api.js)
+     ========================================================================= -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- TEXTOS: título de la pestaña -->
 <title>Editor · AI Video Maker</title>
+<!-- LOGO: icono de la pestaña (SVG embebido, sin archivos externos) -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23003366'/%3E%3Cpath d='M13 10l9 6-9 6z' fill='%230066ff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/editor.css">
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand"><span class="brand-dot"></span> AI Video Maker <em>Editor</em></div>
-  <div class="topbar-right">
-    <span class="pill" id="state-pill" data-state="listo">Listo</span>
-    <nav><a href="/analysis.html">Análisis detallado</a><a href="/">Estudio de guiones</a></nav>
+<!-- ============================ [CABECERA] ================================ -->
+<header class="cabecera">
+  <!-- LOGO: cambia el punto por un <img src="..."> si tienes logotipo -->
+  <div class="logo"><span class="logo-mark"></span> AI Video Maker <em>Editor</em></div>
+
+  <div class="cabecera-derecha">
+    <!-- Pasos del proceso. Se marcan solos desde main.js -->
+    <ol class="pasos" id="pasos">
+      <li class="paso" data-paso="video"><span class="paso-num"><span class="paso-num-texto">1</span></span> Video</li>
+      <li class="paso" data-paso="analisis"><span class="paso-num"><span class="paso-num-texto">2</span></span> Análisis</li>
+      <li class="paso" data-paso="propuesta"><span class="paso-num"><span class="paso-num-texto">3</span></span> Propuesta</li>
+      <li class="paso" data-paso="aprobacion"><span class="paso-num"><span class="paso-num-texto">4</span></span> Aprobación</li>
+      <li class="paso" data-paso="exportacion"><span class="paso-num"><span class="paso-num-texto">5</span></span> Exportar</li>
+    </ol>
+    <!-- TEXTOS: enlaces a las otras pantallas -->
+    <nav class="menu"><a href="/analysis.html">Análisis avanzado</a><a href="/">Crear desde guion</a></nav>
   </div>
 </header>
 
-<main class="layout">
+<div class="contenido">
 
-  <!-- ============================ panel lateral ============================ -->
-  <aside class="panel" aria-label="Configuración">
-    <section class="card">
-      <h2>1 · Video</h2>
-      <label class="file-drop" for="file">
+  <!-- ============================= [PANEL] =============================== -->
+  <aside class="panel-lateral" aria-label="Ajustes del video">
+
+    <!-- TARJETA 1: elegir el video y analizarlo -->
+    <section class="tarjeta">
+      <h2><span class="tarjeta-numero">1</span>Tu video</h2>
+      <label class="zona-archivo" for="file">
+        <span id="file-label">Elige un video MP4</span>
         <input type="file" id="file" accept="video/*,.mp4,.mov,.m4v,.mkv,.webm">
-        <span id="file-label">Selecciona un MP4</span>
       </label>
-      <dl class="facts" id="file-facts"></dl>
-      <button class="btn btn-primary" id="btn-analyze" disabled>Analizar video</button>
-      <p class="hint" id="config-hint">Consultando configuración…</p>
+      <dl class="ficha" id="file-facts"></dl>
+      <!-- BOTÓN PRINCIPAL 1 -->
+      <button class="boton boton-primario boton-grande" id="btn-analyze" disabled>Analizar video</button>
+      <p class="texto-ayuda" id="config-hint">Comprobando…</p>
     </section>
 
-    <section class="card">
-      <h2>2 · Propuesta de edición</h2>
+    <!-- TARJETA 2: cómo se quiere el montaje -->
+    <section class="tarjeta">
+      <h2><span class="tarjeta-numero">2</span>Cómo lo quieres</h2>
       <label>Formato
         <select id="format">
-          <option value="9:16">9:16 · Vertical (Reels, Shorts, TikTok)</option>
-          <option value="16:9">16:9 · Horizontal (YouTube, LinkedIn)</option>
-          <option value="1:1">1:1 · Cuadrado (feed)</option>
+          <option value="9:16">Vertical 9:16 — Reels, Shorts, TikTok</option>
+          <option value="16:9">Horizontal 16:9 — YouTube, LinkedIn</option>
+          <option value="1:1">Cuadrado 1:1 — feed de Instagram</option>
         </select>
       </label>
-      <label>Sincronización
+      <label>Ritmo del montaje
         <select id="sync-mode">
-          <option value="beats">Alinear cortes a los beats</option>
-          <option value="cuts">Respetar el metraje original</option>
+          <option value="beats">Ajustar los cortes a la música</option>
+          <option value="cuts">Mantener el video tal cual</option>
         </select>
       </label>
-      <label class="check"><input type="checkbox" id="ramps" checked> Activar rampas de velocidad</label>
-      <label>Duración objetivo (segundos, opcional)
-        <input type="number" id="target-duration" min="0.1" step="0.1" placeholder="Sin objetivo">
+      <label class="casilla"><input type="checkbox" id="ramps" checked> Permitir cambios de velocidad</label>
+      <label>Duración deseada en segundos <span class="texto-suave">(opcional)</span>
+        <input type="number" id="target-duration" min="0.1" step="0.1" placeholder="Dejar vacío">
       </label>
-      <label>Encuadre
+      <label>Si el video no encaja en el formato
         <select id="fit">
-          <option value="pad">Encajar completo (barras)</option>
-          <option value="crop">Llenar el encuadre (recorta)</option>
+          <option value="pad">Mostrarlo entero, con bordes</option>
+          <option value="crop">Llenar la pantalla, recortando</option>
         </select>
       </label>
-      <button class="btn" id="btn-propose" disabled>Crear propuesta</button>
+      <button class="boton boton-grande" id="btn-propose" disabled>Crear propuesta</button>
     </section>
 
-    <section class="card">
-      <h2>3 · Aprobación y exportación</h2>
-      <p class="hint" id="approval-hint">La exportación está bloqueada hasta que apruebes una propuesta.</p>
-      <button class="btn btn-approve" id="btn-approve" disabled>Aprobar propuesta</button>
-      <button class="btn btn-accent" id="btn-export" disabled>Exportar MP4</button>
-      <p class="hint" id="export-blocked"></p>
+    <!-- TARJETA 3: aprobar y exportar -->
+    <section class="tarjeta">
+      <h2><span class="tarjeta-numero">3</span>Aprobar y exportar</h2>
+      <p class="texto-ayuda" id="approval-hint">Primero crea una propuesta.</p>
+      <!-- BOTÓN PRINCIPAL 2 -->
+      <button class="boton boton-aprobar boton-grande" id="btn-approve" disabled>Aprobar edición</button>
+      <!-- BOTÓN PRINCIPAL 3 -->
+      <button class="boton boton-accion boton-grande" id="btn-export" disabled>Exportar MP4</button>
+      <p class="texto-ayuda" id="export-blocked"></p>
     </section>
   </aside>
 
-  <!-- ============================ área central ============================ -->
-  <section class="workspace">
+  <!-- ========================= [ÁREA PRINCIPAL] ========================== -->
+  <main class="area-principal">
 
-    <div class="statusbar">
-      <progress id="progress" max="100" value="0"></progress>
-      <p id="status" role="status" aria-live="polite">Selecciona un video para empezar.</p>
-    </div>
-
-    <p class="alert alert-error" id="error" role="alert" hidden></p>
-    <div class="alert alert-warn" id="warnings" hidden></div>
-
-    <section class="card">
-      <h2>Timeline</h2>
-      <p class="hint">Cortes detectados, ritmo y segmentos propuestos sobre la duración del original. Haz clic para revisar ese momento.</p>
-      <div id="timeline"></div>
-      <ul class="legend">
-        <li><i class="sw sw-cut"></i> Corte visual</li>
-        <li><i class="sw sw-beat"></i> Beat</li>
-        <li><i class="sw sw-onset"></i> Evento de audio</li>
-        <li><i class="sw sw-normal"></i> Segmento 1×</li>
-        <li><i class="sw sw-fast"></i> Acelera</li>
-        <li><i class="sw sw-slow"></i> Ralentiza</li>
-      </ul>
+    <!-- ---------------------------- [ESTADO] ---------------------------- -->
+    <section class="tarjeta">
+      <div class="barra-estado">
+        <progress class="progreso" id="progress" max="100" value="0"></progress>
+        <span class="etiqueta-estado" id="state-pill" data-state="listo">Listo</span>
+      </div>
+      <p class="mensaje-estado" id="status" role="status" aria-live="polite">Elige un video para empezar.</p>
     </section>
 
-    <div class="grid-2">
-      <section class="card">
+    <!-- ---------------------------- [AVISOS] ---------------------------- -->
+    <p class="aviso aviso-error" id="error" role="alert" hidden></p>
+    <div class="aviso aviso-atencion" id="warnings" hidden></div>
+
+    <!-- ---------------------------- [VIDEOS] ----------------------------
+         DIMENSIONES DEL REPRODUCTOR: variable --player-height en editor.css
+         ------------------------------------------------------------------ -->
+    <div class="videos">
+      <section class="tarjeta">
         <h2>Video original</h2>
-        <p class="hint" id="source-empty">Disponible tras el análisis.</p>
+        <p class="texto-ayuda" id="source-empty">Se verá aquí en cuanto analices el video.</p>
         <video id="source-player" controls preload="metadata" hidden></video>
       </section>
-      <section class="card">
+      <section class="tarjeta">
         <h2>Video exportado</h2>
-        <p class="hint" id="export-empty">Disponible tras la exportación.</p>
+        <p class="texto-ayuda" id="export-empty">Se verá aquí en cuanto exportes.</p>
         <video id="export-player" controls preload="metadata" hidden></video>
       </section>
     </div>
 
-    <section class="card">
-      <h2>Resultados del análisis</h2>
-      <div class="facts-grid">
-        <div><h3>Ritmo</h3><p id="tempo-summary">—</p></div>
-        <div><h3>Sincronía cortes↔beats</h3><p id="sync-summary">—</p></div>
-        <div><h3>Estado de la propuesta</h3><p id="proposal-summary">Sin propuesta.</p></div>
+    <!-- --------------------------- [RESUMEN] ---------------------------- -->
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Resumen</h2>
+        <span class="texto-ayuda" id="proposal-summary">Sin propuesta.</span>
       </div>
-      <div class="downloads" id="downloads"></div>
+      <div class="resumen" id="resumen"></div>
+      <!-- DESCARGAS agrupadas -->
+      <h3 style="margin-top:1rem">Descargas</h3>
+      <div class="descargas" id="downloads"><p class="texto-ayuda">Disponibles tras el análisis.</p></div>
+    </section>
 
-      <details open>
-        <summary>Cortes y eventos (<span id="cuts-count">0</span>)</summary>
-        <div class="table-wrap">
+    <!-- --------------------------- [TIMELINE] --------------------------- -->
+    <section class="tarjeta">
+      <h2>Línea de tiempo</h2>
+      <p class="texto-ayuda">Haz clic en cualquier punto para verlo en el reproductor.</p>
+      <div id="timeline"></div>
+      <ul class="leyenda">
+        <li><i class="muestra muestra-corte"></i> Corte</li>
+        <li><i class="muestra muestra-beat"></i> Beat</li>
+        <li><i class="muestra muestra-audio"></i> Sonido</li>
+        <li><i class="muestra muestra-normal"></i> Velocidad normal</li>
+        <li><i class="muestra muestra-acelera"></i> Más rápido</li>
+        <li><i class="muestra muestra-ralentiza"></i> Más lento</li>
+      </ul>
+    </section>
+
+    <!-- -------------------------- [SEGMENTOS] ---------------------------
+         Panel editable: quitar trozos y cambiar su velocidad.
+         ------------------------------------------------------------------ -->
+    <section class="tarjeta" id="segments-card" hidden>
+      <div class="tarjeta-cabecera">
+        <h2>Trozos del montaje</h2>
+        <span class="texto-ayuda">Desmarca lo que no quieras y ajusta la velocidad.</span>
+      </div>
+      <div class="lista-segmentos" id="segments-list"></div>
+      <div class="acciones-segmentos">
+        <button class="boton boton-mini boton-primario" id="btn-apply-segments" disabled>Aplicar cambios</button>
+        <button class="boton boton-mini" id="btn-reset-segments" disabled>Deshacer</button>
+        <span class="texto-ayuda" id="segments-note">Si cambias algo tendrás que aprobar de nuevo.</span>
+      </div>
+    </section>
+
+    <!-- --------------------------- [DETALLE] ----------------------------
+         Tablas técnicas, plegadas por defecto para no saturar la pantalla.
+         ------------------------------------------------------------------ -->
+    <section class="tarjeta">
+      <h2>Detalle técnico</h2>
+      <details>
+        <summary>Ritmo y sincronía</summary>
+        <p class="texto-ayuda" id="tempo-summary">—</p>
+        <p class="texto-ayuda" id="sync-summary">—</p>
+      </details>
+      <details>
+        <summary>Cortes y sonidos detectados (<span id="cuts-count">0</span>)</summary>
+        <div class="tabla-scroll">
           <table>
-            <thead><tr><th>Tiempo</th><th>Frame</th><th>Fuente</th><th>Motivo</th></tr></thead>
+            <thead><tr><th>Tiempo</th><th>Frame</th><th>Origen</th><th>Motivo</th></tr></thead>
             <tbody id="cuts-body"></tbody>
           </table>
         </div>
       </details>
-
       <details>
-        <summary>Rampas de velocidad (<span id="ramps-count">0</span>)</summary>
-        <div class="table-wrap">
+        <summary>Cambios de velocidad sugeridos (<span id="ramps-count">0</span>)</summary>
+        <div class="tabla-scroll">
           <table>
-            <thead><tr><th>Segmento</th><th>Frames</th><th>Duración</th><th>Factor</th><th>Motivo</th></tr></thead>
+            <thead><tr><th>Trozo</th><th>Frames</th><th>Duración</th><th>Factor</th><th>Motivo</th></tr></thead>
             <tbody id="ramps-body"></tbody>
-          </table>
-        </div>
-      </details>
-
-      <details>
-        <summary>Segmentos de la propuesta (<span id="segments-count">0</span>)</summary>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>#</th><th>Origen</th><th>Salida</th><th>Velocidad</th><th>setpts</th><th>Motivo</th></tr></thead>
-            <tbody id="segments-body"></tbody>
           </table>
         </div>
       </details>
     </section>
 
-    <footer class="foot">
-      <p>Todo el procesamiento ocurre en este equipo. El archivo original nunca se sobrescribe: las exportaciones se escriben en <code>output/video-edits/</code>. No se publica nada en redes sociales.</p>
+    <!-- TEXTOS: aviso legal / pie de página -->
+    <footer class="pie">
+      <p>Todo se procesa en este equipo. Tu archivo original nunca se modifica; los videos exportados se guardan en <code>output/video-edits/</code>. No se publica nada en redes sociales.</p>
     </footer>
-  </section>
-</main>
+  </main>
+</div>
 
 <script type="module" src="/editor/main.js"></script>
 </body>

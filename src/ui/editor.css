@@ -1,212 +1,323 @@
-/* AI Video Maker · Editor. Fondo claro, azul corporativo #003366,
-   azul eléctrico para acciones. Sin dependencias ni fuentes externas. */
+/* ============================================================================
+   AI VIDEO MAKER · EDITOR — hoja de estilos única, sin frameworks.
+   ----------------------------------------------------------------------------
+   Guía rápida para editar:
+     · COLORES          -> bloque "1. COLORES"
+     · TIPOGRAFÍA       -> bloque "2. TIPOGRAFÍA"
+     · ESPACIOS/BORDES  -> bloque "3. ESPACIOS, BORDES Y SOMBRAS"
+     · REPRODUCTOR      -> bloque "4. DIMENSIONES" (--player-height)
+     · BOTONES          -> sección "BOTONES"
+     · TARJETAS         -> sección "TARJETAS"
+     · LOGO             -> sección "CABECERA" (.logo-mark) y editor.html
+   Cambia los valores de :root y el resto de la interfaz se adapta sola.
+   ========================================================================== */
 
 :root {
-  --navy: #003366;
-  --navy-soft: #1b4f86;
-  --electric: #0066ff;
-  --electric-dark: #0047b3;
-  --teal: #0f8a8a;
-  --amber: #b45309;
-  --amber-bg: #fff7ed;
-  --crimson: #9b2226;
-  --crimson-bg: #fdf2f2;
-  --ink: #12243a;
-  --muted: #5b6b7f;
-  --line: #d9e1ea;
-  --surface: #ffffff;
-  --bg: #f3f6fa;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(0, 51, 102, .06), 0 8px 24px rgba(0, 51, 102, .07);
+  /* ---------------------- 1. COLORES (edita aquí) ------------------------ */
+  --color-primario: #003366;          /* azul corporativo: cabecera, títulos  */
+  --color-primario-oscuro: #00294f;   /* hover del botón primario            */
+  --color-primario-suave: #1b4f86;    /* acentos secundarios                 */
+  --color-accion: #0066ff;            /* azul eléctrico: acción principal    */
+  --color-accion-oscuro: #0047b3;     /* hover de la acción principal        */
+  --color-exito: #0f8a5f;             /* aprobado / terminado                */
+  --color-aviso: #b45309;             /* advertencias (ámbar)                */
+  --color-aviso-fondo: #fff7ed;
+  --color-error: #9b2226;             /* errores                             */
+  --color-error-fondo: #fdf2f2;
+  --color-ritmo: #0f8a8a;             /* beats y eventos de audio            */
+
+  --color-texto: #12243a;             /* texto principal                     */
+  --color-texto-suave: #5b6b7f;       /* texto secundario                    */
+  --color-borde: #d9e1ea;
+  --color-tarjeta: #ffffff;           /* fondo de las tarjetas               */
+  --color-fondo: #f3f6fa;             /* fondo general de la página          */
+  --color-fondo-suave: #eef3f9;       /* fondos de pistas y zonas inertes    */
+
+  /* ---------------------- 2. TIPOGRAFÍA --------------------------------- */
+  --fuente: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --texto-base: 15px;
+  --texto-pequeno: .84rem;
+  --texto-mini: .76rem;
+  --titulo-seccion: 1.05rem;
+  --titulo-pagina: 1.35rem;
+
+  /* ------------- 3. ESPACIOS, BORDES Y SOMBRAS -------------------------- */
+  --espacio-xs: .35rem;
+  --espacio-sm: .6rem;
+  --espacio-md: 1rem;
+  --espacio-lg: 1.4rem;
+  --radio: 14px;                      /* redondeo de tarjetas                */
+  --radio-boton: 10px;
+  --sombra: 0 1px 2px rgba(0,51,102,.06), 0 8px 24px rgba(0,51,102,.07);
+
+  /* ---------------------- 4. DIMENSIONES -------------------------------- */
+  --panel-ancho: 330px;               /* panel lateral izquierdo             */
+  --player-height: 340px;             /* ALTURA DEL REPRODUCTOR              */
+  --ancho-maximo: 1560px;
+  --boton-alto: 46px;                 /* altura de los botones grandes       */
+
   color-scheme: light;
 }
 
-* { box-sizing: border-box; }
-
-/* `video { display: block }` ganaría al atributo hidden del HTML: se restablece. */
+/* `video { display:block }` ganaría al atributo hidden del HTML: se restablece. */
 [hidden] { display: none !important; }
+
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font: var(--texto-base)/1.55 var(--fuente);
 }
 
-h1, h2, h3 { color: var(--navy); margin: 0 0 .5rem; line-height: 1.25; }
-h2 { font-size: 1.05rem; letter-spacing: .01em; }
-h3 { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-p { margin: .4rem 0; }
-code { background: #eef3f9; padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+h1, h2, h3 { color: var(--color-primario); margin: 0 0 var(--espacio-xs); line-height: 1.25; }
+h1 { font-size: var(--titulo-pagina); }
+h2 { font-size: var(--titulo-seccion); }
+h3 { font-size: var(--texto-mini); text-transform: uppercase; letter-spacing: .06em; color: var(--color-texto-suave); }
+p { margin: var(--espacio-xs) 0; }
+code { background: var(--color-fondo-suave); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
+.texto-ayuda { font-size: var(--texto-pequeno); color: var(--color-texto-suave); }
+.texto-suave { color: var(--color-texto-suave); }
 
-/* ------------------------------------------------------------- topbar */
-.topbar {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: .75rem 1.25rem;
-  background: var(--navy); color: #fff;
+:focus-visible { outline: 3px solid rgba(0,102,255,.45); outline-offset: 2px; }
+
+/* ============================ CABECERA =====================================
+   Para cambiar el logo: edita .logo-mark (abajo) y el <div class="logo"> del
+   HTML. El punto azul es puro CSS; puedes sustituirlo por un <img>.
+   ========================================================================= */
+.cabecera {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--espacio-md); padding: var(--espacio-sm) var(--espacio-lg);
+  background: var(--color-primario); color: #fff;
   position: sticky; top: 0; z-index: 10;
 }
-.brand { font-weight: 600; letter-spacing: .02em; display: flex; align-items: center; gap: .55rem; }
-.brand em { font-style: normal; opacity: .72; font-weight: 400; }
-.brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--electric); box-shadow: 0 0 0 3px rgba(0,102,255,.28); }
-.topbar-right { display: flex; align-items: center; gap: 1rem; }
-.topbar nav { display: flex; gap: .9rem; }
-.topbar a { color: #cfe0f5; text-decoration: none; font-size: .88rem; }
-.topbar a:hover { color: #fff; text-decoration: underline; }
+.logo { display: flex; align-items: center; gap: var(--espacio-sm); font-weight: 600; }
+.logo-mark { width: 11px; height: 11px; border-radius: 50%; background: var(--color-accion); box-shadow: 0 0 0 3px rgba(0,102,255,.28); }
+.logo em { font-style: normal; opacity: .72; font-weight: 400; }
+.cabecera-derecha { display: flex; align-items: center; gap: var(--espacio-md); }
+.menu { display: flex; gap: var(--espacio-md); }
+.menu a { color: #cfe0f5; text-decoration: none; font-size: var(--texto-pequeno); }
+.menu a:hover { color: #fff; text-decoration: underline; }
 
-.pill {
-  font-size: .78rem; font-weight: 600; padding: .3rem .7rem; border-radius: 999px;
-  background: rgba(255,255,255,.16); color: #fff; white-space: nowrap;
+/* ====================== INDICADOR DE ESTADO (stepper) ======================
+   Los pasos se marcan desde JavaScript con data-estado en .pasos.
+   ========================================================================= */
+.pasos { display: flex; flex-wrap: wrap; gap: var(--espacio-xs); list-style: none; margin: 0; padding: 0; }
+.paso {
+  display: flex; align-items: center; gap: .4rem; font-size: var(--texto-mini);
+  padding: .3rem .7rem; border-radius: 999px; background: rgba(255,255,255,.12); color: #cfe0f5;
 }
-.pill[data-state="analisis-completado"], .pill[data-state="aprobado"], .pill[data-state="exportado"] { background: #0f8a5f; }
-.pill[data-state="analizando"], .pill[data-state="cargando"], .pill[data-state="exportando"], .pill[data-state="creando-propuesta"] { background: var(--electric); }
-.pill[data-state="aprobacion-pendiente"] { background: var(--amber); }
-.pill[data-state="error"] { background: var(--crimson); }
-
-/* ------------------------------------------------------------- layout */
-.layout {
-  display: grid; grid-template-columns: 340px minmax(0, 1fr);
-  gap: 1.25rem; padding: 1.25rem; max-width: 1560px; margin: 0 auto; align-items: start;
+.paso-num {
+  width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255,255,255,.2); font-size: .68rem; font-weight: 700;
 }
-.panel { display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 4.25rem; }
-.workspace { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+.paso[data-activo="si"] { background: var(--color-accion); color: #fff; font-weight: 600; }
+.paso[data-activo="si"] .paso-num { background: rgba(255,255,255,.3); }
+.paso[data-hecho="si"] { background: var(--color-exito); color: #fff; }
+.paso[data-hecho="si"] .paso-num::after { content: "✓"; }
+.paso[data-hecho="si"] .paso-num { font-size: .7rem; }
+.paso[data-hecho="si"] .paso-num-texto { display: none; }
+.paso[data-error="si"] { background: var(--color-error); color: #fff; }
 
-.card {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 1.1rem 1.15rem; box-shadow: var(--shadow);
+/* ============================== ESTRUCTURA ================================ */
+.contenido {
+  display: grid; grid-template-columns: var(--panel-ancho) minmax(0, 1fr);
+  gap: var(--espacio-lg); padding: var(--espacio-lg);
+  max-width: var(--ancho-maximo); margin: 0 auto; align-items: start;
+}
+.panel-lateral { display: flex; flex-direction: column; gap: var(--espacio-md); position: sticky; top: 4.6rem; }
+.area-principal { display: flex; flex-direction: column; gap: var(--espacio-lg); min-width: 0; }
+
+/* ============================== TARJETAS ==================================
+   Todas las cajas blancas usan .tarjeta. Cambia --radio, --sombra o
+   --color-tarjeta arriba para afectarlas a todas de una vez.
+   ========================================================================= */
+.tarjeta {
+  background: var(--color-tarjeta); border: 1px solid var(--color-borde);
+  border-radius: var(--radio); padding: var(--espacio-md); box-shadow: var(--sombra);
+}
+.tarjeta-cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: var(--espacio-sm); margin-bottom: var(--espacio-xs); }
+.tarjeta-numero {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--color-primario); color: #fff; font-size: var(--texto-mini); font-weight: 700; margin-right: .45rem;
 }
 
-/* ------------------------------------------------------------- formulario */
-label { display: block; margin: .75rem 0; font-size: .87rem; color: var(--muted); font-weight: 500; }
-label.check { display: flex; align-items: center; gap: .55rem; color: var(--ink); }
+/* ============================== FORMULARIO ================================ */
+label { display: block; margin: var(--espacio-sm) 0; font-size: var(--texto-pequeno); color: var(--color-texto-suave); font-weight: 500; }
+.casilla { display: flex; align-items: center; gap: var(--espacio-sm); color: var(--color-texto); }
 select, input[type=number], input[type=text] {
-  display: block; width: 100%; margin-top: .3rem; padding: .55rem .65rem;
-  border: 1px solid var(--line); border-radius: 9px; background: #fff;
-  font: inherit; color: var(--ink);
+  display: block; width: 100%; margin-top: var(--espacio-xs); padding: .55rem .65rem;
+  border: 1px solid var(--color-borde); border-radius: 9px; background: #fff;
+  font: inherit; color: var(--color-texto);
 }
-select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible {
-  outline: 3px solid rgba(0,102,255,.45); outline-offset: 2px;
+input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--color-accion); margin: 0; flex: none; }
+
+.zona-archivo {
+  display: block; border: 2px dashed #b9c9db; border-radius: 12px; padding: var(--espacio-md);
+  text-align: center; cursor: pointer; background: #fbfdff; color: var(--color-primario);
+  font-weight: 600; transition: border-color .15s, background .15s;
 }
-input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--electric); margin: 0; }
+.zona-archivo:hover { border-color: var(--color-accion); background: #f5f9ff; }
+.zona-archivo input { display: block; width: 100%; margin-top: var(--espacio-sm); font-weight: 400; }
 
-.file-drop {
-  display: block; border: 2px dashed #b9c9db; border-radius: 12px;
-  padding: 1rem; text-align: center; cursor: pointer; background: #fbfdff;
-  color: var(--navy); font-weight: 600; transition: border-color .15s, background .15s;
+/* Ficha del archivo: nombre, tamaño, duración, FPS, resolución, códec, audio. */
+.ficha { display: grid; grid-template-columns: auto 1fr; gap: .2rem var(--espacio-sm); margin: var(--espacio-sm) 0 0; font-size: var(--texto-pequeno); }
+.ficha dt { color: var(--color-texto-suave); }
+.ficha dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+/* =============================== BOTONES ==================================
+   .boton           -> base (secundario, borde suave)
+   .boton-primario  -> azul corporativo  (Analizar video)
+   .boton-aprobar   -> verde             (Aprobar edición)
+   .boton-accion    -> azul eléctrico    (Exportar MP4)
+   Añade .boton-grande para los botones principales del panel.
+   ========================================================================= */
+.boton {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  width: 100%; margin-top: var(--espacio-sm); padding: .6rem 1rem; min-height: 40px;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-boton);
+  background: #fff; color: var(--color-primario);
+  font: inherit; font-weight: 600; cursor: pointer;
+  transition: background .15s, border-color .15s, transform .05s;
 }
-.file-drop:hover { border-color: var(--electric); background: #f5f9ff; }
-.file-drop input { display: block; width: 100%; margin-top: .6rem; font-weight: 400; }
+.boton:hover:not(:disabled) { background: #f0f5fc; border-color: var(--color-primario-suave); }
+.boton:active:not(:disabled) { transform: translateY(1px); }
+.boton:disabled { opacity: .45; cursor: not-allowed; }
+.boton-grande { min-height: var(--boton-alto); font-size: 1rem; }
+.boton-primario { background: var(--color-primario); border-color: var(--color-primario); color: #fff; }
+.boton-primario:hover:not(:disabled) { background: var(--color-primario-oscuro); border-color: var(--color-primario-oscuro); }
+.boton-aprobar { background: var(--color-exito); border-color: var(--color-exito); color: #fff; }
+.boton-aprobar:hover:not(:disabled) { background: #0c6f4c; border-color: #0c6f4c; }
+.boton-accion { background: var(--color-accion); border-color: var(--color-accion); color: #fff; }
+.boton-accion:hover:not(:disabled) { background: var(--color-accion-oscuro); border-color: var(--color-accion-oscuro); }
+.boton-mini { width: auto; margin: 0; padding: .3rem .7rem; min-height: 32px; font-size: var(--texto-pequeno); }
 
-.facts { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: .8rem 0 0; font-size: .85rem; }
-.facts dt { color: var(--muted); }
-.facts dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-
-.hint { font-size: .82rem; color: var(--muted); }
-
-/* ------------------------------------------------------------- botones */
-.btn {
-  display: block; width: 100%; margin-top: .7rem; padding: .62rem 1rem;
-  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--navy);
-  font: inherit; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, transform .05s;
-}
-.btn:hover:not(:disabled) { background: #f0f5fc; border-color: var(--navy-soft); }
-.btn:active:not(:disabled) { transform: translateY(1px); }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; }
-.btn-primary:hover:not(:disabled) { background: #00294f; border-color: #00294f; }
-.btn-accent { background: var(--electric); border-color: var(--electric); color: #fff; }
-.btn-accent:hover:not(:disabled) { background: var(--electric-dark); border-color: var(--electric-dark); }
-.btn-approve { background: #0f8a5f; border-color: #0f8a5f; color: #fff; }
-.btn-approve:hover:not(:disabled) { background: #0c6f4c; border-color: #0c6f4c; }
-
-/* ------------------------------------------------------------- estado */
-.statusbar { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .85rem 1.1rem; box-shadow: var(--shadow); }
-progress { width: 100%; height: 8px; border-radius: 999px; overflow: hidden; border: 0; background: #e4ecf5; }
+/* ========================= PROGRESO Y MENSAJES ============================ */
+.barra-estado { display: flex; align-items: center; gap: var(--espacio-md); }
+.barra-estado .progreso { flex: 1; }
+progress { width: 100%; height: 10px; border-radius: 999px; overflow: hidden; border: 0; background: #e4ecf5; }
 progress::-webkit-progress-bar { background: #e4ecf5; }
-progress::-webkit-progress-value { background: var(--electric); }
-progress::-moz-progress-bar { background: var(--electric); }
-#status { margin: .5rem 0 0; font-size: .9rem; color: var(--muted); }
-
-.alert { border-radius: var(--radius); padding: .85rem 1.1rem; font-size: .9rem; }
-.alert-error { background: var(--crimson-bg); border: 1px solid #edc9c9; color: var(--crimson); font-weight: 500; }
-.alert-warn { background: var(--amber-bg); border: 1px solid #f3d5ae; color: #7c3f06; }
-.alert-warn h3 { color: var(--amber); margin-bottom: .35rem; }
-.alert-warn ul { margin: 0; padding-left: 1.15rem; }
-.alert-warn li { margin: .3rem 0; }
-
-/* ------------------------------------------------------------- timeline */
-.tl { display: flex; flex-direction: column; gap: .5rem; margin-top: .6rem; }
-.tl-line { display: grid; grid-template-columns: 74px minmax(0, 1fr); align-items: center; gap: .6rem; }
-.tl-line-label { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-.tl-row { position: relative; height: 34px; background: #eef3f9; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.tl-rhythm { height: 22px; }
-.tl-cuts { height: 26px; }
-.tl-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; font-size: .78rem; color: var(--muted); }
-
-.tl-seg { position: absolute; top: 3px; bottom: 3px; border-radius: 5px; cursor: pointer; border: 1px solid rgba(255,255,255,.65); overflow: hidden; }
-.tl-seg--normal { background: var(--navy-soft); }
-.tl-seg--acelera { background: var(--electric); }
-.tl-seg--ralentiza { background: var(--teal); }
-.tl-seg:hover { filter: brightness(1.12); }
-.tl-seg-label { color: #fff; font-size: .68rem; font-weight: 600; padding: 0 .3rem; line-height: 28px; white-space: nowrap; }
-
-.tl-beat { position: absolute; top: 4px; bottom: 4px; width: 1px; background: #a9bccf; }
-.tl-beat.is-supported { background: var(--navy); width: 2px; }
-.tl-onset { position: absolute; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--teal); }
-
-.tl-cut { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; padding: 0; border: 0; background: var(--amber); cursor: pointer; }
-.tl-cut:hover { background: #d97706; width: 5px; margin-left: -2.5px; }
-
-.tl-axis { position: relative; height: 1.1rem; }
-.tl-axis-label { position: absolute; font-size: .7rem; color: var(--muted); transform: translateX(-50%); }
-.tl-axis-label:first-child { transform: none; }
-.tl-axis-label:last-child { transform: translateX(-100%); }
-
-.legend { display: flex; flex-wrap: wrap; gap: .9rem; list-style: none; padding: 0; margin: .9rem 0 0; font-size: .78rem; color: var(--muted); }
-.legend li { display: flex; align-items: center; gap: .35rem; }
-.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.sw-cut { background: var(--amber); } .sw-beat { background: var(--navy); }
-.sw-onset { background: var(--teal); border-radius: 50%; }
-.sw-normal { background: var(--navy-soft); } .sw-fast { background: var(--electric); } .sw-slow { background: var(--teal); }
-
-/* ------------------------------------------------------------- contenido */
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem; }
-video { width: 100%; max-height: 380px; background: #0b1b2b; border-radius: 10px; display: block; margin-top: .5rem; }
-
-.facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: .9rem; }
-.facts-grid p { font-size: .87rem; white-space: pre-line; }
-
-.downloads { display: flex; flex-wrap: wrap; gap: .6rem; margin: .5rem 0 1rem; }
-.download {
-  display: inline-block; padding: .45rem .85rem; border: 1px solid var(--line);
-  border-radius: 9px; text-decoration: none; color: var(--navy); font-size: .86rem; font-weight: 600; background: #fff;
+progress::-webkit-progress-value { background: var(--color-accion); transition: width .2s; }
+progress::-moz-progress-bar { background: var(--color-accion); }
+progress.trabajando::-webkit-progress-value { background: linear-gradient(90deg, var(--color-accion), #66a3ff, var(--color-accion)); }
+.mensaje-estado { margin: var(--espacio-xs) 0 0; font-size: var(--texto-pequeno); color: var(--color-texto-suave); }
+.etiqueta-estado {
+  font-size: var(--texto-mini); font-weight: 700; padding: .25rem .6rem; border-radius: 999px;
+  background: var(--color-fondo-suave); color: var(--color-primario); white-space: nowrap;
 }
-.download:hover { border-color: var(--electric); color: var(--electric); }
-.download.is-primary { background: var(--electric); border-color: var(--electric); color: #fff; }
-.download.is-primary:hover { background: var(--electric-dark); color: #fff; }
 
-details { border-top: 1px solid var(--line); padding-top: .6rem; margin-top: .6rem; }
-summary { cursor: pointer; font-weight: 600; color: var(--navy); font-size: .9rem; }
-.table-wrap { overflow-x: auto; margin-top: .6rem; }
-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
-th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+.aviso { border-radius: var(--radio); padding: var(--espacio-md); font-size: var(--texto-pequeno); }
+.aviso-error { background: var(--color-error-fondo); border: 1px solid #edc9c9; color: var(--color-error); font-weight: 500; }
+.aviso-atencion { background: var(--color-aviso-fondo); border: 1px solid #f3d5ae; color: #7c3f06; }
+.aviso-atencion h3 { color: var(--color-aviso); margin-bottom: var(--espacio-xs); }
+.aviso ul { margin: 0; padding-left: 1.15rem; }
+.aviso li { margin: .3rem 0; }
+
+/* ============================== TIMELINE ==================================
+   Tres pistas apiladas: segmentos, ritmo y cortes, sobre la duración original.
+   ========================================================================= */
+.linea-tiempo { display: flex; flex-direction: column; gap: var(--espacio-sm); margin-top: var(--espacio-sm); }
+.pista-fila { display: grid; grid-template-columns: 86px minmax(0, 1fr); align-items: center; gap: var(--espacio-sm); }
+.pista-nombre { font-size: var(--texto-mini); text-transform: uppercase; letter-spacing: .05em; color: var(--color-texto-suave); }
+.pista { position: relative; height: 40px; background: var(--color-fondo-suave); border: 1px solid var(--color-borde); border-radius: 8px; overflow: hidden; }
+.pista-ritmo { height: 26px; }
+.pista-cortes { height: 30px; }
+.pista-vacia { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; font-size: var(--texto-mini); color: var(--color-texto-suave); }
+
+.segmento { position: absolute; top: 3px; bottom: 3px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,255,255,.65); overflow: hidden; }
+.segmento-normal { background: var(--color-primario-suave); }
+.segmento-acelera { background: var(--color-accion); }
+.segmento-ralentiza { background: var(--color-ritmo); }
+.segmento:hover { filter: brightness(1.12); }
+.segmento-etiqueta { color: #fff; font-size: var(--texto-mini); font-weight: 600; padding: 0 .35rem; line-height: 32px; white-space: nowrap; }
+
+.beat { position: absolute; top: 5px; bottom: 5px; width: 1px; background: #a9bccf; }
+.beat-fuerte { background: var(--color-primario); width: 2px; }
+.evento-audio { position: absolute; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--color-ritmo); }
+.corte { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; padding: 0; border: 0; background: var(--color-aviso); cursor: pointer; }
+.corte:hover { background: #d97706; width: 5px; margin-left: -2.5px; }
+
+.eje { position: relative; height: 1.1rem; }
+.eje-marca { position: absolute; font-size: var(--texto-mini); color: var(--color-texto-suave); transform: translateX(-50%); }
+.eje-marca:first-child { transform: none; }
+.eje-marca:last-child { transform: translateX(-100%); }
+
+.leyenda { display: flex; flex-wrap: wrap; gap: var(--espacio-md); list-style: none; padding: 0; margin: var(--espacio-sm) 0 0; font-size: var(--texto-mini); color: var(--color-texto-suave); }
+.leyenda li { display: flex; align-items: center; gap: var(--espacio-xs); }
+.muestra { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.muestra-corte { background: var(--color-aviso); }
+.muestra-beat { background: var(--color-primario); }
+.muestra-audio { background: var(--color-ritmo); border-radius: 50%; }
+.muestra-normal { background: var(--color-primario-suave); }
+.muestra-acelera { background: var(--color-accion); }
+.muestra-ralentiza { background: var(--color-ritmo); }
+
+/* ============================ REPRODUCTORES ===============================
+   La altura se controla con --player-height (bloque 4. DIMENSIONES).
+   ========================================================================= */
+.videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--espacio-lg); }
+video { width: 100%; height: var(--player-height); background: #0b1b2b; border-radius: 10px; display: block; margin-top: var(--espacio-xs); object-fit: contain; }
+
+/* ========================= RESUMEN Y DESCARGAS ============================ */
+.resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--espacio-md); }
+.resumen-dato { background: var(--color-fondo-suave); border-radius: 10px; padding: var(--espacio-sm) var(--espacio-md); }
+.resumen-valor { font-size: 1.15rem; font-weight: 700; color: var(--color-primario); font-variant-numeric: tabular-nums; }
+.resumen-detalle { font-size: var(--texto-mini); color: var(--color-texto-suave); }
+
+.descargas { display: flex; flex-wrap: wrap; gap: var(--espacio-sm); }
+.descarga {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1rem;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-boton);
+  text-decoration: none; color: var(--color-primario); font-size: var(--texto-pequeno); font-weight: 600; background: #fff;
+}
+.descarga:hover { border-color: var(--color-accion); color: var(--color-accion); }
+.descarga-principal { background: var(--color-accion); border-color: var(--color-accion); color: #fff; }
+.descarga-principal:hover { background: var(--color-accion-oscuro); color: #fff; }
+
+/* ====================== PANEL DE SEGMENTOS EDITABLE ======================= */
+.lista-segmentos { display: flex; flex-direction: column; gap: var(--espacio-sm); margin-top: var(--espacio-sm); }
+.segmento-fila {
+  display: grid; grid-template-columns: 26px 1fr 150px 108px; align-items: center;
+  gap: var(--espacio-sm); padding: var(--espacio-sm); border: 1px solid var(--color-borde);
+  border-radius: 10px; background: #fff;
+}
+.segmento-fila[data-incluido="no"] { opacity: .5; background: var(--color-fondo-suave); }
+.segmento-indice { font-weight: 700; color: var(--color-primario); text-align: center; }
+.segmento-tiempo { font-size: var(--texto-pequeno); font-variant-numeric: tabular-nums; }
+.segmento-motivo { font-size: var(--texto-mini); color: var(--color-texto-suave); }
+.segmento-fila label { margin: 0; }
+.segmento-fila input[type=number] { margin: 0; }
+.acciones-segmentos { display: flex; flex-wrap: wrap; gap: var(--espacio-sm); align-items: center; margin-top: var(--espacio-md); }
+
+/* ============================== TABLAS ==================================== */
+details { border-top: 1px solid var(--color-borde); padding-top: var(--espacio-sm); margin-top: var(--espacio-sm); }
+summary { cursor: pointer; font-weight: 600; color: var(--color-primario); font-size: var(--texto-pequeno); }
+.tabla-scroll { overflow-x: auto; margin-top: var(--espacio-sm); }
+table { width: 100%; border-collapse: collapse; font-size: var(--texto-pequeno); }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--color-borde); vertical-align: top; }
+th { color: var(--color-texto-suave); font-weight: 600; font-size: var(--texto-mini); text-transform: uppercase; letter-spacing: .04em; }
 td { font-variant-numeric: tabular-nums; }
-.link { background: none; border: 0; padding: 0; color: var(--electric); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; text-decoration: underline; }
+.enlace-tiempo { background: none; border: 0; padding: 0; color: var(--color-accion); font: inherit; font-variant-numeric: tabular-nums; cursor: pointer; text-decoration: underline; }
 
-.foot { font-size: .8rem; color: var(--muted); padding: 0 .25rem 1rem; }
-.muted { color: var(--muted); font-size: .85rem; }
+.pie { font-size: var(--texto-mini); color: var(--color-texto-suave); padding: 0 .25rem var(--espacio-md); }
 
-/* ------------------------------------------------------------- responsive */
-@media (max-width: 1000px) {
-  .layout { grid-template-columns: 1fr; padding: .9rem; }
-  .panel { position: static; }
-  .tl-line { grid-template-columns: 60px minmax(0, 1fr); }
+/* ============================== RESPONSIVE ================================
+   1366 px es el objetivo principal de escritorio: el panel se estrecha para
+   que el área de trabajo siga siendo cómoda.
+   ========================================================================= */
+@media (max-width: 1400px) {
+  :root { --panel-ancho: 300px; --player-height: 300px; --espacio-lg: 1.1rem; }
 }
-@media (max-width: 560px) {
-  .topbar { flex-direction: column; align-items: flex-start; gap: .55rem; }
-  .topbar-right { flex-wrap: wrap; }
-  .tl-line { grid-template-columns: 1fr; }
-  .tl-line-label { margin-bottom: -.25rem; }
-  video { max-height: 240px; }
+@media (max-width: 1100px) {
+  .contenido { grid-template-columns: 1fr; }
+  .panel-lateral { position: static; }
+  .videos { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  :root { --player-height: 220px; }
+  .cabecera { flex-direction: column; align-items: flex-start; gap: var(--espacio-sm); }
+  .cabecera-derecha { flex-wrap: wrap; }
+  .pista-fila { grid-template-columns: 1fr; }
+  .segmento-fila { grid-template-columns: 26px 1fr; row-gap: var(--espacio-xs); }
 }

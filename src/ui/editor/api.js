@@ -47,6 +47,14 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
 
     getProposal: (id) => call(`${ENDPOINTS.edits}/${encodeURIComponent(id)}`),
 
+    /**
+     * Guarda los segmentos editados. El backend recalcula la línea de salida,
+     * invalida la aprobación y descarta el informe de exportación anterior.
+     */
+    updateSegments: (id, segments) => call(`${ENDPOINTS.edits}/${encodeURIComponent(id)}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ segments }),
+    }),
+
     approveProposal: (id, by) => call(`${ENDPOINTS.edits}/${encodeURIComponent(id)}/approve`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: true, by }),
     }),

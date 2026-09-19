@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { createApi, uploadVideo, poll, ApiError } from '../src/ui/editor/api.js';
 import { initialState, reduce, validateFile, canAnalyze, canPropose, canApprove, canExport, exportBlockedReason, formatBytes } from '../src/ui/editor/state.js';
 import { fileSummary, rhythmSummary, collectWarnings, timelineModel, SYNC_STATUS_TEXT, rampRow } from '../src/ui/editor/format.js';
+import { renameWithRetry } from '../src/core/project.js';
+import { validateSelection, hasChanges } from '../src/ui/editor/segments.js';
+import { summaryCards, proposalHeadline } from '../src/ui/editor/format.js';
 
 const file = (over = {}) => ({ name: 'clip.mp4', size: 1024 * 1024, type: 'video/mp4', ...over });
 const analysis = (over = {}) => ({
@@ -227,6 +230,68 @@ test('polling: no solapa peticiones, informa cada vuelta, termina y se puede can
   const failing = poll(async () => { throw new ApiError('Error HTTP 500', 500); }, { intervalMs: 1, isDone: () => false });
   await assert.rejects(failing.done, /Error HTTP 500/);
   assert.equal(failing.running, false);
+});
+
+// Panel de segmentos editable y resumen en lenguaje llano
+test('panel de segmentos: valida la selección y detecta cambios reales', () => {
+  const p = proposal({ segments: [
+    { sourceStart: 0, sourceEnd: 2, start: 0, end: 2, speed: 1, setptsFactor: 1, reason: 'corte-detectado' },
+    { sourceStart: 2, sourceEnd: 4, start: 2, end: 4, speed: 1, setptsFactor: 1, reason: 'corte-detectado' },
+  ] });
+  const sinCambios = [{ index: 0, speed: 1 }, { index: 1, speed: 1 }];
+  assert.equal(hasChanges(sinCambios, p), false, 'la selección idéntica no es un cambio');
+  assert.equal(hasChanges([{ index: 0, speed: 1 }], p), true, 'quitar un trozo es un cambio');
+  assert.equal(hasChanges([{ index: 0, speed: 1.25 }, { index: 1, speed: 1 }], p), true, 'cambiar velocidad es un cambio');
+  assert.equal(hasChanges([{ index: 0, speed: 1.001 }, { index: 1, speed: 1 }], p), false, 'un cambio imperceptible no cuenta');
+  // Quitar el segundo trozo deja una selección cuyo índice ya no coincide con la posición.
+  assert.equal(hasChanges([{ index: 1, speed: 1 }], p), true);
+
+  assert.equal(validateSelection(sinCambios), null);
+  assert.match(validateSelection([]), /al menos un trozo/);
+  assert.match(validateSelection([{ index: 0, speed: 9 }]), /entre 0\.5× y 2×/);
+  assert.match(validateSelection([{ index: 0, speed: 0.1 }]), /entre 0\.5× y 2×/);
+  assert.match(validateSelection([{ index: 2, speed: NaN }]), /trozo 3 tiene una velocidad vacía/);
+});
+
+test('resumen en lenguaje llano: cifras claras y sin jerga', () => {
+  const cards = summaryCards(analysis(), proposal());
+  const porEtiqueta = Object.fromEntries(cards.map(c => [c.etiqueta, c]));
+  assert.equal(porEtiqueta['Duración original'].valor, '6.0 s');
+  assert.equal(porEtiqueta['Cortes detectados'].valor, '1');
+  assert.equal(porEtiqueta['Ritmo de la música'].valor, '120 BPM');
+  assert.equal(porEtiqueta['Formato de salida'].valor, '9:16');
+  // Sin tempo se dice claramente, no se muestra un 0 engañoso.
+  const sinRitmo = analysis();
+  sinRitmo.local = { ...sinRitmo.local, tempo: null, beats: [] };
+  assert.equal(summaryCards(sinRitmo, null).find(c => c.etiqueta === 'Ritmo de la música').valor, 'Sin ritmo');
+  assert.deepEqual(summaryCards(null, null), []);
+
+  assert.match(proposalHeadline(null), /Aún no hay propuesta/);
+  assert.match(proposalHeadline(proposal()), /Pendiente de tu aprobación/);
+  assert.match(proposalHeadline(proposal({ approval: { status: 'aprobada' } })), /ya puedes exportar/);
+  assert.match(proposalHeadline(proposal({ export: { file: 'x.mp4' } })), /Exportado/);
+});
+
+// Robustez del guardado en Windows (flake real observado en la suite completa)
+test('renameWithRetry supera bloqueos transitorios y no enmascara errores reales', () => {
+  const waits = [];
+  let calls = 0;
+  const flaky = () => { if (++calls <= 2) { const e = new Error('EPERM'); e.code = 'EPERM'; throw e; } return 'ok'; };
+  assert.equal(renameWithRetry('a.tmp', 'a', { rename: flaky, sleep: ms => waits.push(ms) }), 'ok');
+  assert.equal(calls, 3, 'debe reintentar hasta lograrlo');
+  assert.deepEqual(waits, [25, 50], 'espera creciente entre intentos');
+
+  // Un error que no es de bloqueo se propaga de inmediato, sin reintentos.
+  let hardCalls = 0;
+  const hard = () => { hardCalls++; const e = new Error('ENOENT'); e.code = 'ENOENT'; throw e; };
+  assert.throws(() => renameWithRetry('a.tmp', 'a', { rename: hard, sleep: () => {} }), /ENOENT/);
+  assert.equal(hardCalls, 1);
+
+  // Si el bloqueo no cede, el error original llega al llamante.
+  let forever = 0;
+  const stuck = () => { forever++; const e = new Error('EBUSY'); e.code = 'EBUSY'; throw e; };
+  assert.throws(() => renameWithRetry('a.tmp', 'a', { attempts: 3, rename: stuck, sleep: () => {} }), /EBUSY/);
+  assert.equal(forever, 4, 'intento inicial más 3 reintentos');
 });
 
 // Advertencias de sincronía: se muestran, no se suavizan

@@ -49,7 +49,7 @@ try {
   page.on('response', r => { if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`); });
 
   await page.goto(`${base}/editor.html`);
-  await page.waitForFunction(() => document.getElementById('config-hint').textContent.includes('Modo local'));
+  await page.waitForFunction(() => document.getElementById('config-hint').textContent.includes('este equipo'));
   step('Carga de la página', 'modo local, sin clave Gemini');
 
   // Estado inicial: todo bloqueado.
@@ -77,9 +77,9 @@ try {
   step('Análisis completado', tempo.slice(0, 60));
 
   // La timeline se dibujó con cortes y ritmo.
-  assert.ok(await page.locator('.tl-cut').count() >= 1, 'se esperaba al menos un corte en la timeline');
-  assert.ok(await page.locator('.tl-beat').count() >= 2, 'se esperaban beats en la timeline');
-  step('Timeline', `${await page.locator('.tl-cut').count()} cortes, ${await page.locator('.tl-beat').count()} beats`);
+  assert.ok(await page.locator('.corte').count() >= 1, 'se esperaba al menos un corte en la timeline');
+  assert.ok(await page.locator('.beat').count() >= 2, 'se esperaban beats en la timeline');
+  step('Timeline', `${await page.locator('.corte').count()} cortes, ${await page.locator('.beat').count()} beats`);
 
   // El reproductor del original decodifica la previsualización.
   await page.waitForFunction(() => document.getElementById('source-player').readyState >= 2, null, { timeout: 30000 });
@@ -93,8 +93,10 @@ try {
   await page.selectOption('#format', '9:16');
   await page.locator('#btn-propose').click();
   await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Aprobación pendiente', null, { timeout: 60000 });
-  assert.match(await page.locator('#proposal-summary').textContent(), /9:16 · 1080×1920/);
-  assert.ok(await page.locator('.tl-seg').count() >= 1, 'se esperaban segmentos en la timeline');
+  assert.match(await page.locator('#resumen').textContent(), /9:16/);
+  assert.match(await page.locator('#resumen').textContent(), /1080×1920/);
+  assert.match(await page.locator('#proposal-summary').textContent(), /Pendiente de tu aprobación/);
+  assert.ok(await page.locator('.segmento').count() >= 1, 'se esperaban segmentos en la timeline');
   step('Propuesta creada', await page.locator('#proposal-summary').textContent());
 
   // 4. Exportar debe seguir bloqueado hasta aprobar.
@@ -107,11 +109,37 @@ try {
   const warningsText = warningsVisible ? await page.locator('#warnings').textContent() : '';
   if (warningsText.includes('atempo')) step('Advertencia de atempo', 'visible en la interfaz');
 
+  // 4bis. Panel de segmentos editable: cambiar velocidad obliga a reaprobar.
+  assert.equal(await page.locator('#segments-card').isVisible(), true);
+  const filas = await page.locator('.segmento-fila').count();
+  assert.ok(filas >= 1, 'se esperaba al menos un trozo editable');
+  assert.equal(await page.locator('#btn-apply-segments').isDisabled(), true, 'sin cambios no hay nada que aplicar');
+  // Sin tocar nada, el panel no debe acusar al usuario de haber vaciado el montaje.
+  const notaInicial = await page.locator('#segments-note').textContent();
+  assert.ok(!notaInicial.includes('al menos un trozo'), `nota inicial engañosa: ${notaInicial}`);
+  assert.equal(await page.locator('#btn-reset-segments').isDisabled(), true, 'sin cambios no hay nada que deshacer');
+  await page.locator('.segmento-velocidad').first().fill('1.25');
+  await page.locator('.segmento-velocidad').first().dispatchEvent('input');
+  await page.waitForFunction(() => !document.getElementById('btn-apply-segments').disabled);
+  // Una velocidad imposible se avisa en la interfaz y bloquea el guardado.
+  await page.locator('.segmento-velocidad').first().fill('9');
+  await page.locator('.segmento-velocidad').first().dispatchEvent('input');
+  await page.waitForFunction(() => document.getElementById('segments-note').textContent.includes('debe estar entre'));
+  assert.equal(await page.locator('#btn-apply-segments').isDisabled(), true);
+  await page.locator('.segmento-velocidad').first().fill('1.25');
+  await page.locator('.segmento-velocidad').first().dispatchEvent('input');
+  await page.waitForFunction(() => !document.getElementById('btn-apply-segments').disabled);
+  await page.locator('#btn-apply-segments').click();
+  await page.waitForFunction(() => document.getElementById('status').textContent.includes('Apruébalo de nuevo'));
+  assert.equal(await page.locator('#btn-export').isDisabled(), true, 'editar debe invalidar la aprobación');
+  step('Segmentos editables', `${filas} trozos; velocidad cambiada y aprobación invalidada`);
+
   // 5. Aprobar.
   await page.locator('#btn-approve').click();
   await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Aprobado', null, { timeout: 30000 });
   assert.equal(await page.locator('#btn-export').isDisabled(), false);
-  step('Aprobación', 'exportación habilitada');
+  assert.equal(await page.locator('.paso[data-paso="aprobacion"]').getAttribute('data-hecho'), 'si');
+  step('Aprobación', 'exportación habilitada, paso marcado');
 
   // 6. Exportar (doble clic inmediato: no debe lanzar dos exportaciones).
   await page.locator('#btn-export').click();
@@ -119,7 +147,7 @@ try {
   assert.equal(await page.locator('#btn-export').isDisabled(), true, 'el botón debe bloquearse durante la exportación');
   await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Exportado', null, { timeout: 300000 });
   const status = await page.locator('#status').textContent();
-  assert.match(status, /1080×1920 h264/);
+  assert.match(status, /1080×1920/);
   step('Exportación', status);
 
   // 7. Reproductor del exportado y descarga del MP4.
@@ -127,7 +155,7 @@ try {
   step('Reproductor del exportado', 'MP4 resultante decodificado en el navegador');
 
   const download = page.waitForEvent('download');
-  await page.locator('.download.is-primary').click();
+  await page.locator('.descarga-principal').click();
   const file = await download;
   const saved = path.join(dir, 'descargado.mp4');
   await file.saveAs(saved);
@@ -136,9 +164,9 @@ try {
   step('Descarga del MP4', `${bytes} bytes`);
 
   // Descargas del análisis.
-  for (const label of ['Descargar análisis JSON', 'Descargar cortes CSV']) {
+  for (const label of ['Datos del análisis (JSON)', 'Lista de cortes (CSV)']) {
     const d = page.waitForEvent('download');
-    await page.locator('.download', { hasText: label }).click();
+    await page.locator('.descarga', { hasText: label }).click();
     await (await d).saveAs(path.join(dir, label.includes('JSON') ? 'analisis.json' : 'cortes.csv'));
   }
   step('Descargas del análisis', 'JSON y CSV');

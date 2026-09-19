@@ -5,6 +5,33 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Cambiado — Rediseño del editor y segmentos editables (2026-09-18)
+
+- **Rediseño visual completo** del editor, pensado para uso no técnico:
+  indicador de 5 pasos en la cabecera, tarjetas numeradas, botones grandes
+  diferenciados por color, tarjeta de resumen con las cifras en lenguaje llano
+  y descargas agrupadas. La jerga (puntuaciones, fuerza vectorial, frames) se
+  movió a un bloque «Detalle técnico» plegado.
+- **Panel de segmentos editable**: quitar trozos del montaje y cambiar su
+  velocidad. Requiere el endpoint nuevo `PATCH /api/video-edits/:id`, que
+  recalcula la línea de salida y **siempre invalida la aprobación** y descarta
+  el informe de exportación anterior.
+- **CSS reorganizado para edición manual**: todas las variables de color,
+  tipografía, espacios y dimensiones agrupadas en `:root`, con nombres en
+  español y comentarios que indican dónde tocar cada cosa. `--player-height`
+  controla el alto del reproductor; `--panel-ancho`, el panel lateral.
+- HTML dividido en secciones marcadas (`[CABECERA]`, `[PANEL]`, `[TIMELINE]`,
+  `[SEGMENTOS]`…) con comentarios de edición para logo, textos y botones.
+- Responsive ajustado a 1366 px, el ancho de escritorio objetivo.
+- `src/ui/editor/segments.js`: módulo de vista del panel editable, con
+  `validateSelection` y `hasChanges` testeables sin navegador.
+
+### Corregido
+
+- El panel de segmentos mostraba «Deja al menos un trozo incluido» nada más
+  aparecer, porque inicializaba los botones con una selección vacía en vez de
+  leer la real. El smoke test ahora falla si vuelve a ocurrir.
+
 ### Añadido — Editor web (2026-09-18)
 
 - **Frontend del editor** en `/editor.html`, que cubre el flujo completo desde

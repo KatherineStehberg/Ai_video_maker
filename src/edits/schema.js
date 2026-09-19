@@ -34,6 +34,22 @@ export const outputDuration = s => (s.sourceEnd - s.sourceStart) * s.setptsFacto
 /** Duración estimada total: suma aritmética, sin consultar el archivo. */
 export const estimateDuration = segments => segments.reduce((total, s) => total + outputDuration(s), 0);
 
+/** Redondeo estable para que el JSON sea reproducible entre ejecuciones. */
+export const round6 = v => Number(v.toFixed(6));
+
+/**
+ * Recalcula la línea de salida contigua tras editar o eliminar segmentos.
+ * `sourceStart`/`sourceEnd` y `setptsFactor` mandan; `start`/`end` se derivan.
+ */
+export function relayout(segments) {
+  let cursor = 0;
+  return segments.map(s => {
+    const start = round6(cursor);
+    cursor += outputDuration(s);
+    return { ...s, start, end: round6(cursor) };
+  });
+}
+
 /**
  * Valida una propuesta completa. Lanza con un mensaje accionable en el primer
  * problema: ordenación, solapamiento, límites, coherencia speed/setptsFactor y

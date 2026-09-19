@@ -4,6 +4,9 @@
  */
 import { formatBytes } from './state.js';
 
+/** Límites de velocidad admitidos por el backend (filtro atempo). */
+export const SPEED_LIMITS = { min: 0.5, max: 2.0 };
+
 export const seconds = v => Number.isFinite(v) ? `${v.toFixed(3)} s` : '—';
 export const frame = e => e?.frame === null || e?.frame === undefined ? '—' : `${e.frameExact ? '' : '~'}${e.frame}`;
 
@@ -40,6 +43,40 @@ export function rhythmSummary(local) {
       ? `${local.sync.status} · ${local.sync.onBeat}/${local.sync.cuts} cortes dentro de ${(local.sync.toleranceSeconds * 1000).toFixed(0)} ms de un beat (${(local.sync.ratio * 100).toFixed(0)} %)`
       : `Sin describir: ${local.sync?.reason || 'sin datos'}`,
   };
+}
+
+/**
+ * Cifras principales en lenguaje llano, para la tarjeta de resumen.
+ * Lo técnico (fuerza vectorial, puntuaciones) vive en "Detalle técnico".
+ */
+export function summaryCards(analysis, proposal) {
+  if (!analysis?.metadata) return [];
+  const local = analysis.local || {};
+  const cards = [
+    { valor: `${analysis.metadata.duration.toFixed(1)} s`, etiqueta: 'Duración original',
+      detalle: `${analysis.metadata.width}×${analysis.metadata.height} · ${analysis.metadata.fps.toFixed(0)} fps` },
+    { valor: String((local.scenes || []).length), etiqueta: 'Cortes detectados',
+      detalle: (local.onsets || []).length ? `${local.onsets.length} sonidos destacados` : 'Sin sonidos destacados' },
+    local.tempo
+      ? { valor: `${local.tempo.bpm.toFixed(0)} BPM`, etiqueta: 'Ritmo de la música', detalle: `${(local.beats || []).length} beats detectados` }
+      : { valor: 'Sin ritmo', etiqueta: 'Ritmo de la música', detalle: 'No se detectó un pulso estable' },
+  ];
+  if (proposal) {
+    cards.push({ valor: `${proposal.segments.length}`, etiqueta: 'Trozos del montaje',
+      detalle: `Durará unos ${proposal.estimatedDuration.toFixed(1)} s` });
+    cards.push({ valor: proposal.format, etiqueta: 'Formato de salida',
+      detalle: `${proposal.dimensions.width}×${proposal.dimensions.height}` });
+  }
+  return cards;
+}
+
+/** Frase corta sobre el estado de la propuesta, sin jerga. */
+export function proposalHeadline(proposal) {
+  if (!proposal) return 'Aún no hay propuesta.';
+  const aprobada = !proposal.approvalRequired || proposal.approval?.status === 'aprobada';
+  if (proposal.export) return 'Exportado y listo para descargar.';
+  if (aprobada) return 'Aprobada: ya puedes exportar.';
+  return 'Pendiente de tu aprobación.';
 }
 
 export const SYNC_STATUS_TEXT = {

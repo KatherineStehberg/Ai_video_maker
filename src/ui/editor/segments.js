@@ -1,0 +1,113 @@
+/**
+ * Panel de segmentos editable. Sólo vista: dibuja una fila por trozo con una
+ * casilla para incluirlo y un control de velocidad, y devuelve lo que el
+ * usuario ha elegido. Quien llama decide cuándo enviarlo a la API.
+ *
+ * Clases CSS: ver editor.css, sección "PANEL DE SEGMENTOS EDITABLE".
+ */
+import { SPEED_LIMITS } from './format.js';
+
+const el = (tag, className, text) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+/** Etiqueta legible del motivo, sin jerga del backend. */
+const MOTIVOS = {
+  'beat-aligned': 'Ajustado a la música',
+  'corte-detectado': 'Corte detectado',
+  'ajuste-manual': 'Ajustado por ti',
+  'duracion-objetivo': 'Ajustado a la duración pedida',
+  'beat-aligned+duracion-objetivo': 'Ajustado a la música y a la duración',
+};
+
+/**
+ * Dibuja el panel. `onChange` se llama con la selección actual cada vez que el
+ * usuario toca algo, para que el llamante active el botón de aplicar.
+ */
+export function renderSegments(container, proposal, { onChange } = {}) {
+  container.replaceChildren();
+  if (!proposal?.segments?.length) return;
+
+  proposal.segments.forEach((s, index) => {
+    const fila = el('div', 'segmento-fila');
+    fila.dataset.incluido = 'si';
+    fila.dataset.index = String(index);
+
+    fila.append(el('span', 'segmento-indice', String(index + 1)));
+
+    const info = el('div');
+    info.append(
+      el('div', 'segmento-tiempo', `${s.sourceStart.toFixed(2)} s → ${s.sourceEnd.toFixed(2)} s  ·  dura ${(s.sourceEnd - s.sourceStart).toFixed(2)} s`),
+      el('div', 'segmento-motivo', MOTIVOS[s.reason] || s.reason),
+    );
+    fila.append(info);
+
+    // Velocidad: 1 = normal. Los límites son los que admite el backend.
+    const velocidad = el('label', 'texto-ayuda');
+    velocidad.append(document.createTextNode('Velocidad'));
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = '0.05';
+    input.min = String(SPEED_LIMITS.min);
+    input.max = String(SPEED_LIMITS.max);
+    input.value = s.speed.toFixed(2);
+    input.className = 'segmento-velocidad';
+    velocidad.append(input);
+    fila.append(velocidad);
+
+    const incluir = el('label', 'casilla texto-ayuda');
+    const casilla = document.createElement('input');
+    casilla.type = 'checkbox';
+    casilla.checked = true;
+    casilla.className = 'segmento-incluir';
+    incluir.append(casilla, document.createTextNode('Incluir'));
+    fila.append(incluir);
+
+    casilla.addEventListener('change', () => {
+      fila.dataset.incluido = casilla.checked ? 'si' : 'no';
+      input.disabled = !casilla.checked;
+      onChange?.(readSegments(container));
+    });
+    input.addEventListener('input', () => onChange?.(readSegments(container)));
+
+    container.append(fila);
+  });
+}
+
+/** Lee la selección actual en el formato que espera PATCH /api/video-edits/:id. */
+export function readSegments(container) {
+  const segments = [];
+  for (const fila of container.querySelectorAll('.segmento-fila')) {
+    if (fila.dataset.incluido === 'no') continue;
+    segments.push({
+      index: Number(fila.dataset.index),
+      speed: Number(fila.querySelector('.segmento-velocidad').value),
+    });
+  }
+  return segments;
+}
+
+/**
+ * Comprueba la selección antes de enviarla, para dar un mensaje claro en la
+ * interfaz en vez de esperar al error del backend.
+ */
+export function validateSelection(segments) {
+  if (!segments.length) return 'Deja al menos un trozo incluido.';
+  for (const s of segments) {
+    if (!Number.isFinite(s.speed)) return `El trozo ${s.index + 1} tiene una velocidad vacía o no numérica.`;
+    if (s.speed < SPEED_LIMITS.min || s.speed > SPEED_LIMITS.max) {
+      return `La velocidad del trozo ${s.index + 1} debe estar entre ${SPEED_LIMITS.min}× y ${SPEED_LIMITS.max}×.`;
+    }
+  }
+  return null;
+}
+
+/** ¿Difiere la selección de lo que hay en la propuesta guardada? */
+export function hasChanges(segments, proposal) {
+  if (!proposal?.segments) return false;
+  if (segments.length !== proposal.segments.length) return true;
+  return segments.some((s, i) => s.index !== i || Math.abs(s.speed - proposal.segments[i].speed) > 5e-3);
+}

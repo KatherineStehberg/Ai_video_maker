@@ -270,8 +270,33 @@ test('HTTP: crear, aprobar, exportar y descargar; rechazo sin aprobación', { ti
     assert.equal(download.headers.get('content-type'), 'video/mp4');
     assert.ok((await download.arrayBuffer()).byteLength > 1000);
 
+    // Editar segmentos invalida la aprobación y descarta el export anterior.
+    const patch = (body) => fetch(base + `/api/video-edits/${proposal.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const edited = await (await patch({ segments: [{ index: 0, speed: 1.25 }] })).json();
+    assert.equal(edited.segments.length, 1);
+    assert.equal(edited.approval.status, 'pendiente', 'editar debe invalidar la aprobación');
+    assert.equal(edited.export, null, 'el informe de exportación anterior ya no describe esta propuesta');
+    // Este fixture no tiene audio, así que nunca hubo rejilla: el estado sigue
+    // siendo 'datos-insuficientes'. Lo que nunca debe quedar es 'validado'.
+    assert.equal(edited.syncStatus, 'datos-insuficientes');
+    assert.notEqual(edited.syncStatus, 'validado');
+    assert.equal(edited.segments[0].reason, 'ajuste-manual');
+    assert.ok(Math.abs(edited.segments[0].speed * edited.segments[0].setptsFactor - 1) < 1e-9);
+    assert.equal(edited.segments[0].start, 0);
+    assert.ok(Math.abs(edited.estimatedDuration - edited.segments[0].end) < 1e-6);
+    // Y por tanto exportar vuelve a estar bloqueado.
+    assert.equal((await post(`/api/video-edits/${proposal.id}/export`, {})).status, 403);
+    // Entradas inválidas se rechazan con mensaje concreto.
+    assert.equal((await patch({ segments: [] })).status, 400);
+    assert.match((await (await patch({ segments: [{ index: 99 }] })).json()).error, /fuera de rango/);
+    assert.match((await (await patch({ segments: [{ index: 0, speed: 9 }] })).json()).error, /fuera del rango admitido/);
+    assert.match((await (await patch({ segments: [{ index: 0 }, { index: 0 }] })).json()).error, /orden y sin repetir/);
+
     const fetched = await (await fetch(base + `/api/video-edits/${proposal.id}`)).json();
-    assert.equal(fetched.syncStatus, result.syncStatus);
+    // La propuesta persistida refleja la edición, no el estado previo al PATCH.
+    assert.equal(fetched.segments.length, 1);
+    assert.equal(fetched.export, null);
+    assert.equal(fetched.approval.status, 'pendiente');
     assert.equal((await fetch(base + '/api/video-edits/11111111-1111-4111-8111-000000000000')).status, 404);
     assert.equal(await hash(fixture), before);
   } finally { await new Promise(r => server.close(r)); }

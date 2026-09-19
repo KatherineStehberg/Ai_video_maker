@@ -149,6 +149,30 @@ export function projectFile(id) {
   return path.join(PATHS.projects, `${id}.json`);
 }
 
+/** Espera sincrona breve, sin dependencias ni busy-wait de CPU. */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * En Windows, renameSync falla de forma transitoria con EPERM/EBUSY/EACCES
+ * cuando un antivirus o el indexador aun mantiene abierto el .tmp recien
+ * escrito. El contenido ya esta en disco: solo hay que reintentar el cambio de
+ * nombre. Se reintenta con espera creciente (~900 ms en total) y se propaga
+ * cualquier otro error sin enmascararlo.
+ */
+export function renameWithRetry(tmp, file, { attempts = 8, rename = fs.renameSync, sleep = sleepSync } = {}) {
+  const transient = new Set(['EPERM', 'EBUSY', 'EACCES']);
+  for (let i = 0; ; i++) {
+    try {
+      return rename(tmp, file);
+    } catch (e) {
+      if (i >= attempts || !transient.has(e.code)) throw e;
+      sleep(25 * (i + 1));
+    }
+  }
+}
+
 export function saveProject(p) {
   ensureDir(PATHS.projects);
   p.updatedAt = nowISO();
@@ -156,7 +180,7 @@ export function saveProject(p) {
   // Escritura atomica: evita dejar un JSON corrupto si el proceso muere a mitad.
   const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(p, null, 2), 'utf8');
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
   return file;
 }
 

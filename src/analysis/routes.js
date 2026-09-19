@@ -38,6 +38,36 @@ async function execute(j,file,dir,external) {
   finally {j.elapsedMs=Date.now()-began;j.finishedAt=new Date().toISOString();busy=false;try{persist(j);}catch{j.status='error';j.error='No se pudo guardar el análisis. Revisa el espacio y permisos del disco.';}}
 }
 
+/**
+ * Analiza un archivo que YA está en disco (por ejemplo el que acaba de producir
+ * un proveedor de generación) reutilizando exactamente el mismo `execute` que
+ * la subida por HTTP: mismos estados, mismo JSON, misma previsualización.
+ *
+ * El archivo de origen se COPIA a data/analyses/<id>/original y no se modifica.
+ * Nunca activa Gemini: la generación no envía material a servicios externos.
+ */
+export async function analyzeExistingFile(sourceFile, { label = null } = {}) {
+  if (busy) throw new Error('Hay un análisis o subida en curso; espera a que termine');
+  busy = true;
+  const id = randomUUID(), dir = path.join(root, id), file = path.join(dir, 'original');
+  try {
+    await fsp.mkdir(dir, { recursive: true });
+    await fsp.copyFile(sourceFile, file);
+    const { size } = await fsp.stat(file);
+    if (!size) throw new Error('El video de origen está vacío');
+    const j = { id, status: 'running', progress: 0, stage: 'Leyendo ffprobe',
+      createdAt: new Date().toISOString(), bytes: size, consent: null, source: label,
+      gemini: { status: 'disabled', reason: 'Análisis local: sin interpretación audiovisual de Gemini' }, cuts: [] };
+    jobs.set(id, j); persist(j);
+    await execute(j, file, dir, false);   // execute libera `busy` en su finally
+    return j;
+  } catch (e) {
+    busy = false;
+    await fsp.rm(dir, { recursive: true, force: true });
+    throw e;
+  }
+}
+
 export async function analysisRoute(req,res,url) {
   if(!url.pathname.startsWith('/api/analysis')) return false;
   if(!/^(::1|::ffff:127\.|127\.)/.test(req.socket.remoteAddress || '')){reply(res,403,{error:'Análisis disponible sólo desde este equipo'});return true;}

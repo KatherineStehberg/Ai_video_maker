@@ -116,6 +116,25 @@ inválidos (formato no soportado, `syncMode` desconocido, `targetDuration` ≤ 0
 
 Devuelve la propuesta guardada, incluido `export` si ya se exportó.
 
+### `PATCH /api/video-edits/:id`
+
+Edita los segmentos del montaje desde el panel editable del editor. Se envían
+los segmentos que se quieren **conservar**, identificados por su índice actual
+(en orden ascendente y sin repetir); los índices omitidos se eliminan.
+
+```json
+{ "segments": [ { "index": 0, "speed": 1.25 }, { "index": 2, "speed": 1 } ] }
+```
+
+El backend recalcula la línea de salida, revalida la propuesta y, **siempre**:
+
+- devuelve la aprobación a `pendiente` (editar invalida lo aprobado);
+- borra `export`, porque el informe anterior ya no describe esta propuesta;
+- devuelve `syncStatus` de `validado` a `propuesto` si lo estaba.
+
+Errores `400`: lista vacía, índice fuera de rango, índices desordenados o
+repetidos, o velocidad fuera de `0.5`–`2.0` (límite del filtro `atempo`).
+
 ### `POST /api/video-edits/:id/approve`
 
 Aprobación humana explícita. Exige `{"confirm": true}`; `by` es opcional.
@@ -179,6 +198,7 @@ permite probarlo sin navegador (`tests/ui.test.js`). Resumen del uso real:
 | Reproducir el original | `GET /api/analysis/:id/preview` |
 | Descargas del análisis | `GET /api/analysis/:id/export` y `?format=csv` |
 | Crear propuesta | `POST /api/video-edits` |
+| Editar los trozos | `PATCH /api/video-edits/:id` |
 | Aprobar | `POST /api/video-edits/:id/approve` con `{"confirm": true}` |
 | Exportar | `POST /api/video-edits/:id/export` |
 | Reproducir y descargar | `GET /api/video-edits/:id/file` |

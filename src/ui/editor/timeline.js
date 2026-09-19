@@ -1,4 +1,10 @@
-/** Timeline visual. Sólo dibuja: recibe el modelo ya derivado y avisa al hacer clic. */
+/**
+ * Línea de tiempo visual. Sólo dibuja: recibe el modelo ya derivado por
+ * format.js y avisa por callback cuando se hace clic. No habla con la API.
+ *
+ * Clases CSS usadas (ver editor.css, sección TIMELINE):
+ *   .pista-fila / .pista-nombre / .pista / .segmento / .beat / .corte / .eje
+ */
 import { timelineModel } from './format.js';
 
 const el = (tag, className, text) => {
@@ -12,76 +18,70 @@ export function renderTimeline(container, analysis, proposal, { onSeek } = {}) {
   const model = timelineModel(analysis, proposal);
   container.replaceChildren();
   if (!model) {
-    container.append(el('p', 'muted', 'La timeline aparecerá cuando haya un análisis.'));
+    container.append(el('p', 'texto-ayuda', 'Aquí verás los cortes y el ritmo en cuanto analices un video.'));
     return;
   }
 
-  const track = el('div', 'tl');
-  track.style.setProperty('--tl-duration', String(model.duration));
+  const linea = el('div', 'linea-tiempo');
 
-  // Capa 1: segmentos propuestos (si los hay), como bloques de fondo.
-  const segments = el('div', 'tl-row tl-segments');
+  // Pista 1: trozos del montaje propuesto, coloreados según su velocidad.
+  const segmentos = el('div', 'pista pista-segmentos');
   if (model.segments.length) {
     for (const s of model.segments) {
-      const block = el('div', `tl-seg tl-seg--${s.kind}`);
-      block.style.left = `${s.at * 100}%`;
-      block.style.width = `${Math.max(s.width * 100, 0.4)}%`;
-      block.title = `Segmento ${s.index + 1}: ${s.sourceStart.toFixed(3)}–${s.sourceEnd.toFixed(3)} s · ${s.speed.toFixed(4)}× (${s.reason})`;
-      block.append(el('span', 'tl-seg-label', s.kind === 'normal' ? '1×' : `${s.speed.toFixed(2)}×`));
-      block.addEventListener('click', () => onSeek?.(s.sourceStart));
-      segments.append(block);
+      const bloque = el('div', `segmento segmento-${s.kind}`);
+      bloque.style.left = `${s.at * 100}%`;
+      bloque.style.width = `${Math.max(s.width * 100, 0.4)}%`;
+      bloque.title = `Trozo ${s.index + 1}: ${s.sourceStart.toFixed(2)}–${s.sourceEnd.toFixed(2)} s · ${s.speed.toFixed(2)}×`;
+      bloque.append(el('span', 'segmento-etiqueta', s.kind === 'normal' ? `${s.index + 1}` : `${s.index + 1} · ${s.speed.toFixed(2)}×`));
+      bloque.addEventListener('click', () => onSeek?.(s.sourceStart));
+      segmentos.append(bloque);
     }
   } else {
-    segments.append(el('p', 'tl-empty', 'Sin propuesta todavía: crea una para ver los segmentos.'));
+    segmentos.append(el('p', 'pista-vacia', 'Crea una propuesta para ver los trozos.'));
   }
 
-  // Capa 2: beats (marcas finas) y onsets (puntos).
-  const rhythm = el('div', 'tl-row tl-rhythm');
+  // Pista 2: beats de la música y sonidos destacados.
+  const ritmo = el('div', 'pista pista-ritmo');
   for (const b of model.beats) {
-    const tick = el('div', `tl-beat${b.supported ? ' is-supported' : ''}`);
-    tick.style.left = `${b.at * 100}%`;
-    tick.title = `Beat en ${b.timestamp.toFixed(3)} s`;
-    rhythm.append(tick);
+    const marca = el('div', `beat${b.supported ? ' beat-fuerte' : ''}`);
+    marca.style.left = `${b.at * 100}%`;
+    marca.title = `Beat · ${b.timestamp.toFixed(2)} s`;
+    ritmo.append(marca);
   }
   for (const o of model.onsets) {
-    const dot = el('div', 'tl-onset');
-    dot.style.left = `${o.at * 100}%`;
-    dot.title = `Evento de audio en ${o.timestamp.toFixed(3)} s`;
-    rhythm.append(dot);
+    const punto = el('div', 'evento-audio');
+    punto.style.left = `${o.at * 100}%`;
+    punto.title = `Sonido · ${o.timestamp.toFixed(2)} s`;
+    ritmo.append(punto);
   }
-  if (!model.beats.length && !model.onsets.length) rhythm.append(el('p', 'tl-empty', 'Sin eventos de audio detectados.'));
+  if (!model.beats.length && !model.onsets.length) ritmo.append(el('p', 'pista-vacia', 'No se detectó ritmo en el audio.'));
 
-  // Capa 3: cortes visuales, con su número de frame.
-  const cuts = el('div', 'tl-row tl-cuts');
+  // Pista 3: cortes visuales detectados.
+  const cortes = el('div', 'pista pista-cortes');
   for (const c of model.cuts) {
-    const mark = el('button', 'tl-cut');
-    mark.type = 'button';
-    mark.style.left = `${c.at * 100}%`;
-    mark.title = `Corte en ${c.timestamp.toFixed(3)} s · frame ${c.frameExact ? '' : '~'}${c.frame}`;
-    mark.setAttribute('aria-label', mark.title);
-    mark.addEventListener('click', () => onSeek?.(c.timestamp));
-    cuts.append(mark);
+    const marca = el('button', 'corte');
+    marca.type = 'button';
+    marca.style.left = `${c.at * 100}%`;
+    marca.title = `Corte · ${c.timestamp.toFixed(2)} s (frame ${c.frameExact ? '' : '~'}${c.frame})`;
+    marca.setAttribute('aria-label', marca.title);
+    marca.addEventListener('click', () => onSeek?.(c.timestamp));
+    cortes.append(marca);
   }
-  if (!model.cuts.length) cuts.append(el('p', 'tl-empty', 'Sin cortes visuales detectados.'));
+  if (!model.cuts.length) cortes.append(el('p', 'pista-vacia', 'No se detectaron cortes.'));
 
-  const axis = el('div', 'tl-axis');
+  const eje = el('div', 'eje');
   for (let i = 0; i <= 4; i++) {
-    const label = el('span', 'tl-axis-label', `${(model.duration * i / 4).toFixed(1)} s`);
-    label.style.left = `${i * 25}%`;
-    axis.append(label);
+    const marca = el('span', 'eje-marca', `${(model.duration * i / 4).toFixed(1)} s`);
+    marca.style.left = `${i * 25}%`;
+    eje.append(marca);
   }
 
-  track.append(
-    labelled('Segmentos', segments),
-    labelled('Ritmo', rhythm),
-    labelled('Cortes', cuts),
-    axis,
-  );
-  container.append(track);
+  linea.append(fila('Trozos', segmentos), fila('Ritmo', ritmo), fila('Cortes', cortes), eje);
+  container.append(linea);
 }
 
-function labelled(text, row) {
-  const wrap = el('div', 'tl-line');
-  wrap.append(el('span', 'tl-line-label', text), row);
+function fila(nombre, pista) {
+  const wrap = el('div', 'pista-fila');
+  wrap.append(el('span', 'pista-nombre', nombre), pista);
   return wrap;
 }

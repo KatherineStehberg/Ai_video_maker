@@ -17,7 +17,27 @@ El editor cubre el flujo entero sin `curl` ni scripts: seleccionar un MP4, ver n
 
 **La exportación está bloqueada** mientras no haya propuesta, no esté aprobada, el análisis haya fallado o el archivo no sea válido. La interfaz dice siempre cuál de esas condiciones falta, y el botón vuelve a bloquearse mientras FFmpeg trabaja para impedir una segunda exportación simultánea.
 
+El **panel «Trozos del montaje»** permite quitar partes y cambiar su velocidad. Editar algo invalida siempre la aprobación y descarta la exportación anterior: lo aprobado y lo medido ya no describirían ese montaje.
+
 Las otras dos páginas siguen disponibles y sin cambios: `/analysis.html` (análisis detallado, con la interpretación opcional de Gemini) y `/` (estudio de creación desde guiones).
+
+### Personalizar la interfaz
+
+Tres archivos, sin frameworks ni paso de compilación. Edita y recarga el navegador.
+
+| Quiero cambiar… | Dónde |
+|---|---|
+| Colores | `src/ui/editor.css`, bloque `1. COLORES` dentro de `:root` |
+| Tipografía y tamaños de texto | `src/ui/editor.css`, bloque `2. TIPOGRAFÍA` |
+| Espaciado, redondeo y sombras | `src/ui/editor.css`, bloque `3. ESPACIOS, BORDES Y SOMBRAS` |
+| Alto del reproductor | `--player-height`, bloque `4. DIMENSIONES` |
+| Ancho del panel lateral | `--panel-ancho`, mismo bloque |
+| Logo | `src/ui/editor.html`, sección `[CABECERA]` (`.logo-mark`) y el `<link rel="icon">` |
+| Textos y etiquetas | `src/ui/editor.html`, comentarios `TEXTOS:` |
+| Botones | `src/ui/editor.css`, sección `BOTONES` (`.boton-primario`, `.boton-aprobar`, `.boton-accion`) |
+| Tarjetas | `src/ui/editor.css`, sección `TARJETAS` (`.tarjeta`) |
+
+El HTML está dividido en secciones marcadas con comentarios en mayúsculas (`[CABECERA]`, `[PANEL]`, `[ESTADO]`, `[VIDEOS]`, `[RESUMEN]`, `[TIMELINE]`, `[SEGMENTOS]`, `[DETALLE]`). La lógica está separada por responsabilidad en `src/ui/editor/`: `api.js` habla con el backend, `state.js` decide qué se puede hacer, `format.js` convierte datos en texto, y `timeline.js`, `segments.js`, `player.js` y `messages.js` sólo dibujan. `main.js` se limita a coordinar.
 
 ## Instalación y arranque
 

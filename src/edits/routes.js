@@ -5,7 +5,7 @@ import { PATHS, ensureDir } from '../lib/paths.js';
 import { get as getAnalysis } from '../analysis/routes.js';
 import { planEdit } from './plan.js';
 import { exportEdit } from './export.js';
-import { validateProposal } from './schema.js';
+import { validateProposal, relayout, round6, SPEED_LIMITS } from './schema.js';
 import { ASPECTS } from '../config.js';
 
 const root = path.join(PATHS.data, 'video-edits');
@@ -71,6 +71,45 @@ export async function editsRoute(req, res, url) {
     const action = parts[3];
 
     if (req.method === 'GET' && !action) { reply(res, 200, proposal); return true; }
+
+    /**
+     * Edición manual de segmentos desde la interfaz. El cliente envía los
+     * segmentos que quiere CONSERVAR, identificados por su índice actual, con
+     * la velocidad deseada; los índices omitidos se eliminan del montaje.
+     *
+     * Editar SIEMPRE invalida la aprobación y descarta el informe de
+     * exportación anterior: lo aprobado y lo medido ya no describen esta
+     * propuesta. Es la misma regla que impide exportar sin aprobación.
+     */
+    if (req.method === 'PATCH' && !action) {
+      const body = await readJson(req);
+      if (!Array.isArray(body.segments) || !body.segments.length) throw new Error('Se requiere al menos un segmento; una propuesta vacía no se puede exportar');
+      let previous = -1;
+      const segments = body.segments.map(entry => {
+        const index = Number(entry.index);
+        if (!Number.isInteger(index) || index < 0 || index >= proposal.segments.length) throw new Error(`Índice de segmento fuera de rango: ${entry.index}`);
+        if (index <= previous) throw new Error('Los segmentos deben enviarse en orden y sin repetir');
+        previous = index;
+        const source = proposal.segments[index];
+        const speed = entry.speed === undefined ? source.speed : Number(entry.speed);
+        if (!Number.isFinite(speed) || speed < SPEED_LIMITS.min || speed > SPEED_LIMITS.max) {
+          throw new Error(`Velocidad ${entry.speed} fuera del rango admitido ${SPEED_LIMITS.min}–${SPEED_LIMITS.max}×`);
+        }
+        const setptsFactor = round6(1 / speed);
+        const changed = Math.abs(speed - source.speed) > 1e-6;
+        return { ...source, setptsFactor, speed: 1 / setptsFactor, reason: changed ? 'ajuste-manual' : source.reason };
+      });
+      proposal.segments = relayout(segments);
+      proposal.estimatedDuration = round6(proposal.segments.at(-1).end);
+      validateProposal(proposal, { duration: proposal.sourceDuration });
+      proposal.approval = { status: proposal.approvalRequired ? 'pendiente' : 'no-requerida', at: null, by: null };
+      proposal.export = null;
+      if (proposal.syncStatus === 'validado') proposal.syncStatus = 'propuesto';
+      proposal.editedAt = new Date().toISOString();
+      saveProposal(proposal);
+      reply(res, 200, proposal);
+      return true;
+    }
 
     if (req.method === 'GET' && action === 'file') {
       if (!proposal.export) { reply(res, 409, { error: 'La propuesta todavía no se ha exportado' }); return true; }
