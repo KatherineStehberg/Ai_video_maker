@@ -1,9 +1,10 @@
 /**
  * Smoke test del flujo de generación con IA, desde el navegador:
- *   prompt -> generación (mock) -> análisis -> edición -> aprobación -> MP4
+ *   prompt -> guion -> escenas -> voz -> subtitulos -> MP4 -> analisis ->
+ *   edicion -> aprobacion -> exportacion
  *
  * Requiere Node 20+ y playwright-core en .tmp/browser-tools (ver README).
- * Usa el proveedor mock: no gasta créditos ni contacta ningún servicio externo.
+ * Usa el proveedor `pipeline`: montaje local real, sin creditos ni red.
  */
 import { chromium } from '../.tmp/browser-tools/node_modules/playwright-core/index.mjs';
 import { createServer } from '../src/server.js';
@@ -12,7 +13,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 
 process.env.GEMINI_API_KEY = '';        // nunca una llamada de pago desde un smoke
-process.env.VIDEO_GEN_PROVIDER = 'mock';
+process.env.VIDEO_GEN_PROVIDER = 'pipeline';   // montaje local real, no el mock
 
 const dir = path.resolve('.tmp/generation-smoke');
 await fs.mkdir(dir, { recursive: true });
@@ -38,8 +39,8 @@ try {
   page.on('response', r => { if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`); });
 
   await page.goto(`${base}/editor.html`);
-  await page.waitForFunction(() => document.getElementById('gen-provider-hint').textContent.includes('mock'));
-  step('Carga de la página', 'proveedor mock anunciado como video de prueba');
+  await page.waitForFunction(() => document.getElementById('gen-provider-hint').textContent.length > 20);
+  step('Carga de la página', await page.locator('#gen-provider-hint').textContent());
 
   // 1. Elegir el modo de generación.
   await page.locator('#mode-prompt').click();
@@ -48,35 +49,60 @@ try {
   assert.ok(await page.locator('#gen-style option').count() >= 1, 'los estilos deben venir del backend');
   step('Modo elegido', 'crear video con un prompt');
 
-  // 2. Un prompt vacío no lanza nada.
-  await page.locator('#btn-generate').click();
+  // 2. Un prompt vacío no lanza nada. «Crear video» además nace bloqueado:
+  // no se puede producir sin haber revisado antes un borrador.
+  assert.equal(await page.locator('#btn-generate').isDisabled(), true);
+  await page.locator('#btn-draft').click();
   await page.waitForFunction(() => !document.getElementById('error').hidden);
   assert.match(await page.locator('#error').textContent(), /Escribe un prompt/);
   step('Validación', 'prompt vacío rechazado en la interfaz');
 
-  // 3. Rellenar el formulario y generar.
+  // 3. Rellenar el formulario y pedir el BORRADOR (sin producir nada).
   await page.locator('#prompt').fill(PROMPT);
-  await page.selectOption('#gen-duration', '8');
+  await page.selectOption('#gen-duration', '15');
   await page.selectOption('#gen-format', '9:16');
-  // Los campos opcionales viven tras un desplegable: hay que abrirlo.
   await page.locator('#panel-prompt summary', { hasText: 'Detalles opcionales' }).click();
   await page.locator('#gen-platform').fill('TikTok');
+
+  assert.equal(await page.locator('#btn-generate').isDisabled(), true, 'sin borrador no se puede crear el video');
+  await page.locator('#btn-draft').click();
+  await page.waitForFunction(() => !document.getElementById('draft-card').hidden, null, { timeout: 60000 });
+  const escenas = await page.locator('.escena').count();
+  assert.ok(escenas >= 3, `se esperaban varias escenas, hubo ${escenas}`);
+  // El guion tiene que hablar del tema del prompt, no ser texto de relleno.
+  const narraciones = await page.$$eval('.escena-text', nodos => nodos.map(n => n.value));
+  assert.ok(narraciones.some(t => /ingl[eé]s/i.test(t)), `el guion no menciona el tema: ${JSON.stringify(narraciones)}`);
+  assert.match(await page.locator('#draft-cost').textContent(), /Sin coste|créditos/);
+  step('Borrador de guion', `${escenas} escenas · ${await page.locator('#draft-source').textContent()}`);
+
+  // 4. Editar una escena y regenerar otra.
+  await page.locator('.escena-titulo').first().fill('Aprende inglés online');
+  await page.locator('.escena-text').first().fill('Aprende inglés online a tu ritmo, con clases pensadas para adultos.');
+  await page.locator('.escena').nth(1).locator('button', { hasText: 'Regenerar escena' }).click();
+  await page.waitForFunction(() => document.getElementById('status').textContent.includes('regenerada'), null, { timeout: 60000 });
+  step('Edición del guion', 'escena editada y otra regenerada');
+
+  // 5. Producir el video real.
+  assert.equal(await page.locator('#btn-generate').isDisabled(), false);
   await page.locator('#btn-generate').click();
 
   await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Generando video', null, { timeout: 30000 });
   step('Generación en curso', 'estado visible durante el proceso');
 
-  // 4. El encadenado termina con la propuesta lista y pendiente de aprobación.
-  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Aprobación pendiente', null, { timeout: 300000 });
+  // 6. El encadenado termina con la propuesta lista y pendiente de aprobación.
+  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Aprobación pendiente', null, { timeout: 900000 });
   assert.match(await page.locator('#prompt-used').textContent(), /clases de inglés online/);
   assert.match(await page.locator('#prompt-specs').textContent(), /TikTok/);
-  assert.match(await page.locator('#gen-provider-badge').textContent(), /mock|prueba/i);
+  assert.match(await page.locator('#gen-provider-badge').textContent(), /Montaje local/i);
   step('Generación completada', 'prompt y parámetros visibles junto al resultado');
 
-  // El aviso de que es material de prueba tiene que estar a la vista.
+  // La procedencia de cada pieza tiene que estar a la vista.
   assert.equal(await page.locator('#warnings').isVisible(), true);
-  assert.match(await page.locator('#warnings').textContent(), /MOCK|prueba/i);
-  step('Advertencia de mock', 'la interfaz no lo presenta como IA real');
+  const avisos = await page.locator('#warnings').textContent();
+  assert.match(avisos, /Guion:/);
+  assert.match(avisos, /Visuales:/);
+  assert.ok(!/MOCK/i.test(avisos), 'el pipeline real no debe anunciarse como mock');
+  step('Procedencia declarada', avisos.replace(/\s+/g, ' ').slice(0, 90));
 
   // 5. El análisis encadenado pobló resumen y timeline.
   assert.match(await page.locator('#resumen').textContent(), /Cortes detectados/);
@@ -122,7 +148,7 @@ try {
   assert.deepEqual(errors, [], 'la página no debe producir errores');
 
   const result = { browser: await browser.version(), prompt: PROMPT, steps, exportStatus: status.trim(),
-    downloadedBytes: bytes, pageErrors: errors, provider: 'mock', gemini: 'not called' };
+    downloadedBytes: bytes, pageErrors: errors, provider: process.env.VIDEO_GEN_PROVIDER, gemini: 'not called' };
   await fs.writeFile(path.join(dir, 'generation-smoke-result.json'), JSON.stringify(result, null, 2));
   console.log('\n' + JSON.stringify(result));
 } finally {

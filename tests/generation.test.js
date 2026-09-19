@@ -7,6 +7,10 @@ import { probe } from '../src/analysis/local.js';
 import { normalizeSpec, STATES, FORMATS, STYLES } from '../src/generation/jobs.js';
 import { getProvider, listProviders, PROVIDERS } from '../src/providers/video-generation/index.js';
 import { PALETAS, colorDePlano } from '../src/providers/video-generation/mock.js';
+import { pipelineProvider, elegirTemplate } from '../src/providers/video-generation/pipeline.js';
+import { draftJob, estimarCosto } from '../src/generation/jobs.js';
+import { draftScript, extraerTema } from '../src/generation/script.js';
+import { ffmpegRun } from '../src/lib/ffmpeg.js';
 
 const dir = path.resolve('.tmp/generation-test');
 
@@ -36,11 +40,15 @@ test('validación del prompt: rechaza lo inválido con mensajes accionables', ()
   assert.equal(largo.platform.length, 300);
 });
 
-test('registro de proveedores: sólo el mock funciona y ninguno filtra claves', async () => {
+test('registro de proveedores: el real y el mock funcionan; las ranuras no, y ninguno filtra claves', async () => {
   const lista = listProviders();
   const mock = lista.find(p => p.id === 'mock');
   assert.equal(mock.configured, true);
   assert.equal(mock.mock, true);
+  // El montaje local real está disponible y NO se declara mock.
+  const real = lista.find(p => p.id === 'pipeline');
+  assert.equal(real.configured, true);
+  assert.equal(real.mock, false);
   // Las ranuras declaradas existen pero NO están implementadas ni configuradas.
   for (const id of ['api', 'local']) {
     const ranura = lista.find(p => p.id === id);
@@ -114,6 +122,107 @@ test('proveedor mock: produce un MP4 real, determinista y marcado como prueba', 
   assert.notDeepEqual(distinto.spec, salida.spec);
 });
 
+test('guion local: extrae el tema y redacta escenas que hablan de él', async () => {
+  const prompt = 'Video vertical promocional sobre clases de inglés online para adultos, tono cercano y profesional.';
+  assert.equal(extraerTema(prompt), 'clases de inglés online para adultos');
+  // El envoltorio descriptivo y la coletilla de tono no forman parte del tema.
+  assert.equal(extraerTema('Un reel sobre panadería artesanal'), 'panadería artesanal');
+  assert.equal(extraerTema('Reparación de bicicletas'), 'Reparación de bicicletas');
+  assert.ok(extraerTema('').length === 0 || typeof extraerTema('') === 'string');
+
+  const d = await draftScript({ prompt }, { templateId: 'reel-promocional' });
+  assert.equal(d.source, 'plantilla-local', 'sin LLM configurado debe declararse plantilla, no IA');
+  assert.ok(d.escenas.length >= 4);
+  // Toda escena necesita lo que el pipeline consume aguas abajo.
+  for (const e of d.escenas) {
+    assert.ok(e.text.trim().length > 5, 'cada escena necesita narración');
+    assert.ok(e.onScreenTitle.length > 0 && e.onScreenTitle.length <= 60, 'título en pantalla acotado');
+    assert.ok(e.visualPrompt.length > 0, 'cada escena necesita instrucción visual');
+    assert.ok(e.duration >= 2 && e.duration <= 10, `duración fuera de rango: ${e.duration}`);
+  }
+  // Lo esencial: el guion habla del tema pedido, no es relleno genérico.
+  assert.ok(d.escenas.filter(e => /ingl[eé]s/i.test(e.text)).length >= 2,
+    `el guion no menciona el tema: ${JSON.stringify(d.escenas.map(e => e.text))}`);
+});
+
+test('elección de plantilla y validación de escenas editadas', () => {
+  assert.equal(elegirTemplate({ duration: 10, prompt: 'x' }), 'reel-promocional');
+  assert.equal(elegirTemplate({ duration: 60, prompt: 'x' }), 'short-educativo');
+  assert.equal(elegirTemplate({ duration: 30, prompt: 'promo de un curso' }), 'reel-promocional');
+  assert.equal(elegirTemplate({ duration: 30, prompt: 'cómo funciona la fotosíntesis' }), 'short-educativo');
+
+  // Las escenas editadas por la usuaria se validan antes de producir nada.
+  const base = { prompt: 'x', duration: 15, format: '9:16' };
+  const ok = normalizeSpec({ ...base, escenas: [{ text: 'Hola', duration: 3, onScreenTitle: 'Hola', visualPrompt: 'hola' }] });
+  assert.equal(ok.escenas.length, 1);
+  assert.equal(ok.scriptSource, 'editado');
+  assert.equal(normalizeSpec(base).escenas, null, 'sin escenas el campo queda en null');
+  assert.throws(() => normalizeSpec({ ...base, escenas: [] }), /al menos una escena/);
+  assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: '  ' }] }), /no tiene narración/);
+  assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: 'a', duration: 99 }] }), /entre 0.5 y 30 segundos/);
+  assert.throws(() => normalizeSpec({ ...base, escenas: new Array(21).fill({ text: 'a', duration: 2 }) }), /Máximo 20 escenas/);
+});
+
+test('borrador: no produce nada y declara el coste real de cada pieza', async () => {
+  const d = await draftJob({ prompt: 'Video sobre panadería artesanal', duration: 15, format: '9:16' });
+  assert.ok(d.escenas.length >= 4);
+  assert.ok(d.duracionEstimada > 0);
+  assert.equal(d.llmProvider, 'ninguno');
+  // Sin LLM de pago ni clave de imágenes, el coste tiene que ser cero.
+  assert.equal(d.costo.tieneCostoPotencial, false);
+  assert.match(d.costo.resumen, /Sin coste/);
+  const piezas = Object.fromEntries(d.costo.piezas.map(p => [p.pieza, p]));
+  assert.equal(piezas['Voz'].pago, false);
+  assert.equal(piezas['Montaje'].proveedor, 'FFmpeg local');
+  assert.ok(d.costo.piezas.every(p => typeof p.pago === 'boolean'));
+
+  // Un guion de LLM de pago sí se declara como coste potencial.
+  const caro = estimarCosto({ source: 'llm', provider: 'openai-compatible' });
+  assert.equal(caro.tieneCostoPotencial, true);
+  assert.match(caro.resumen, /Podría consumir créditos/);
+  // Ollama es local: no cuesta.
+  assert.equal(estimarCosto({ source: 'llm', provider: 'ollama' }).tieneCostoPotencial, false);
+});
+
+test('pipeline real: MP4 con imagen visible, audio y subtítulos del prompt', { timeout: 900000 }, async () => {
+  const spec = {
+    prompt: 'Video vertical promocional sobre clases de inglés online para adultos',
+    duration: 15, format: '9:16', audience: 'adultos', platform: 'TikTok',
+  };
+  const out = await pipelineProvider.generate(spec, { onProgress: () => {} });
+
+  assert.equal(out.mock, false, 'el pipeline no es un mock');
+  assert.ok(out.script.escenas.length >= 4);
+  assert.ok(out.spec.subtitulos, 'debe generar subtítulos');
+  assert.ok(out.notes.some(n => /Guion:/.test(n)) && out.notes.some(n => /Visuales:/.test(n)),
+    'debe declarar la procedencia de cada pieza');
+
+  const meta = await probe(out.file);
+  assert.equal(meta.codec, 'h264');
+  assert.equal(meta.width, 1080);
+  assert.equal(meta.height, 1920);
+  assert.ok(meta.duration > 5, `duración ${meta.duration}`);
+  assert.equal(meta.audio.length, 1, 'debe llevar la pista de voz');
+
+  // IMAGEN VISIBLE: se mide el brillo medio de un frame. Un video en negro
+  // pasaría todas las comprobaciones anteriores y seguiría siendo inservible.
+  const frame = path.join(dir, 'frame-pipeline.png');
+  await fs.mkdir(dir, { recursive: true });
+  await ffmpegRun(['-ss', '2', '-i', out.file, '-frames:v', '1', '-vf', 'scale=64:-1', '-f', 'image2', frame]);
+  const png = await fs.readFile(frame);
+  assert.ok(png.length > 500, 'el frame extraído está vacío');
+  const stats = await ffprobeBrillo(out.file);
+  assert.ok(stats > 25, `el video está prácticamente en negro (brillo medio ${stats})`);
+});
+
+/** Brillo medio (0-255) del primer segundo, medido con el filtro signalstats. */
+async function ffprobeBrillo(file) {
+  const { stderr } = await ffmpegRun(['-ss', '1', '-t', '1', '-i', file, '-vf', 'signalstats,metadata=print', '-f', 'null', '-']);
+  const valores = [...stderr.matchAll(/lavfi\.signalstats\.YAVG=([\d.]+)/g)].map(m => Number(m[1]));
+  if (!valores.length) throw new Error('signalstats no devolvió YAVG');
+  return valores.reduce((a, b) => a + b, 0) / valores.length;
+}
+
 test('HTTP end-to-end: prompt → generación mock → análisis → propuesta lista', { timeout: 300000 }, async () => {
   process.env.GEMINI_API_KEY = '';
   const server = createServer();
@@ -124,7 +233,9 @@ test('HTTP end-to-end: prompt → generación mock → análisis → propuesta l
   try {
     const config = await (await fetch(base + '/api/video-generation/config')).json();
     assert.ok(config.formats.includes('9:16'));
-    assert.equal(config.defaultProvider, 'mock');
+    // El predeterminado es el montaje local real; el mock queda como fallback.
+    assert.equal(config.defaultProvider, 'pipeline');
+    assert.ok(config.providers.some(p => p.id === 'mock' && p.mock === true));
     assert.ok(!JSON.stringify(config).includes('API_KEY='), 'la config no puede traer claves');
 
     // Peticiones inválidas se rechazan antes de generar nada.
@@ -135,6 +246,7 @@ test('HTTP end-to-end: prompt → generación mock → análisis → propuesta l
     const created = await post('/api/video-generation/jobs', {
       prompt: 'Video vertical promocional sobre clases de inglés online',
       duration: 8, format: '9:16', style: 'corporativo', platform: 'TikTok',
+      provider: 'mock',   // el pipeline real tiene su propio test; aquí importa el encadenado
     });
     assert.equal(created.status, 202);
     const job0 = await created.json();

@@ -60,7 +60,12 @@ const placeholder = {
     const c1 = brand?.colors?.primary || '#1b2a41';
     const c2 = brand?.colors?.secondary || '#0b3954';
     const textColor = brand?.colors?.text || '#ffffff';
-    const label = (scene?.onScreenTitle || prompt || project?.title || '').slice(0, 60);
+    // El renderer ya dibuja `scene.onScreenTitle` encima del video. Si la
+    // escena lo tiene, el fondo se deja limpio: de lo contrario el mismo texto
+    // aparece dos veces, en el centro y arriba.
+    const label = scene?.onScreenTitle?.trim()
+      ? ''
+      : (prompt || project?.title || '').slice(0, 60);
 
     // gradients: degradado nativo de FFmpeg, sin assets externos.
     const filters = [

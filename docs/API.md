@@ -57,6 +57,16 @@ y la exportación siguen siendo pasos aparte, con idénticas garantías.
 Proveedores disponibles, formatos, estilos y límites. De cada proveedor publica
 `configured` y qué variables de entorno necesitaría, **nunca sus valores**.
 
+### `POST /api/video-generation/draft`
+
+Redacta el guion y las escenas **sin producir nada**: no renderiza, no sintetiza
+voz y no descarga imágenes. Es instantáneo y no puede gastar créditos salvo que
+haya un LLM de pago configurado, cosa que la respuesta declara en `costo`.
+
+Acepta el mismo cuerpo que `jobs`. Devuelve `escenas[]` (con `text`,
+`onScreenTitle`, `visualPrompt`, `duration` y `role`), `templateId`, `source`
+(`plantilla-local` o `llm`) y `costo`, con el desglose por pieza.
+
 ### `POST /api/video-generation/jobs`
 
 ```json
@@ -84,9 +94,17 @@ análisis y de edición.
 Un trabajo interrumpido por un reinicio del servidor se marca `failed` y **no se
 reanuda solo**: con un proveedor de pago, reanudar podría volver a cobrar.
 
+Al cuerpo se le puede añadir `escenas[]` (las que la usuaria revisó en el
+borrador) y `templateId`. Si vienen, mandan sobre cualquier redacción
+automática: el proveedor no vuelve a inventar el guion.
+
 ### Proveedores
 
-Sólo `mock` funciona hoy: construye un video de prueba con FFmpeg en local, sin
+`pipeline` es el predeterminado: monta el video en local encadenando guion →
+escenas → visuales → voz (TTS local) → subtítulos → FFmpeg. Su contenido
+corresponde al prompt y no cuesta nada.
+
+`mock` sigue disponible para pruebas rápidas: construye un video de prueba con FFmpeg en local, sin
 IA y sin coste. Las ranuras `api` (servicio externo) y `local` (modelo en este
 equipo) están declaradas pero **no implementadas**, y fallan con un mensaje que
 dice qué falta. El contrato para añadir uno real está documentado en

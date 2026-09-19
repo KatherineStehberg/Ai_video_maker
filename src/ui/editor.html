@@ -100,8 +100,9 @@
         <label>Público <input type="text" id="gen-audience" maxlength="300" placeholder="Ej: adultos profesionales"></label>
         <label>Plataforma <input type="text" id="gen-platform" maxlength="300" placeholder="Ej: TikTok"></label>
       </details>
-      <!-- BOTÓN PRINCIPAL: generar -->
-      <button class="boton boton-primario boton-grande" id="btn-generate">Generar video</button>
+      <!-- BOTONES PRINCIPALES del modo prompt -->
+      <button class="boton boton-grande" id="btn-draft">Generar borrador</button>
+      <button class="boton boton-primario boton-grande" id="btn-generate" disabled>Crear video</button>
       <p class="texto-ayuda" id="gen-provider-hint">Comprobando proveedor…</p>
     </section>
 
@@ -166,6 +167,23 @@
           <span class="modo-titulo">Editar un video existente</span>
           <span class="modo-texto">Sube un MP4 que ya tengas y el editor detecta cortes, ritmo y propone el montaje.</span>
         </button>
+      </div>
+    </section>
+
+    <!-- --------------------------- [GUION] -------------------------------
+         Borrador editable: se revisa ANTES de producir el video.
+         ------------------------------------------------------------------ -->
+    <section class="tarjeta" id="draft-card" hidden>
+      <div class="tarjeta-cabecera">
+        <h2>Guion propuesto</h2>
+        <span class="etiqueta-estado" id="draft-source"></span>
+      </div>
+      <p class="texto-ayuda" id="draft-summary"></p>
+      <div class="aviso aviso-atencion" id="draft-cost"></div>
+      <div class="lista-escenas" id="draft-scenes"></div>
+      <div class="acciones-segmentos">
+        <button class="boton boton-mini" id="btn-redraft">Rehacer borrador</button>
+        <span class="texto-ayuda">Edita la narración, el texto en pantalla o la instrucción visual. Cuando te convenza, pulsa «Crear video».</span>
       </div>
     </section>
 

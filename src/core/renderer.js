@@ -145,7 +145,12 @@ async function renderSceneClip(scene, index, ctx) {
 
   // Titulo en pantalla (opcional, por escena).
   if (scene.onScreenTitle?.trim() && ctx.fontFile) {
-    const size = Math.round(W / 16);
+    // El tamano se adapta al largo del texto: con un tamano fijo, un titulo
+    // largo se sale del encuadre por ambos lados (x=(w-text_w)/2 se vuelve
+    // negativo). Se estima el ancho en ~0.5 em por caracter y se deja un 10%
+    // de margen. Nunca crece por encima del tamano de diseno.
+    const largo = Math.max(1, scene.onScreenTitle.trim().length);
+    const size = Math.round(Math.max(W / 40, Math.min(W / 16, (W * 1.8) / largo)));
     filters.push(
       `drawtext=fontfile='${escapeFilterPath(ctx.fontFile)}':` +
       `text='${escapeDrawtext(scene.onScreenTitle.trim())}':` +

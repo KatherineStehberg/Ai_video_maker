@@ -12,6 +12,7 @@ const ENDPOINTS = {
   edits: '/api/video-edits',
   generationConfig: '/api/video-generation/config',
   generationJobs: '/api/video-generation/jobs',
+  generationDraft: '/api/video-generation/draft',
 };
 
 export class ApiError extends Error {
@@ -70,6 +71,11 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
     // ---- Generación de video con IA ------------------------------------
     /** Proveedores, formatos y estilos. Nunca devuelve claves: sólo `configured`. */
     generationConfig: () => call(ENDPOINTS.generationConfig),
+
+    /** Guion y escenas sin producir nada: instantáneo y sin coste. */
+    draftGeneration: (body) => call(ENDPOINTS.generationDraft, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    }),
 
     createGeneration: (body) => call(ENDPOINTS.generationJobs, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),

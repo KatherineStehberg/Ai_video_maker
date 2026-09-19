@@ -1,4 +1,5 @@
 import { mockProvider } from './mock.js';
+import { pipelineProvider } from './pipeline.js';
 import '../../config.js';
 
 /**
@@ -57,6 +58,13 @@ function ranuraPendiente({ id, label, requires, comoImplementar }) {
 }
 
 export const PROVIDERS = {
+  // Montaje local real: guion -> escenas -> visuales -> voz -> subtitulos -> FFmpeg.
+  // Es el predeterminado porque produce un video cuyo contenido corresponde al
+  // prompt, sin coste y sin salir del equipo.
+  pipeline: pipelineProvider,
+
+  // Mock de desarrollo: planos de color. Sirve para probar el flujo rapido en
+  // los tests; NO debe presentarse como resultado final.
   mock: mockProvider,
 
   // Servicio externo de video generativo (HTTP). Sin implementación real.
@@ -76,8 +84,8 @@ export const PROVIDERS = {
   }),
 };
 
-/** Proveedor por defecto: mock, salvo que se indique otro en el entorno. */
-export const DEFAULT_PROVIDER = process.env.VIDEO_GEN_PROVIDER || 'mock';
+/** Proveedor por defecto: el montaje local real, salvo que el entorno diga otro. */
+export const DEFAULT_PROVIDER = process.env.VIDEO_GEN_PROVIDER || 'pipeline';
 
 export function getProvider(name = DEFAULT_PROVIDER) {
   const provider = PROVIDERS[name];

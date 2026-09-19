@@ -6,6 +6,8 @@ import { PATHS, ensureDir } from '../lib/paths.js';
 import { ASPECTS } from '../config.js';
 import { getProvider, DEFAULT_PROVIDER } from '../providers/video-generation/index.js';
 import { analyzeExistingFile } from '../analysis/routes.js';
+import { draftScript } from './script.js';
+import { elegirTemplate } from '../providers/video-generation/pipeline.js';
 import { planEdit } from '../edits/plan.js';
 import { saveProposal } from '../edits/routes.js';
 
@@ -72,9 +74,81 @@ export function normalizeSpec(input = {}) {
     return String(v).trim().slice(0, 300);
   };
 
+  // Escenas ya revisadas por la usuaria en el borrador. Si vienen, mandan sobre
+  // cualquier redacción automática: el proveedor no vuelve a inventar el guion.
+  let escenas = null;
+  if (input.escenas !== undefined && input.escenas !== null) {
+    if (!Array.isArray(input.escenas) || !input.escenas.length) throw new Error('Las escenas deben ser una lista con al menos una escena.');
+    if (input.escenas.length > 20) throw new Error('Máximo 20 escenas por video.');
+    escenas = input.escenas.map((e, i) => {
+      const text = String(e?.text ?? '').trim();
+      if (!text) throw new Error(`La escena ${i + 1} no tiene narración.`);
+      const dur = Number(e?.duration ?? 4);
+      if (!Number.isFinite(dur) || dur < 0.5 || dur > 30) throw new Error(`La duración de la escena ${i + 1} debe estar entre 0.5 y 30 segundos.`);
+      return {
+        role: String(e?.role ?? 'point').slice(0, 20),
+        text: text.slice(0, 600),
+        onScreenTitle: String(e?.onScreenTitle ?? '').trim().slice(0, 60),
+        visualPrompt: String(e?.visualPrompt ?? '').trim().slice(0, 200),
+        duration: Number(dur.toFixed(2)),
+      };
+    });
+  }
+
   return { prompt, duration, format, style,
     music: opcional('music'), tempo: opcional('tempo'),
-    audience: opcional('audience'), platform: opcional('platform') };
+    audience: opcional('audience'), platform: opcional('platform'),
+    templateId: input.templateId ? String(input.templateId) : null,
+    scriptSource: escenas ? (input.scriptSource ? String(input.scriptSource) : 'editado') : null,
+    escenas };
+}
+
+/**
+ * Borrador: guion y escenas SIN producir nada. No renderiza, no sintetiza voz
+ * y no descarga imágenes, así que es instantáneo y no puede costar dinero
+ * salvo que haya un LLM de pago configurado, cosa que se declara en `costo`.
+ */
+export async function draftJob(input) {
+  const spec = normalizeSpec(input);
+  const templateId = spec.templateId || elegirTemplate(spec);
+  const borrador = await draftScript(spec, { templateId });
+  return {
+    spec: { ...spec, templateId },
+    templateId,
+    source: borrador.source,
+    llmProvider: borrador.provider ?? 'ninguno',
+    llmError: borrador.llmError ?? null,
+    tema: borrador.tema ?? null,
+    escenas: borrador.escenas,
+    duracionEstimada: Number(borrador.escenas.reduce((a, e) => a + e.duration, 0).toFixed(2)),
+    costo: estimarCosto(borrador),
+  };
+}
+
+/**
+ * Qué usaría cada pieza y si eso cuesta dinero. Se calcula a partir de lo que
+ * está realmente configurado, no de lo que podría llegar a configurarse.
+ */
+export function estimarCosto(borrador = {}) {
+  const piezas = [
+    { pieza: 'Guion',
+      proveedor: borrador.source === 'llm' ? `modelo ${borrador.provider}` : 'plantilla local (sin IA)',
+      pago: borrador.source === 'llm' && !['ollama', 'ninguno'].includes(borrador.provider) },
+    { pieza: 'Visuales',
+      proveedor: process.env.PEXELS_API_KEY ? 'Pexels (free tier)' : 'fondos generados con FFmpeg',
+      pago: false },
+    { pieza: 'Voz', proveedor: 'TTS local (SAPI/Piper)', pago: false },
+    { pieza: 'Subtítulos', proveedor: 'estimados en local', pago: false },
+    { pieza: 'Montaje', proveedor: 'FFmpeg local', pago: false },
+  ];
+  const dePago = piezas.filter(p => p.pago);
+  return {
+    piezas,
+    tieneCostoPotencial: dePago.length > 0,
+    resumen: dePago.length
+      ? `Podría consumir créditos: ${dePago.map(p => `${p.pieza} (${p.proveedor})`).join(', ')}.`
+      : 'Sin coste: todo se produce en este equipo con software local.',
+  };
 }
 
 /** Crea el trabajo en estado `queued` y lanza el proceso en segundo plano. */
@@ -123,6 +197,9 @@ async function run(job, provider) {
       job.warnings.push('Este video lo produjo el proveedor MOCK con FFmpeg: es material de prueba, no generación con IA, y no representa el contenido del prompt.');
     }
     job.warnings.push(...(result.notes ?? []));
+    // El guion y las escenas realmente usadas viajan con el trabajo: la
+    // interfaz los muestra y así queda claro qué se produjo y de dónde salió.
+    if (result.script) job.script = result.script;
     job.status = 'generated';
     progress(40, 'Video generado');
 

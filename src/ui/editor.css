@@ -249,6 +249,29 @@ progress.trabajando::-webkit-progress-value { background: linear-gradient(90deg,
   color: var(--color-texto); resize: vertical; min-height: 96px;
 }
 
+/* ==================== TARJETAS DE ESCENA DEL BORRADOR =====================
+   Una tarjeta por escena, con narración, texto en pantalla e instrucción
+   visual editables antes de producir el video.
+   ========================================================================= */
+.lista-escenas { display: flex; flex-direction: column; gap: var(--espacio-sm); margin-top: var(--espacio-md); }
+.escena {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: var(--espacio-sm);
+  padding: var(--espacio-sm) var(--espacio-md); border: 1px solid var(--color-borde);
+  border-radius: 10px; background: #fff;
+}
+.escena-numero {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--color-primario); color: #fff; font-size: var(--texto-mini); font-weight: 700;
+}
+.escena-campos { display: grid; gap: var(--espacio-xs); min-width: 0; }
+.escena-campos label { margin: 0; font-size: var(--texto-mini); }
+.escena-campos textarea, .escena-campos input[type=text], .escena-campos input[type=number] {
+  width: 100%; margin-top: 2px; padding: .4rem .55rem; border: 1px solid var(--color-borde);
+  border-radius: 8px; font: inherit; font-size: var(--texto-pequeno); color: var(--color-texto); resize: vertical;
+}
+.escena-fila { display: grid; grid-template-columns: 1fr 1fr 96px auto; gap: var(--espacio-sm); align-items: end; }
+.escena-rol { font-size: var(--texto-mini); color: var(--color-texto-suave); text-transform: uppercase; letter-spacing: .05em; }
+
 /* ============================== TIMELINE ==================================
    Tres pistas apiladas: segmentos, ritmo y cortes, sobre la duración original.
    ========================================================================= */
@@ -348,6 +371,9 @@ td { font-variant-numeric: tabular-nums; }
   .contenido { grid-template-columns: 1fr; }
   .panel-lateral { position: static; }
   .videos { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .escena-fila { grid-template-columns: 1fr; }
 }
 @media (max-width: 620px) {
   :root { --player-height: 220px; }

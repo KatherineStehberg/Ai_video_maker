@@ -5,6 +5,34 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Prompt a video real (2026-09-19)
+
+- **Proveedor `pipeline`, ahora el predeterminado**: encadena los módulos que ya
+  existían (script-generator, scene-planner, providers/image, providers/tts,
+  subtitles, renderer, FFmpeg) para producir un video cuyo contenido
+  corresponde al prompt: texto en pantalla, narración con voz local y
+  subtítulos sincronizados. Coste cero y sin salir del equipo.
+- `src/generation/script.js`: redacción del guion. Usa el LLM configurado si lo
+  hay; si no, una **plantilla local** que compone frases a partir de los beats
+  del template e inserta el tema extraído del prompt. Se declara como
+  `plantilla-local`, nunca como redacción de IA.
+- `POST /api/video-generation/draft`: guion y escenas **antes** de producir,
+  con desglose de coste por pieza. No renderiza nada.
+- Interfaz: tarjetas de escena editables (narración, texto en pantalla,
+  instrucción visual, duración), botones «Generar borrador», «Regenerar
+  escena» y «Crear video», y el coste estimado a la vista. «Crear video» está
+  bloqueado hasta que haya un borrador revisado.
+- El mock queda como fallback de desarrollo y ya no es el predeterminado.
+
+### Corregido
+
+- El título en pantalla usaba un tamaño de fuente fijo (`W/16`) y los títulos
+  largos se salían del encuadre por ambos lados. Ahora el tamaño se adapta al
+  largo del texto.
+- El título aparecía **dos veces**: el renderer lo dibujaba arriba y el fondo
+  generado lo repetía en el centro. El fondo se deja limpio cuando la escena ya
+  tiene título.
+
 ### Añadido — Generación de video con IA (2026-09-18)
 
 - **Segundo flujo principal**: pantalla inicial con dos opciones, «Crear video

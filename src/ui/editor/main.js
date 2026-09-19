@@ -18,6 +18,7 @@ import { initialState, reduce, canAnalyze, canPropose, canApprove, canExport, ex
 import { fileSummary, rhythmSummary, collectWarnings, summaryCards, proposalHeadline, seconds, frame, rampRow } from './format.js';
 import { renderTimeline } from './timeline.js';
 import { renderSegments, readSegments, validateSelection, hasChanges } from './segments.js';
+import { renderDraft, readDraft, validateDraft, duracionTotal } from './draft.js';
 import { createMessages } from './messages.js';
 import { createPlayer } from './player.js';
 
@@ -27,6 +28,7 @@ let state = initialState();
 let analysisPoll = null;
 let generationPoll = null;
 let pendingSegments = null;   // selección del panel aún sin aplicar
+let borrador = null;          // guion y escenas revisables antes de producir
 
 const messages = createMessages({ statusEl: $('status'), stateEl: $('state-pill'), errorEl: $('error'), warningsEl: $('warnings') });
 const sourcePlayer = createPlayer($('source-player'), { emptyEl: $('source-empty') });
@@ -54,7 +56,9 @@ function render() {
   $('panel-prompt').hidden = state.mode !== 'prompt';
   $('panel-settings').hidden = !state.mode;
   $('panel-approve').hidden = !state.mode;
-  $('btn-generate').disabled = state.busy;
+  $('btn-draft').disabled = state.busy;
+  $('btn-generate').disabled = state.busy || !borrador;
+  $('draft-card').hidden = !borrador;
   renderPrompt();
 
   $('btn-analyze').disabled = !canAnalyze(state);
@@ -285,6 +289,7 @@ function elegirModo(mode) {
   analysisPoll?.stop(); generationPoll?.stop();
   sourcePlayer.clear(); exportPlayer.clear();
   pendingSegments = null;
+  borrador = null;
   $('file').value = '';
   $('file-label').textContent = 'Elige un video MP4';
   dispatch({ type: 'mode-selected', mode });
@@ -305,13 +310,10 @@ for (const id of ['btn-change-mode', 'btn-change-mode-2']) {
   });
 }
 
-$('btn-generate').addEventListener('click', async () => {
-  if (state.busy) return;
-  const prompt = $('prompt').value.trim();
-  if (!prompt) { messages.setError('Escribe un prompt que describa el video que quieres.'); return; }
-
-  const body = {
-    prompt,
+/** Lo que hay escrito en el formulario de la idea. */
+function leerFormulario() {
+  return {
+    prompt: $('prompt').value.trim(),
     duration: Number($('gen-duration').value),
     format: $('gen-format').value,
     style: $('gen-style').value,
@@ -319,6 +321,72 @@ $('btn-generate').addEventListener('click', async () => {
     audience: $('gen-audience').value.trim() || null,
     platform: $('gen-platform').value.trim() || null,
   };
+}
+
+/** Pinta el borrador: fuente del guion, coste estimado y escenas editables. */
+function pintarBorrador() {
+  if (!borrador) return;
+  const fuente = { 'plantilla-local': 'Plantilla local (sin IA)', llm: `Redactado por ${borrador.llmProvider}`, editado: 'Editado por ti' };
+  $('draft-source').textContent = fuente[borrador.source] || borrador.source;
+  $('draft-summary').textContent =
+    `${borrador.escenas.length} escenas · ${duracionTotal(borrador.escenas)} s estimados · plantilla ${borrador.templateId}.` +
+    (borrador.llmError ? ` No se pudo usar el modelo (${borrador.llmError}); se usó la plantilla local.` : '');
+  $('draft-cost').textContent = borrador.costo.resumen;
+  renderDraft($('draft-scenes'), borrador.escenas, {
+    onChange: escenas => { borrador.escenas = escenas; $('draft-summary').textContent =
+      `${escenas.length} escenas · ${duracionTotal(escenas)} s estimados · plantilla ${borrador.templateId}.`; },
+    onRegenerate: regenerarEscena,
+  });
+}
+
+/**
+ * Regenera UNA escena: se vuelve a pedir el borrador completo y se toma sólo
+ * la escena equivalente, conservando el resto tal y como está editada.
+ */
+async function regenerarEscena(indice) {
+  const base = leerFormulario();
+  if (!base.prompt) { messages.setError('Escribe un prompt antes de regenerar.'); return; }
+  messages.setStatus(`Regenerando la escena ${indice + 1}…`);
+  try {
+    const fresco = await api.draftGeneration({ ...base, templateId: borrador.templateId });
+    const reemplazo = fresco.escenas[indice] || fresco.escenas[fresco.escenas.length - 1];
+    if (!reemplazo) throw new ApiError('El borrador nuevo no trae esa escena.', 0);
+    const escenas = readDraft($('draft-scenes'));
+    escenas[indice] = reemplazo;
+    borrador = { ...borrador, escenas, source: 'editado' };
+    pintarBorrador();
+    messages.setStatus(`Escena ${indice + 1} regenerada.`);
+  } catch (e) {
+    dispatch({ type: 'error', error: e.message });
+  }
+}
+
+$('btn-draft').addEventListener('click', async () => {
+  if (state.busy) return;
+  const base = leerFormulario();
+  if (!base.prompt) { messages.setError('Escribe un prompt que describa el video que quieres.'); return; }
+  messages.clearError();
+  messages.setStatus('Preparando el guion…');
+  try {
+    borrador = await api.draftGeneration(base);
+    pintarBorrador();
+    render();
+    messages.setStatus('Guion listo. Revísalo, edítalo y pulsa «Crear video».');
+  } catch (e) {
+    dispatch({ type: 'error', error: e.message });
+  }
+});
+
+$('btn-redraft').addEventListener('click', () => $('btn-draft').click());
+
+$('btn-generate').addEventListener('click', async () => {
+  if (state.busy || !borrador) return;
+  const escenas = readDraft($('draft-scenes'));
+  const problema = validateDraft(escenas);
+  if (problema) { messages.setError(problema); return; }
+
+  const body = { ...leerFormulario(), templateId: borrador.templateId, escenas, scriptSource: borrador.source };
+  if (!body.prompt) { messages.setError('Escribe un prompt que describa el video que quieres.'); return; }
 
   try {
     const job = await api.createGeneration(body);

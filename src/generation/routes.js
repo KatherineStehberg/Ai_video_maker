@@ -1,5 +1,5 @@
 import { listProviders, DEFAULT_PROVIDER } from '../providers/video-generation/index.js';
-import { createJob, getJob, publicJob, FORMATS, STYLES, DURATION_LIMITS, PROMPT_MAX } from './jobs.js';
+import { createJob, getJob, publicJob, draftJob, FORMATS, STYLES, DURATION_LIMITS, PROMPT_MAX } from './jobs.js';
 
 /**
  * Endpoints de generación de video con IA.
@@ -43,6 +43,12 @@ export async function generationRoute(req, res, url) {
         providers: listProviders(), defaultProvider: DEFAULT_PROVIDER,
         formats: FORMATS, styles: STYLES, duration: DURATION_LIMITS, promptMax: PROMPT_MAX,
       });
+      return true;
+    }
+
+    // Borrador de guion y escenas, sin producir nada todavía.
+    if (req.method === 'POST' && parts[2] === 'draft' && parts.length === 3) {
+      reply(res, 200, await draftJob(await readJson(req)));
       return true;
     }
 
