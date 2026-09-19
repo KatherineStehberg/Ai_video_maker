@@ -1,0 +1,44 @@
+{
+  "id": "733addcc-90d1-4500-9ada-6769ffa94ca2",
+  "syncStatus": "validado",
+  "export": {
+    "file": "output/video-edits/733addcc-90d1-4500-9ada-6769ffa94ca2/733addcc-90d1-4500-9ada-6769ffa94ca2_9x16.mp4",
+    "directory": "output/video-edits/733addcc-90d1-4500-9ada-6769ffa94ca2",
+    "bytes": 34971,
+    "exportedAt": "2026-09-18T23:09:50.806Z",
+    "elapsedMs": 1703,
+    "fit": "pad",
+    "requested": {
+      "format": "9:16",
+      "width": 1080,
+      "height": 1920,
+      "fps": 30
+    },
+    "measured": {
+      "duration": 6,
+      "fps": 30,
+      "width": 1080,
+      "height": 1920,
+      "codec": "h264",
+      "frameRateMode": "cfr",
+      "audioTracks": 1
+    },
+    "duration": {
+      "estimated": 6.00066921622,
+      "measured": 6,
+      "deltaSeconds": -0.0006692162200003793,
+      "withinTolerance": true,
+      "toleranceSeconds": 0.1
+    },
+    "audio": {
+      "mode": "stretch",
+      "timeStretched": true
+    },
+    "sourceUntouched": true,
+    "warnings": []
+  },
+  "warnings": [
+    "El audio se estira con atempo para seguir al vídeo: se conserva la sincronía audiovisual dentro de cada segmento, pero la MÚSICA CAMBIA DE TEMPO y los beats del resultado ya no caen donde los midió el análisis del original.",
+    "atempo hace time-stretch sin corregir formantes; en voz puede introducir artefactos audibles."
+  ]
+}

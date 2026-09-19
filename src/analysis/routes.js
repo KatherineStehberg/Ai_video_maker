@@ -14,7 +14,7 @@ let busy=false;
 const jobs=new Map();
 const reply=(res,status,data,type='application/json')=>{res.writeHead(status,{'content-type':type,'cache-control':'no-store'});res.end(type==='application/json'?JSON.stringify(data):data);};
 const persist=j=>fs.writeFileSync(path.join(root,j.id,'analysis.json'),JSON.stringify(j,null,2));
-function get(id) {
+export function get(id) {
   if (!/^[\da-f-]{36}$/.test(id)) return null;
   if (jobs.has(id)) return jobs.get(id);
   try {const j=JSON.parse(fs.readFileSync(path.join(root,id,'analysis.json'),'utf8')); if(j.status==='running'){j.status='interrupted';j.error='Servidor reiniciado; vuelve a cargar el original para reanalizar';} jobs.set(id,j); return j;} catch{return null;}
@@ -25,12 +25,12 @@ async function execute(j,file,dir,external) {
   try {
     j.metadata=await probe(file); persist(j);
     if(j.metadata.duration>14400)throw new Error('Límite de duración: 4 horas; divide el material antes de analizar');
-    j.local=await analyzeLocal(file,j.metadata,progress);j.cuts=combine(j.local);persist(j);
+    j.local=await analyzeLocal(file,j.metadata,progress);j.cuts=combine(j.local,[],j.metadata);persist(j);
     progress(78,'Creando copia de previsualización compatible');
     await ffmpegRun(['-i',file,'-map',`0:${j.metadata.videoStream}`,...(j.metadata.audio.length?['-map',`0:${j.metadata.audio[0].index}`]:['-an']),'-vf','scale=640:-2','-c:v','libx264','-preset','ultrafast','-crf','28','-threads','1','-c:a','aac','-movflags','+faststart',path.join(dir,'preview.mp4')],{onProgress:t=>progress(78+6*Math.min(1,t/j.metadata.duration),'Creando previsualización')});
     j.previewReady=true;
     if(external) {
-      try {j.gemini=await interpret(file,dir,j.metadata,progress,{onSegment:r=>{j.gemini.segments ??=[];const i=j.gemini.segments.findIndex(s=>s.start===r.start);if(i<0)j.gemini.segments.push(r);else j.gemini.segments[i]=r;persist(j);}});j.cuts=combine(j.local,j.gemini.suggestions);}
+      try {j.gemini=await interpret(file,dir,j.metadata,progress,{onSegment:r=>{j.gemini.segments ??=[];const i=j.gemini.segments.findIndex(s=>s.start===r.start);if(i<0)j.gemini.segments.push(r);else j.gemini.segments[i]=r;persist(j);}});j.cuts=combine(j.local,j.gemini.suggestions,j.metadata);}
       catch(e){j.gemini={...j.gemini,status:'error',error:e.message};}
     }
     j.status='complete'; progress(100,'Análisis terminado');

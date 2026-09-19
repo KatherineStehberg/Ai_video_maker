@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor · AI Video Maker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23003366'/%3E%3Cpath d='M13 10l9 6-9 6z' fill='%230066ff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-dot"></span> AI Video Maker <em>Editor</em></div>
+  <div class="topbar-right">
+    <span class="pill" id="state-pill" data-state="listo">Listo</span>
+    <nav><a href="/analysis.html">Análisis detallado</a><a href="/">Estudio de guiones</a></nav>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============================ panel lateral ============================ -->
+  <aside class="panel" aria-label="Configuración">
+    <section class="card">
+      <h2>1 · Video</h2>
+      <label class="file-drop" for="file">
+        <input type="file" id="file" accept="video/*,.mp4,.mov,.m4v,.mkv,.webm">
+        <span id="file-label">Selecciona un MP4</span>
+      </label>
+      <dl class="facts" id="file-facts"></dl>
+      <button class="btn btn-primary" id="btn-analyze" disabled>Analizar video</button>
+      <p class="hint" id="config-hint">Consultando configuración…</p>
+    </section>
+
+    <section class="card">
+      <h2>2 · Propuesta de edición</h2>
+      <label>Formato
+        <select id="format">
+          <option value="9:16">9:16 · Vertical (Reels, Shorts, TikTok)</option>
+          <option value="16:9">16:9 · Horizontal (YouTube, LinkedIn)</option>
+          <option value="1:1">1:1 · Cuadrado (feed)</option>
+        </select>
+      </label>
+      <label>Sincronización
+        <select id="sync-mode">
+          <option value="beats">Alinear cortes a los beats</option>
+          <option value="cuts">Respetar el metraje original</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="ramps" checked> Activar rampas de velocidad</label>
+      <label>Duración objetivo (segundos, opcional)
+        <input type="number" id="target-duration" min="0.1" step="0.1" placeholder="Sin objetivo">
+      </label>
+      <label>Encuadre
+        <select id="fit">
+          <option value="pad">Encajar completo (barras)</option>
+          <option value="crop">Llenar el encuadre (recorta)</option>
+        </select>
+      </label>
+      <button class="btn" id="btn-propose" disabled>Crear propuesta</button>
+    </section>
+
+    <section class="card">
+      <h2>3 · Aprobación y exportación</h2>
+      <p class="hint" id="approval-hint">La exportación está bloqueada hasta que apruebes una propuesta.</p>
+      <button class="btn btn-approve" id="btn-approve" disabled>Aprobar propuesta</button>
+      <button class="btn btn-accent" id="btn-export" disabled>Exportar MP4</button>
+      <p class="hint" id="export-blocked"></p>
+    </section>
+  </aside>
+
+  <!-- ============================ área central ============================ -->
+  <section class="workspace">
+
+    <div class="statusbar">
+      <progress id="progress" max="100" value="0"></progress>
+      <p id="status" role="status" aria-live="polite">Selecciona un video para empezar.</p>
+    </div>
+
+    <p class="alert alert-error" id="error" role="alert" hidden></p>
+    <div class="alert alert-warn" id="warnings" hidden></div>
+
+    <section class="card">
+      <h2>Timeline</h2>
+      <p class="hint">Cortes detectados, ritmo y segmentos propuestos sobre la duración del original. Haz clic para revisar ese momento.</p>
+      <div id="timeline"></div>
+      <ul class="legend">
+        <li><i class="sw sw-cut"></i> Corte visual</li>
+        <li><i class="sw sw-beat"></i> Beat</li>
+        <li><i class="sw sw-onset"></i> Evento de audio</li>
+        <li><i class="sw sw-normal"></i> Segmento 1×</li>
+        <li><i class="sw sw-fast"></i> Acelera</li>
+        <li><i class="sw sw-slow"></i> Ralentiza</li>
+      </ul>
+    </section>
+
+    <div class="grid-2">
+      <section class="card">
+        <h2>Video original</h2>
+        <p class="hint" id="source-empty">Disponible tras el análisis.</p>
+        <video id="source-player" controls preload="metadata" hidden></video>
+      </section>
+      <section class="card">
+        <h2>Video exportado</h2>
+        <p class="hint" id="export-empty">Disponible tras la exportación.</p>
+        <video id="export-player" controls preload="metadata" hidden></video>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Resultados del análisis</h2>
+      <div class="facts-grid">
+        <div><h3>Ritmo</h3><p id="tempo-summary">—</p></div>
+        <div><h3>Sincronía cortes↔beats</h3><p id="sync-summary">—</p></div>
+        <div><h3>Estado de la propuesta</h3><p id="proposal-summary">Sin propuesta.</p></div>
+      </div>
+      <div class="downloads" id="downloads"></div>
+
+      <details open>
+        <summary>Cortes y eventos (<span id="cuts-count">0</span>)</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tiempo</th><th>Frame</th><th>Fuente</th><th>Motivo</th></tr></thead>
+            <tbody id="cuts-body"></tbody>
+          </table>
+        </div>
+      </details>
+
+      <details>
+        <summary>Rampas de velocidad (<span id="ramps-count">0</span>)</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Segmento</th><th>Frames</th><th>Duración</th><th>Factor</th><th>Motivo</th></tr></thead>
+            <tbody id="ramps-body"></tbody>
+          </table>
+        </div>
+      </details>
+
+      <details>
+        <summary>Segmentos de la propuesta (<span id="segments-count">0</span>)</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Origen</th><th>Salida</th><th>Velocidad</th><th>setpts</th><th>Motivo</th></tr></thead>
+            <tbody id="segments-body"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <footer class="foot">
+      <p>Todo el procesamiento ocurre en este equipo. El archivo original nunca se sobrescribe: las exportaciones se escriben en <code>output/video-edits/</code>. No se publica nada en redes sociales.</p>
+    </footer>
+  </section>
+</main>
+
+<script type="module" src="/editor/main.js"></script>
+</body>
+</html>

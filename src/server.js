@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { studioRoute } from './studio/routes.js';
 import { analysisRoute } from './analysis/routes.js';
+import { editsRoute } from './edits/routes.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CONFIG, publicConfig, ASPECTS } from './config.js';
@@ -411,6 +412,7 @@ export function createServer() {
     try {
       if (await studioRoute(req, res, url)) return;
       if (await analysisRoute(req, res, url)) return;
+      if (await editsRoute(req, res, url)) return;
       if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
 
       // Sirve assets y renders bajo data/ y output/ (con validacion de ruta).

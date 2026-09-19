@@ -2,6 +2,7 @@
 data/analyses/
 data/jobs/
 data/studio-imports/
+data/video-edits/
 .env
 .env.local
 *.key

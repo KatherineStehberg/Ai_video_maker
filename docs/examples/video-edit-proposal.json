@@ -1,0 +1,186 @@
+{
+  "id": "733addcc-90d1-4500-9ada-6769ffa94ca2",
+  "videoJobId": "1f48448c-5af6-472b-9b5f-6978a681cabc",
+  "sourceVideo": "data/analyses/1f48448c-5af6-472b-9b5f-6978a681cabc/original",
+  "createdAt": "2026-09-18T23:09:49.008Z",
+  "format": "9:16",
+  "dimensions": {
+    "width": 1080,
+    "height": 1920
+  },
+  "syncMode": "beats",
+  "enableSpeedRamps": true,
+  "targetDuration": null,
+  "syncStatus": "propuesto",
+  "approvalRequired": true,
+  "approval": {
+    "status": "pendiente",
+    "at": null,
+    "by": null
+  },
+  "segments": [
+    {
+      "sourceStart": 0,
+      "sourceEnd": 1.66667,
+      "speed": 1.1111135802524006,
+      "setptsFactor": 0.899998,
+      "reason": "beat-aligned",
+      "start": 0,
+      "end": 1.5
+    },
+    {
+      "sourceStart": 1.66667,
+      "sourceEnd": 3.03333,
+      "speed": 0.9111069402660067,
+      "setptsFactor": 1.097566,
+      "reason": "beat-aligned",
+      "start": 1.5,
+      "end": 2.999999
+    },
+    {
+      "sourceStart": 3.03333,
+      "sourceEnd": 6.034,
+      "speed": 1,
+      "setptsFactor": 1,
+      "reason": "corte-detectado",
+      "start": 2.999999,
+      "end": 6.000669
+    }
+  ],
+  "ramps": [
+    {
+      "start": 0,
+      "end": 1.66667,
+      "kind": "speed-ramp",
+      "currentDuration": 1.66667,
+      "targetDuration": 1.5000000000000004,
+      "targetBeats": 3,
+      "speedFactor": 1.1111133333333332,
+      "setptsFactor": 0.8999982000036002,
+      "deltaSeconds": -0.16666999999999965,
+      "direction": "acelerar",
+      "reason": "Ajustar el segmento a 3 beat(s) de 120.00 BPM",
+      "evidence": {
+        "bpm": 119.99999999999997,
+        "period": 0.5000000000000001,
+        "tempoScore": 1
+      },
+      "confidence": null,
+      "startFrame": 0,
+      "endFrame": 50,
+      "currentFrames": 50,
+      "targetFrames": 45,
+      "frameExact": true,
+      "appliedTo": 0
+    },
+    {
+      "start": 1.66667,
+      "end": 3.03333,
+      "kind": "speed-ramp",
+      "currentDuration": 1.3666599999999998,
+      "targetDuration": 1.5000000000000004,
+      "targetBeats": 3,
+      "speedFactor": 0.9111066666666663,
+      "setptsFactor": 1.097566329591852,
+      "deltaSeconds": 0.13334000000000068,
+      "direction": "ralentizar",
+      "reason": "Ajustar el segmento a 3 beat(s) de 120.00 BPM",
+      "evidence": {
+        "bpm": 119.99999999999997,
+        "period": 0.5000000000000001,
+        "tempoScore": 1
+      },
+      "confidence": null,
+      "startFrame": 50,
+      "endFrame": 91,
+      "currentFrames": 41,
+      "targetFrames": 45,
+      "frameExact": true,
+      "appliedTo": 1
+    }
+  ],
+  "estimatedDuration": 6.000669,
+  "audioMode": "stretch",
+  "sourceDuration": 6.034,
+  "analysis": {
+    "fps": 30,
+    "frameRateMode": "cfr",
+    "width": 640,
+    "height": 360,
+    "cuts": [
+      {
+        "timestamp": 1.66667,
+        "frame": 50
+      },
+      {
+        "timestamp": 3.03333,
+        "frame": 91
+      }
+    ],
+    "beats": [
+      {
+        "timestamp": 0.49999999999999933,
+        "frame": 15
+      },
+      {
+        "timestamp": 0.9999999999999994,
+        "frame": 30
+      },
+      {
+        "timestamp": 1.4999999999999996,
+        "frame": 45
+      },
+      {
+        "timestamp": 1.9999999999999996,
+        "frame": 60
+      },
+      {
+        "timestamp": 2.4999999999999996,
+        "frame": 75
+      },
+      {
+        "timestamp": 3,
+        "frame": 90
+      },
+      {
+        "timestamp": 3.5,
+        "frame": 105
+      },
+      {
+        "timestamp": 4,
+        "frame": 120
+      },
+      {
+        "timestamp": 4.5,
+        "frame": 135
+      },
+      {
+        "timestamp": 5,
+        "frame": 150
+      },
+      {
+        "timestamp": 5.5,
+        "frame": 165
+      },
+      {
+        "timestamp": 6.000000000000001,
+        "frame": 180
+      }
+    ],
+    "tempo": {
+      "bpm": 119.99999999999997,
+      "period": 0.5000000000000001,
+      "score": 1
+    },
+    "sync": {
+      "status": "datos-insuficientes",
+      "ratio": null
+    }
+  },
+  "warnings": [
+    "El audio se estira con atempo para seguir al vídeo: se conserva la sincronía audiovisual dentro de cada segmento, pero la MÚSICA CAMBIA DE TEMPO y los beats del resultado ya no caen donde los midió el análisis del original.",
+    "atempo hace time-stretch sin corregir formantes; en voz puede introducir artefactos audibles."
+  ],
+  "export": null,
+  "timeTransform": "D_out = (sourceEnd - sourceStart) * setptsFactor;  speed = 1 / setptsFactor;  vídeo: setpts=PTS*setptsFactor;  audio: atempo=speed"
+}

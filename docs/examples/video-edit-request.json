@@ -1,0 +1,8 @@
+{
+  "videoJobId": "1f48448c-5af6-472b-9b5f-6978a681cabc",
+  "format": "9:16",
+  "targetDuration": null,
+  "syncMode": "beats",
+  "enableSpeedRamps": true,
+  "approvalRequired": true
+}
