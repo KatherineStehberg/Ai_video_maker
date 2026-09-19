@@ -52,6 +52,14 @@ try {
   await page.waitForFunction(() => document.getElementById('config-hint').textContent.includes('este equipo'));
   step('Carga de la página', 'modo local, sin clave Gemini');
 
+  // Pantalla inicial: dos modos. Este smoke cubre el de subir un MP4.
+  assert.equal(await page.locator('#mode-chooser').isVisible(), true);
+  assert.equal(await page.locator('#panel-upload').isVisible(), false, 'el panel no se muestra hasta elegir modo');
+  await page.locator('#mode-upload').click();
+  await page.waitForFunction(() => !document.getElementById('panel-upload').hidden);
+  assert.equal(await page.locator('#mode-chooser').isVisible(), false);
+  step('Elección de modo', 'editar un video existente');
+
   // Estado inicial: todo bloqueado.
   assert.equal(await page.locator('#btn-analyze').isDisabled(), true);
   assert.equal(await page.locator('#btn-export').isDisabled(), true);

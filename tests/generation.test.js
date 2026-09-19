@@ -60,8 +60,11 @@ test('proveedor mock: produce un MP4 real, determinista y marcado como prueba', 
   const etapas = [];
   const salida = await getProvider('mock').generate(spec, { workDir: dir, onProgress: (p, s) => etapas.push(s) });
 
+  // El proveedor se declara mock y explica qué hizo. El aviso de «esto no es
+  // IA» lo emite jobs.js una sola vez (ver el test HTTP), para no duplicarlo.
   assert.equal(salida.mock, true, 'el mock debe declararse como tal');
-  assert.ok(salida.notes.some(n => /no es generación con IA/i.test(n)), 'debe advertir que no es IA');
+  assert.ok(salida.notes.some(n => /semilla/i.test(n)), 'debe explicar que el prompt sólo es semilla');
+  assert.ok(salida.notes.some(n => /no se gastaron créditos/i.test(n)));
   assert.ok(etapas.length >= 2);
 
   const meta = await probe(salida.file);
@@ -70,6 +73,14 @@ test('proveedor mock: produce un MP4 real, determinista y marcado como prueba', 
   assert.equal(meta.height, 960);
   assert.equal(meta.codec, 'h264');
   assert.equal(meta.audio.length, 1, 'el mock incluye pista de clics para que haya beats');
+
+  // El material de prueba debe ser ANALIZABLE: si los planos no contrastan,
+  // el detector de escenas no ve ningún corte y el mock no sirve para nada.
+  const { analyzeLocal } = await import('../src/analysis/local.js');
+  const local = await analyzeLocal(salida.file, meta);
+  assert.ok(local.scenes.length >= 1, `se esperaban cortes detectables, hubo ${local.scenes.length}`);
+  assert.ok(local.tempo, 'se esperaba ritmo detectable a partir de la pista de clics');
+  assert.ok(Math.abs(local.tempo.bpm - salida.spec.bpm) < 3, `BPM medido ${local.tempo.bpm} vs generado ${salida.spec.bpm}`);
 
   // Determinismo: el mismo prompt produce el mismo plan de video.
   const otra = await getProvider('mock').generate(spec, { workDir: dir });

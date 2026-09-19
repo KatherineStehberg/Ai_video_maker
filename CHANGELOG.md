@@ -5,6 +5,40 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Generación de video con IA (2026-09-18)
+
+- **Segundo flujo principal**: pantalla inicial con dos opciones, «Crear video
+  con un prompt» y «Editar un video existente». El flujo de subida existente no
+  cambia.
+- `POST /api/video-generation/jobs` y `GET /api/video-generation/jobs/:id`, con
+  estados `queued → generating → generated → analyzing → editing → completed`
+  (o `failed`). Al completarse deja hechos el análisis y la propuesta de edición,
+  reutilizando los módulos existentes en lugar de duplicarlos.
+- `src/providers/video-generation/`: registro de proveedores desacoplado.
+  **Sólo el proveedor `mock` funciona**: genera un video de prueba con FFmpeg,
+  sin IA, sin coste y sin contactar ningún servicio. Las ranuras `api` y `local`
+  están declaradas pero no implementadas y fallan con un mensaje accionable.
+  El contrato para añadir un proveedor real está documentado en el propio módulo.
+- `analyzeExistingFile()` en `src/analysis/routes.js`: permite analizar un
+  archivo ya en disco reutilizando exactamente el mismo `execute` que la subida.
+- Interfaz: formulario de prompt (duración, formato, estilo y campos opcionales
+  de música, público y plataforma), tarjeta con el prompt usado y sus
+  parámetros, y el aviso de que el material es de prueba siempre visible.
+- `scripts/generation-smoke.mjs`: smoke de navegador del flujo completo
+  prompt → generación → análisis → edición → aprobación → exportación.
+
+### Corregido
+
+- El proveedor mock producía planos de colores demasiado parecidos (la paleta
+  corporativa es monocroma) y el detector de escenas no encontraba **ningún
+  corte**, con lo que el material de prueba no servía para probar nada. Ahora
+  alterna luminancia entre planos consecutivos; hay un test que lo verifica.
+- Editar un solo trozo marcaba **todos** como «Ajustado por ti» y desplazaba
+  sus duraciones: el input muestra dos decimales y reenviaba ese valor
+  redondeado. Ahora se conserva la velocidad exacta cuando no se ha tocado.
+- Advertencia de mock duplicada en la interfaz (la emitían el proveedor y el
+  trabajo); ahora se emite una sola vez.
+
 ### Cambiado — Rediseño del editor y segmentos editables (2026-09-18)
 
 - **Rediseño visual completo** del editor, pensado para uso no técnico:

@@ -50,9 +50,12 @@
   <!-- ============================= [PANEL] =============================== -->
   <aside class="panel-lateral" aria-label="Ajustes del video">
 
-    <!-- TARJETA 1: elegir el video y analizarlo -->
-    <section class="tarjeta">
-      <h2><span class="tarjeta-numero">1</span>Tu video</h2>
+    <!-- TARJETA 1-A: subir un video existente (modo "upload") -->
+    <section class="tarjeta" id="panel-upload" hidden>
+      <div class="tarjeta-cabecera">
+        <h2><span class="tarjeta-numero">1</span>Tu video</h2>
+        <button class="boton boton-mini" id="btn-change-mode">Cambiar modo</button>
+      </div>
       <label class="zona-archivo" for="file">
         <span id="file-label">Elige un video MP4</span>
         <input type="file" id="file" accept="video/*,.mp4,.mov,.m4v,.mkv,.webm">
@@ -63,8 +66,47 @@
       <p class="texto-ayuda" id="config-hint">Comprobando…</p>
     </section>
 
+    <!-- TARJETA 1-B: crear el video con un prompt (modo "prompt") -->
+    <section class="tarjeta" id="panel-prompt" hidden>
+      <div class="tarjeta-cabecera">
+        <h2><span class="tarjeta-numero">1</span>Tu idea</h2>
+        <button class="boton boton-mini" id="btn-change-mode-2">Cambiar modo</button>
+      </div>
+      <label>Describe el video que quieres
+        <textarea id="prompt" rows="5" maxlength="2000"
+          placeholder="Ejemplo: Video vertical promocional sobre clases de inglés online para adultos, tono cercano y profesional."></textarea>
+      </label>
+      <label>Duración
+        <select id="gen-duration">
+          <option value="8">8 segundos</option>
+          <option value="15" selected>15 segundos</option>
+          <option value="30">30 segundos</option>
+          <option value="60">60 segundos</option>
+        </select>
+      </label>
+      <label>Formato
+        <select id="gen-format">
+          <option value="9:16">Vertical 9:16 — Reels, Shorts, TikTok</option>
+          <option value="16:9">Horizontal 16:9 — YouTube, LinkedIn</option>
+          <option value="1:1">Cuadrado 1:1 — feed de Instagram</option>
+        </select>
+      </label>
+      <label>Estilo visual
+        <select id="gen-style"></select>
+      </label>
+      <details>
+        <summary>Detalles opcionales</summary>
+        <label>Música o ritmo <input type="text" id="gen-music" maxlength="300" placeholder="Ej: electrónica suave, 110 BPM"></label>
+        <label>Público <input type="text" id="gen-audience" maxlength="300" placeholder="Ej: adultos profesionales"></label>
+        <label>Plataforma <input type="text" id="gen-platform" maxlength="300" placeholder="Ej: TikTok"></label>
+      </details>
+      <!-- BOTÓN PRINCIPAL: generar -->
+      <button class="boton boton-primario boton-grande" id="btn-generate">Generar video</button>
+      <p class="texto-ayuda" id="gen-provider-hint">Comprobando proveedor…</p>
+    </section>
+
     <!-- TARJETA 2: cómo se quiere el montaje -->
-    <section class="tarjeta">
+    <section class="tarjeta" id="panel-settings" hidden>
       <h2><span class="tarjeta-numero">2</span>Cómo lo quieres</h2>
       <label>Formato
         <select id="format">
@@ -93,7 +135,7 @@
     </section>
 
     <!-- TARJETA 3: aprobar y exportar -->
-    <section class="tarjeta">
+    <section class="tarjeta" id="panel-approve" hidden>
       <h2><span class="tarjeta-numero">3</span>Aprobar y exportar</h2>
       <p class="texto-ayuda" id="approval-hint">Primero crea una propuesta.</p>
       <!-- BOTÓN PRINCIPAL 2 -->
@@ -107,8 +149,38 @@
   <!-- ========================= [ÁREA PRINCIPAL] ========================== -->
   <main class="area-principal">
 
+    <!-- --------------------------- [MODO] -------------------------------
+         Pantalla inicial: elegir entre generar con IA o editar un MP4.
+         ------------------------------------------------------------------ -->
+    <section class="tarjeta" id="mode-chooser">
+      <h1>¿Qué quieres hacer?</h1>
+      <p class="texto-ayuda">Elige cómo empezar. Podrás cambiar de modo cuando quieras.</p>
+      <div class="modos">
+        <button class="modo" id="mode-prompt" type="button">
+          <span class="modo-icono">✨</span>
+          <span class="modo-titulo">Crear video con un prompt</span>
+          <span class="modo-texto">Describe lo que quieres y se genera un video. Después se analiza y se monta solo.</span>
+        </button>
+        <button class="modo" id="mode-upload" type="button">
+          <span class="modo-icono">🎬</span>
+          <span class="modo-titulo">Editar un video existente</span>
+          <span class="modo-texto">Sube un MP4 que ya tengas y el editor detecta cortes, ritmo y propone el montaje.</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ------------------------- [PROMPT USADO] -------------------------- -->
+    <section class="tarjeta" id="prompt-card" hidden>
+      <div class="tarjeta-cabecera">
+        <h2>Tu prompt</h2>
+        <span class="etiqueta-estado" id="gen-provider-badge"></span>
+      </div>
+      <blockquote class="prompt-usado" id="prompt-used"></blockquote>
+      <dl class="ficha" id="prompt-specs"></dl>
+    </section>
+
     <!-- ---------------------------- [ESTADO] ---------------------------- -->
-    <section class="tarjeta">
+    <section class="tarjeta ocultar-sin-modo">
       <div class="barra-estado">
         <progress class="progreso" id="progress" max="100" value="0"></progress>
         <span class="etiqueta-estado" id="state-pill" data-state="listo">Listo</span>
@@ -123,7 +195,7 @@
     <!-- ---------------------------- [VIDEOS] ----------------------------
          DIMENSIONES DEL REPRODUCTOR: variable --player-height en editor.css
          ------------------------------------------------------------------ -->
-    <div class="videos">
+    <div class="videos ocultar-sin-modo">
       <section class="tarjeta">
         <h2>Video original</h2>
         <p class="texto-ayuda" id="source-empty">Se verá aquí en cuanto analices el video.</p>
@@ -137,7 +209,7 @@
     </div>
 
     <!-- --------------------------- [RESUMEN] ---------------------------- -->
-    <section class="tarjeta">
+    <section class="tarjeta ocultar-sin-modo">
       <div class="tarjeta-cabecera">
         <h2>Resumen</h2>
         <span class="texto-ayuda" id="proposal-summary">Sin propuesta.</span>
@@ -149,7 +221,7 @@
     </section>
 
     <!-- --------------------------- [TIMELINE] --------------------------- -->
-    <section class="tarjeta">
+    <section class="tarjeta ocultar-sin-modo">
       <h2>Línea de tiempo</h2>
       <p class="texto-ayuda">Haz clic en cualquier punto para verlo en el reproductor.</p>
       <div id="timeline"></div>
@@ -182,7 +254,7 @@
     <!-- --------------------------- [DETALLE] ----------------------------
          Tablas técnicas, plegadas por defecto para no saturar la pantalla.
          ------------------------------------------------------------------ -->
-    <section class="tarjeta">
+    <section class="tarjeta ocultar-sin-modo">
       <h2>Detalle técnico</h2>
       <details>
         <summary>Ritmo y sincronía</summary>
@@ -210,7 +282,7 @@
     </section>
 
     <!-- TEXTOS: aviso legal / pie de página -->
-    <footer class="pie">
+    <footer class="pie ocultar-sin-modo">
       <p>Todo se procesa en este equipo. Tu archivo original nunca se modifica; los videos exportados se guardan en <code>output/video-edits/</code>. No se publica nada en redes sociales.</p>
     </footer>
   </main>

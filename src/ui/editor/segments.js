@@ -35,6 +35,10 @@ export function renderSegments(container, proposal, { onChange } = {}) {
     const fila = el('div', 'segmento-fila');
     fila.dataset.incluido = 'si';
     fila.dataset.index = String(index);
+    // Se guarda la velocidad exacta del backend. El input sólo muestra dos
+    // decimales; sin esto, reenviar el valor redondeado alteraría en silencio
+    // la velocidad (y la duración) de todos los trozos sin tocarlos.
+    fila.dataset.speedOriginal = String(s.speed);
 
     fila.append(el('span', 'segmento-indice', String(index + 1)));
 
@@ -77,15 +81,22 @@ export function renderSegments(container, proposal, { onChange } = {}) {
   });
 }
 
-/** Lee la selección actual en el formato que espera PATCH /api/video-edits/:id. */
+/**
+ * Lee la selección actual en el formato que espera PATCH /api/video-edits/:id.
+ *
+ * Si la velocidad mostrada no difiere de la original más allá de lo que el
+ * input puede representar (dos decimales), se omite el campo `speed`: así el
+ * backend conserva su valor exacto en lugar de recibir uno redondeado.
+ */
 export function readSegments(container) {
   const segments = [];
   for (const fila of container.querySelectorAll('.segmento-fila')) {
     if (fila.dataset.incluido === 'no') continue;
-    segments.push({
-      index: Number(fila.dataset.index),
-      speed: Number(fila.querySelector('.segmento-velocidad').value),
-    });
+    const index = Number(fila.dataset.index);
+    const mostrada = Number(fila.querySelector('.segmento-velocidad').value);
+    const original = Number(fila.dataset.speedOriginal);
+    const sinCambio = Number.isFinite(original) && Number.isFinite(mostrada) && Math.abs(mostrada - original) < 5e-3;
+    segments.push(sinCambio ? { index, speed: original } : { index, speed: mostrada });
   }
   return segments;
 }

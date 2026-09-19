@@ -13,6 +13,14 @@ npm.cmd start
 
 Abre **http://127.0.0.1:4321/editor.html**. El puerto se cambia con `PORT`.
 
+La pantalla inicial ofrece dos caminos:
+
+**1 · Crear video con un prompt.** Escribes lo que quieres, eliges duración, formato y estilo, y el sistema genera un video, lo analiza y propone el montaje automáticamente. Después sigue el mismo circuito: revisar, editar trozos, aprobar y exportar.
+
+> **Importante:** hoy sólo está implementado el proveedor **mock**, que construye un video de prueba con FFmpeg en local. **No es generación con IA** y no representa el contenido del prompt: sirve para recorrer el flujo completo sin gastar créditos ni enviar nada a ningún servicio. La interfaz lo advierte siempre. Para conectar un proveedor real, el contrato está documentado en [`src/providers/video-generation/index.js`](src/providers/video-generation/index.js); las claves van sólo en `.env`, nunca en el frontend.
+
+**2 · Editar un video existente.** Subes un MP4 tuyo y el editor detecta cortes, ritmo y beats, y propone el montaje.
+
 El editor cubre el flujo entero sin `curl` ni scripts: seleccionar un MP4, ver nombre, tamaño, duración, FPS, resolución, códec y si tiene audio; analizar con barra de progreso real; revisar cortes, frames, beats, BPM, eventos de audio, rampas y sincronía; ver una timeline con los cortes, el ritmo y los segmentos propuestos; crear la propuesta eligiendo formato (16:9, 9:16, 1:1), modo de sincronización, rampas y duración objetivo; aprobarla; exportar el MP4; y descargar el resultado junto al JSON del análisis y el CSV de cortes. Hay dos reproductores HTML5, para el original y para el exportado.
 
 **La exportación está bloqueada** mientras no haya propuesta, no esté aprobada, el análisis haya fallado o el archivo no sea válido. La interfaz dice siempre cuál de esas condiciones falta, y el botón vuelve a bloquearse mientras FFmpeg trabaja para impedir una segunda exportación simultánea.

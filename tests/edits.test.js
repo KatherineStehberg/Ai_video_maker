@@ -286,6 +286,18 @@ test('HTTP: crear, aprobar, exportar y descargar; rechazo sin aprobación', { ti
     assert.ok(Math.abs(edited.estimatedDuration - edited.segments[0].end) < 1e-6);
     // Y por tanto exportar vuelve a estar bloqueado.
     assert.equal((await post(`/api/video-edits/${proposal.id}/export`, {})).status, 403);
+    // Reenviar la velocidad exacta NO debe marcar el segmento como editado:
+    // de lo contrario, tocar un trozo marcaría todos los demás como manuales.
+    const proposal2 = await (await post('/api/video-edits', { videoJobId, format: '1:1' })).json();
+    const original = proposal2.segments[0];
+    const sinTocar = await (await fetch(base + `/api/video-edits/${proposal2.id}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ segments: proposal2.segments.map((s, index) => ({ index, speed: s.speed })) }),
+    })).json();
+    assert.equal(sinTocar.segments[0].reason, original.reason, 'reenviar la misma velocidad no es una edición');
+    assert.equal(sinTocar.segments[0].speed, original.speed, 'la velocidad exacta debe conservarse');
+    assert.equal(sinTocar.estimatedDuration, proposal2.estimatedDuration, 'la duración no debe desplazarse sola');
+
     // Entradas inválidas se rechazan con mensaje concreto.
     assert.equal((await patch({ segments: [] })).status, 400);
     assert.match((await (await patch({ segments: [{ index: 99 }] })).json()).error, /fuera de rango/);

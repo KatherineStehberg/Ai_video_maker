@@ -4,12 +4,13 @@
  * qué botones habilitar; ninguna vista decide por su cuenta.
  */
 
-export const STATES = ['listo', 'cargando', 'analizando', 'analisis-completado',
+export const STATES = ['listo', 'cargando', 'generando', 'analizando', 'analisis-completado',
   'creando-propuesta', 'aprobacion-pendiente', 'aprobado', 'exportando', 'exportado', 'error'];
 
 export const STATE_LABELS = {
   listo: 'Listo',
   cargando: 'Cargando archivo',
+  generando: 'Generando video',
   analizando: 'Analizando',
   'analisis-completado': 'Análisis completado',
   'creando-propuesta': 'Creando propuesta',
@@ -50,11 +51,16 @@ export function formatBytes(bytes) {
   return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-/** Estado inicial. `file` es el descriptor del archivo elegido, no su contenido. */
+/**
+ * Estado inicial. `file` es el descriptor del archivo elegido, no su contenido.
+ * `mode` es null hasta que se elige entre crear con un prompt o subir un video.
+ * `generation` guarda el trabajo de generación cuando se usó ese camino.
+ */
 export function initialState() {
   return {
+    mode: null,
     state: 'listo', message: null, error: null, progress: 0, stage: null,
-    file: null, analysisId: null, analysis: null,
+    file: null, analysisId: null, analysis: null, generation: null,
     proposal: null, exportResult: null, busy: false,
   };
 }
@@ -66,9 +72,30 @@ export function initialState() {
 export function reduce(current, action) {
   const next = { ...current };
   switch (action.type) {
+    case 'mode-selected':
+      return { ...initialState(), mode: action.mode };
+
     case 'file-selected': {
       const check = validateFile(action.file);
-      return { ...initialState(), file: action.file, state: check.ok ? 'listo' : 'error', error: check.ok ? null : check.error };
+      return { ...initialState(), mode: next.mode, file: action.file, state: check.ok ? 'listo' : 'error', error: check.ok ? null : check.error };
+    }
+
+    // ---- Generación con IA -------------------------------------------------
+    case 'generation-start':
+      return { ...initialState(), mode: 'prompt', state: 'generando', busy: true, generation: action.job, progress: 0 };
+    case 'generation-progress':
+      return { ...next, state: 'generando', generation: action.job, progress: action.job.progress ?? next.progress, stage: action.job.stage ?? next.stage };
+    /**
+     * El video generado no es un File del navegador, así que se sintetiza un
+     * descriptor equivalente: el resto de la interfaz (ficha, validaciones,
+     * habilitación de exportar) funciona igual en los dos caminos.
+     */
+    case 'generation-complete': {
+      const approved = !action.proposal.approvalRequired || action.proposal.approval?.status === 'aprobada';
+      return { ...next, mode: 'prompt', generation: action.job,
+        file: { name: `video-generado-${action.job.id.slice(0, 8)}.mp4`, size: action.job.generation?.bytes ?? 1, type: 'video/mp4' },
+        analysisId: action.analysis.id, analysis: action.analysis, proposal: action.proposal,
+        state: approved ? 'aprobado' : 'aprobacion-pendiente', progress: 100, stage: null, busy: false, error: null };
     }
     case 'upload-start':
       return { ...next, state: 'cargando', progress: 0, error: null, busy: true, analysis: null, proposal: null, exportResult: null };

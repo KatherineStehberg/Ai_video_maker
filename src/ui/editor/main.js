@@ -25,6 +25,7 @@ const $ = id => document.getElementById(id);
 const api = createApi();
 let state = initialState();
 let analysisPoll = null;
+let generationPoll = null;
 let pendingSegments = null;   // selección del panel aún sin aplicar
 
 const messages = createMessages({ statusEl: $('status'), stateEl: $('state-pill'), errorEl: $('error'), warningsEl: $('warnings') });
@@ -45,6 +46,17 @@ function render() {
   $('progress').value = state.progress || 0;
   $('progress').classList.toggle('trabajando', state.busy);
 
+  // Modo elegido: se muestra sólo el panel que corresponde. Sin modo, la
+  // pantalla inicial ocupa todo el ancho (ver editor.css, data-modo).
+  document.body.dataset.modo = state.mode || 'ninguno';
+  $('mode-chooser').hidden = Boolean(state.mode);
+  $('panel-upload').hidden = state.mode !== 'upload';
+  $('panel-prompt').hidden = state.mode !== 'prompt';
+  $('panel-settings').hidden = !state.mode;
+  $('panel-approve').hidden = !state.mode;
+  $('btn-generate').disabled = state.busy;
+  renderPrompt();
+
   $('btn-analyze').disabled = !canAnalyze(state);
   $('btn-propose').disabled = !canPropose(state);
   $('btn-approve').disabled = !canApprove(state);
@@ -55,7 +67,12 @@ function render() {
   renderFacts();
   renderSummary();
   renderTables();
-  messages.setWarnings(collectWarnings(state.proposal, state.exportResult));
+  // Las advertencias de la generación (p. ej. «esto es un video de prueba»)
+  // van primero: importan más que las del montaje.
+  messages.setWarnings([...new Set([
+    ...(state.generation?.warnings || []),
+    ...collectWarnings(state.proposal, state.exportResult),
+  ])]);
   renderTimeline($('timeline'), state.analysis, state.proposal, { onSeek: t => sourcePlayer.seek(t) });
   renderDownloads();
 }
@@ -82,6 +99,34 @@ function renderSteps() {
     li.dataset.activo = !hecho[paso] && paso === activo ? 'si' : 'no';
     li.dataset.error = state.state === 'error' && paso === activo ? 'si' : 'no';
   }
+}
+
+/** Tarjeta con el prompt usado y los parámetros de la generación. */
+function renderPrompt() {
+  const job = state.generation;
+  $('prompt-card').hidden = !job;
+  if (!job) return;
+  $('prompt-used').textContent = job.spec.prompt;
+  $('gen-provider-badge').textContent = job.provider.mock ? 'Video de prueba (mock)' : job.provider.label;
+
+  const filas = [
+    ['Duración pedida', `${job.spec.duration} s`],
+    ['Formato', job.spec.format],
+    ['Estilo', job.spec.style],
+  ];
+  for (const [clave, campo] of [['Música', 'music'], ['Público', 'audience'], ['Plataforma', 'platform'], ['Ritmo', 'tempo']]) {
+    if (job.spec[campo]) filas.push([clave, job.spec[campo]]);
+  }
+  filas.push(['Proveedor', job.provider.label]);
+  if (job.generation?.model) filas.push(['Modelo', job.generation.model]);
+
+  const fragment = document.createDocumentFragment();
+  for (const [clave, valor] of filas) {
+    const dt = document.createElement('dt'); dt.textContent = clave;
+    const dd = document.createElement('dd'); dd.textContent = valor;
+    fragment.append(dt, dd);
+  }
+  $('prompt-specs').replaceChildren(fragment);
 }
 
 function renderFacts() {
@@ -234,6 +279,78 @@ $('btn-reset-segments').addEventListener('click', () => {
   messages.setStatus('Cambios descartados.');
 });
 
+// ================================================== MODO Y GENERACIÓN
+
+function elegirModo(mode) {
+  analysisPoll?.stop(); generationPoll?.stop();
+  sourcePlayer.clear(); exportPlayer.clear();
+  pendingSegments = null;
+  $('file').value = '';
+  $('file-label').textContent = 'Elige un video MP4';
+  dispatch({ type: 'mode-selected', mode });
+  messages.setStatus(mode === 'prompt'
+    ? 'Describe el video que quieres y pulsa «Generar video».'
+    : 'Elige un video para empezar.');
+}
+
+$('mode-prompt').addEventListener('click', () => elegirModo('prompt'));
+$('mode-upload').addEventListener('click', () => elegirModo('upload'));
+for (const id of ['btn-change-mode', 'btn-change-mode-2']) {
+  $(id).addEventListener('click', () => {
+    analysisPoll?.stop(); generationPoll?.stop();
+    sourcePlayer.clear(); exportPlayer.clear();
+    pendingSegments = null;
+    dispatch({ type: 'reset' });
+    messages.setStatus('Elige cómo quieres empezar.');
+  });
+}
+
+$('btn-generate').addEventListener('click', async () => {
+  if (state.busy) return;
+  const prompt = $('prompt').value.trim();
+  if (!prompt) { messages.setError('Escribe un prompt que describa el video que quieres.'); return; }
+
+  const body = {
+    prompt,
+    duration: Number($('gen-duration').value),
+    format: $('gen-format').value,
+    style: $('gen-style').value,
+    music: $('gen-music').value.trim() || null,
+    audience: $('gen-audience').value.trim() || null,
+    platform: $('gen-platform').value.trim() || null,
+  };
+
+  try {
+    const job = await api.createGeneration(body);
+    dispatch({ type: 'generation-start', job });
+    messages.setStatus('Generando el video…');
+
+    generationPoll?.stop();
+    generationPoll = poll(() => api.getGeneration(job.id), {
+      intervalMs: 900,
+      isDone: j => ['completed', 'failed'].includes(j.status),
+      onTick: j => {
+        dispatch({ type: 'generation-progress', job: j });
+        messages.setStatus(`${j.stage || 'Trabajando'} · ${(j.progress || 0).toFixed(0)} %`);
+      },
+    });
+    const finished = await generationPoll.done;
+    if (finished.status !== 'completed') throw new ApiError(finished.error || 'La generación no se completó.', 0);
+
+    // El trabajo deja hechos el análisis y la propuesta: se cargan y a partir
+    // de aquí la interfaz es exactamente la misma que en el flujo de subida.
+    const [analysis, proposal] = await Promise.all([
+      api.getAnalysis(finished.analysisId),
+      api.getProposal(finished.editId),
+    ]);
+    dispatch({ type: 'generation-complete', job: finished, analysis, proposal });
+    sourcePlayer.load(api.previewUrl(analysis.id));
+    messages.setStatus('Video generado y montaje propuesto. Revísalo y apruébalo para exportar.');
+  } catch (e) {
+    dispatch({ type: 'error', error: e.message });
+  }
+});
+
 // ============================================================ ACCIONES
 
 $('file').addEventListener('change', event => {
@@ -338,6 +455,23 @@ try {
     : 'Todo se procesa en este equipo y sin coste.';
 } catch (e) {
   $('config-hint').textContent = `No se pudo conectar con el servidor: ${e.message}`;
+}
+
+// Proveedores y estilos de generación. La respuesta sólo trae disponibilidad:
+// las claves de cualquier proveedor viven únicamente en el backend.
+try {
+  const gen = await api.generationConfig();
+  $('gen-style').replaceChildren(...gen.styles.map(s => {
+    const option = document.createElement('option');
+    option.value = s; option.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+    return option;
+  }));
+  const activo = gen.providers.find(p => p.id === gen.defaultProvider);
+  $('gen-provider-hint').textContent = activo?.mock
+    ? 'Proveedor actual: mock. Genera un VIDEO DE PRUEBA local con FFmpeg, sin IA y sin coste, para que puedas recorrer todo el flujo.'
+    : `Proveedor actual: ${activo?.label ?? gen.defaultProvider}.`;
+} catch (e) {
+  $('gen-provider-hint').textContent = `No se pudo leer la configuración de generación: ${e.message}`;
 }
 
 render();

@@ -28,6 +28,25 @@ const PALETAS = {
 /** Resolución de trabajo del mock. La exportación final reescala a 1080p. */
 const RESOLUCIONES = { '9:16': [540, 960], '16:9': [960, 540], '1:1': [720, 720] };
 
+const mezcla = (canal, destino, t) => Math.round(canal + (destino - canal) * t);
+
+/**
+ * Deriva el color de un plano alternando luminancia entre planos consecutivos.
+ *
+ * Sin esto el mock es inútil como material de prueba: varias paletas son
+ * monocromas (la corporativa son todos azules) y el detector de escenas de
+ * FFmpeg, con umbral 0.3, no ve ningún corte entre ellas. Alternar claro/oscuro
+ * garantiza un salto de luminancia grande y, por tanto, cortes detectables.
+ */
+function colorDePlano(base, indice) {
+  const n = parseInt(String(base).replace(/^0x/, ''), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const [destino, t] = indice % 2 === 0 ? [0, 0.45] : [255, 0.75];
+  const hex = [mezcla(r, destino, t), mezcla(g, destino, t), mezcla(b, destino, t)]
+    .map(c => c.toString(16).padStart(2, '0')).join('');
+  return `0x${hex}`;
+}
+
 export const mockProvider = {
   id: 'mock',
   label: 'Mock local (FFmpeg) — video de prueba, sin IA',
@@ -60,7 +79,7 @@ export const mockProvider = {
 
     const entradas = [], etiquetas = [];
     duraciones.forEach((d, i) => {
-      const color = paleta[(semilla[i + 9] + i) % paleta.length];
+      const color = colorDePlano(paleta[(semilla[i + 9] + i) % paleta.length], i);
       entradas.push('-f', 'lavfi', '-i', `color=c=${color}:s=${ancho}x${alto}:r=30:d=${d.toFixed(3)}`);
       etiquetas.push(`[${i}:v]`);
     });
@@ -85,10 +104,11 @@ export const mockProvider = {
       mock: true,
       model: 'ffmpeg-lavfi',
       spec: { planos, bpm, resolucion: `${ancho}x${alto}` },
+      // El aviso de «esto es un mock» lo añade jobs.js una sola vez; aquí sólo
+      // van los detalles concretos, para no repetir lo mismo en la interfaz.
       notes: [
-        'VIDEO DE PRUEBA generado localmente con FFmpeg. No es generación con IA y no representa el contenido del prompt.',
         `El prompt sólo se usa como semilla: ${planos} planos de color y clics a ${bpm} BPM.`,
-        'Sirve para probar el flujo completo sin gastar créditos ni enviar nada a ningún servicio.',
+        'No se gastaron créditos ni se envió nada a ningún servicio externo.',
       ],
     };
   },

@@ -46,6 +46,54 @@ en JSON o CSV.
 
 ---
 
+## Generación de video con IA
+
+Flujo alternativo a la subida: un prompt produce un video que **se encadena
+automáticamente** con el mismo análisis y la misma edición. La aprobación humana
+y la exportación siguen siendo pasos aparte, con idénticas garantías.
+
+### `GET /api/video-generation/config`
+
+Proveedores disponibles, formatos, estilos y límites. De cada proveedor publica
+`configured` y qué variables de entorno necesitaría, **nunca sus valores**.
+
+### `POST /api/video-generation/jobs`
+
+```json
+{
+  "prompt": "Video vertical promocional sobre...",
+  "duration": 15,
+  "format": "9:16",
+  "style": "cinematográfico",
+  "platform": "TikTok"
+}
+```
+
+`prompt` es obligatorio (máx. 2000 caracteres). `duration` entre 3 y 120 s,
+`format` uno de `9:16`, `16:9`, `1:1`, y `style` uno de los que lista la config.
+`music`, `tempo`, `audience` y `platform` son opcionales y se pasan al proveedor
+sin interpretarlos. Responde `202` con el trabajo en estado `queued`.
+
+### `GET /api/video-generation/jobs/:id`
+
+Estados: `queued` → `generating` → `generated` → `analyzing` → `editing` →
+`completed`, o `failed` en cualquier punto. Al llegar a `completed` el trabajo
+trae `analysisId` y `editId`, que se consultan con los endpoints normales de
+análisis y de edición.
+
+Un trabajo interrumpido por un reinicio del servidor se marca `failed` y **no se
+reanuda solo**: con un proveedor de pago, reanudar podría volver a cobrar.
+
+### Proveedores
+
+Sólo `mock` funciona hoy: construye un video de prueba con FFmpeg en local, sin
+IA y sin coste. Las ranuras `api` (servicio externo) y `local` (modelo en este
+equipo) están declaradas pero **no implementadas**, y fallan con un mensaje que
+dice qué falta. El contrato para añadir uno real está documentado en
+`src/providers/video-generation/index.js`.
+
+---
+
 ## Propuesta de edición
 
 ### `POST /api/video-edits`
