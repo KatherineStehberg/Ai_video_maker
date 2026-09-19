@@ -7,6 +7,7 @@ import { ASPECTS } from '../config.js';
 import { getProvider, DEFAULT_PROVIDER } from '../providers/video-generation/index.js';
 import { analyzeExistingFile } from '../analysis/routes.js';
 import { draftScript } from './script.js';
+import { vozDisponible } from './voice.js';
 import { elegirTemplate } from '../providers/video-generation/pipeline.js';
 import { planEdit } from '../edits/plan.js';
 import { saveProposal } from '../edits/routes.js';
@@ -112,7 +113,9 @@ export async function draftJob(input) {
   const spec = normalizeSpec(input);
   const templateId = spec.templateId || elegirTemplate(spec);
   const borrador = await draftScript(spec, { templateId });
+  const voz = await vozDisponible();
   return {
+    voz: { nombre: voz.nombre, provider: voz.provider, esEspanol: voz.esEspanol, etiqueta: voz.etiqueta, aviso: voz.aviso },
     spec: { ...spec, templateId },
     templateId,
     source: borrador.source,

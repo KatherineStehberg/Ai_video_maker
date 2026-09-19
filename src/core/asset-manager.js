@@ -103,6 +103,11 @@ export async function ensureSceneAssets(project, brandObj, { provider = 'auto', 
     if (found) {
       scene.assetPath = found.path;
       scene.assetKind = assetKind(found.path);
+      // Procedencia y atribucion: quien puso la imagen y bajo que licencia.
+      // Sin esto la interfaz no puede distinguir un fondo generado de una foto
+      // de banco, ni acreditar al autor cuando la licencia lo pide.
+      scene.assetProvider = found.provider || null;
+      scene.assetCredit = found.credit || null;
       results.push({ sceneId: scene.id, ...found });
     } else {
       log.warn(`Escena ${i + 1}: sin visual disponible`);

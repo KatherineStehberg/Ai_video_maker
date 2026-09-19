@@ -140,9 +140,14 @@ test('guion local: extrae el tema y redacta escenas que hablan de él', async ()
     assert.ok(e.visualPrompt.length > 0, 'cada escena necesita instrucción visual');
     assert.ok(e.duration >= 2 && e.duration <= 10, `duración fuera de rango: ${e.duration}`);
   }
-  // Lo esencial: el guion habla del tema pedido, no es relleno genérico.
-  assert.ok(d.escenas.filter(e => /ingl[eé]s/i.test(e.text)).length >= 2,
-    `el guion no menciona el tema: ${JSON.stringify(d.escenas.map(e => e.text))}`);
+  // El guion nombra el tema (en el gancho) y desarrolla los beneficios que el
+  // prompt menciona. NO debe repetir el tema en cada frase: eso es justo lo
+  // que hacía sonar robótico al guion anterior.
+  const todo = d.escenas.map(e => e.text).join(' ').toLowerCase();
+  assert.ok(/ingl[eé]s/i.test(todo), `el guion no menciona el tema: ${JSON.stringify(d.escenas.map(e => e.text))}`);
+  assert.ok(/online|adultos|particulares/i.test(todo), 'el guion no recoge ningún rasgo del prompt');
+  assert.ok(d.escenas.filter(e => /ingl[eé]s/i.test(e.text)).length <= 2,
+    'repetir el tema en todas las frases suena a relleno');
 });
 
 test('elección de plantilla y validación de escenas editadas', () => {
@@ -165,8 +170,10 @@ test('elección de plantilla y validación de escenas editadas', () => {
 
 test('borrador: no produce nada y declara el coste real de cada pieza', async () => {
   const d = await draftJob({ prompt: 'Video sobre panadería artesanal', duration: 15, format: '9:16' });
-  assert.ok(d.escenas.length >= 4);
-  assert.ok(d.duracionEstimada > 0);
+  // El número de escenas lo fija el presupuesto de palabras, no un mínimo fijo:
+  // a la velocidad real del TTS, 15 s no dan para muchas frases.
+  assert.ok(d.escenas.length >= 2, `escenas: ${d.escenas.length}`);
+  assert.ok(Math.abs(d.duracionEstimada - 15) <= 1, `duración estimada ${d.duracionEstimada}`);
   assert.equal(d.llmProvider, 'ninguno');
   // Sin LLM de pago ni clave de imágenes, el coste tiene que ser cero.
   assert.equal(d.costo.tieneCostoPotencial, false);

@@ -1,11 +1,18 @@
 {
   "id": "personal",
   "name": "Marca personal",
-  "colors": { "primary": "#0c4a6e", "secondary": "#0e7490", "accent": "#f59e0b", "text": "#ffffff", "captionText": "#ffffff", "captionOutline": "#000000" },
+  "colors": {
+    "primary": "#0c4a6e",
+    "secondary": "#0e7490",
+    "accent": "#f59e0b",
+    "text": "#ffffff",
+    "captionText": "#ffffff",
+    "captionOutline": "#000000"
+  },
   "fontFamily": "Arial",
   "logoPosition": "bottom-left",
   "logoScale": 0.08,
-  "cta": "Sigueme para mas",
+  "cta": "Sígueme para más",
   "urls": {},
   "hashtags": []
 }

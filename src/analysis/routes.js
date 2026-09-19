@@ -12,7 +12,9 @@ import { geminiConfig, interpret } from './gemini.js';
 const root=path.join(PATHS.data,'analyses'), maxBytes=2*1024**3;
 let busy=false;
 const jobs=new Map();
-const reply=(res,status,data,type='application/json')=>{res.writeHead(status,{'content-type':type,'cache-control':'no-store'});res.end(type==='application/json'?JSON.stringify(data):data);};
+// El charset va SIEMPRE explícito: sin él, un cliente que asuma latin-1
+// mostraría "inglés" como "inglÃ©s".
+const reply=(res,status,data,type='application/json; charset=utf-8')=>{res.writeHead(status,{'content-type':type,'cache-control':'no-store'});res.end(type.startsWith('application/json')?JSON.stringify(data):data);};
 const persist=j=>fs.writeFileSync(path.join(root,j.id,'analysis.json'),JSON.stringify(j,null,2));
 export function get(id) {
   if (!/^[\da-f-]{36}$/.test(id)) return null;

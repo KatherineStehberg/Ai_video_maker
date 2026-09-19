@@ -92,32 +92,89 @@ const placeholder = {
  * Pexels: banco de imagenes con free tier real (200 req/hora, sin tarjeta).
  * Opcional: sin PEXELS_API_KEY el provider queda inactivo.
  */
+/**
+ * Fotos ya usadas en este proyecto, para no repetir la misma imagen en varias
+ * escenas. Se guarda por proyecto y en memoria: un proceso nuevo empieza limpio.
+ */
+const usadasPorProyecto = new Map();
+
+/** Traduce el término de búsqueda a algo que funcione en un banco anglosajón. */
+const TRADUCCIONES = [
+  [/\bingl[eé]s\b/gi, 'english language'], [/\bclases?\b/gi, 'class lesson'],
+  [/\bprofesor(a|es)?\b/gi, 'teacher'], [/\balumnos?\b|\bestudiantes?\b/gi, 'student'],
+  [/\bhorarios?\b/gi, 'schedule'], [/\bflexibles?\b/gi, 'flexible'],
+  [/\bconversaci[oó]n\b/gi, 'conversation'], [/\btrabajo\b|\blaborales?\b/gi, 'work office'],
+  [/\badultos?\b/gi, 'adult'], [/\bonline\b/gi, 'online remote'],
+  [/\bcurso\b/gi, 'course'], [/\bempresa\b/gi, 'business'],
+  [/\bcomida\b/gi, 'food'], [/\bviajes?\b/gi, 'travel'],
+];
+
+/** Normaliza el término: traduce lo conocido y quita palabras vacías. */
+export function terminoVisual(prompt) {
+  let t = ` ${String(prompt || '')} `;
+  for (const [de, a] of TRADUCCIONES) t = t.replace(de, a);
+  const palabras = t.toLowerCase().split(/[^a-záéíóúñü0-9]+/i)
+    .filter(w => w.length > 2 && !/^(para|con|del|las|los|una|uno|que|por|sus|tus|mas|muy|the|and|for)$/.test(w));
+  return [...new Set(palabras)].slice(0, 5).join(' ').trim();
+}
+
+/**
+ * Pexels: banco de imagenes con free tier real (200 req/hora, sin tarjeta).
+ * Opcional: sin PEXELS_API_KEY el provider queda inactivo.
+ *
+ * La clave vive SOLO en el backend (CONFIG.image.pexelsKey, leido de .env).
+ * Nunca se envia al frontend ni aparece en la respuesta: de cada foto se
+ * devuelve autor, url y licencia, no credenciales.
+ */
 const pexels = {
   id: 'pexels',
   label: 'Pexels (free tier, requiere API key gratuita)',
   isAvailable: async () => Boolean(CONFIG.image.pexelsKey),
-  async provide({ prompt, scene, project, width = 1080, height = 1920 }) {
+  async provide({ prompt, scene, project, width = 1080, height = 1920, fetchImpl = fetch }) {
     if (!CONFIG.image.pexelsKey) return null;
     const orientation = height > width ? 'portrait' : width > height ? 'landscape' : 'square';
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(prompt || project?.title || '')}` +
-      `&per_page=1&orientation=${orientation}`;
-    const res = await fetch(url, {
+    const consulta = terminoVisual(prompt) || 'abstract background';
+
+    // Se piden varias y se descarta lo ya usado: escenas distintas, fotos distintas.
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(consulta)}` +
+      `&per_page=10&orientation=${orientation}`;
+    const res = await fetchImpl(url, {
       headers: { authorization: CONFIG.image.pexelsKey },
       signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const src = data?.photos?.[0]?.src?.large2x || data?.photos?.[0]?.src?.original;
+
+    const clave = project?.id || 'sin-proyecto';
+    if (!usadasPorProyecto.has(clave)) usadasPorProyecto.set(clave, new Set());
+    const usadas = usadasPorProyecto.get(clave);
+
+    const foto = (data?.photos || []).find(p => !usadas.has(String(p.id)));
+    if (!foto) return null;
+    const src = foto.src?.large2x || foto.src?.original || foto.src?.large;
     if (!src) return null;
 
-    const img = await fetch(src, { signal: AbortSignal.timeout(60_000) });
+    const img = await fetchImpl(src, { signal: AbortSignal.timeout(60_000) });
     if (!img.ok) return null;
     const dir = ensureDir(path.join(PATHS.assetsImages, '_pexels'));
-    const outFile = path.join(dir, `${project?.id || 'tmp'}_${scene?.id || 'sc'}.jpg`);
+    const outFile = path.join(dir, `${clave}_${scene?.id || 'sc'}.jpg`);
     fs.writeFileSync(outFile, Buffer.from(await img.arrayBuffer()));
-    return rel(outFile);
+    usadas.add(String(foto.id));
+
+    return {
+      path: rel(outFile),
+      credit: {
+        fuente: 'Pexels', autor: foto.photographer || 'desconocido',
+        autorUrl: foto.photographer_url || null, url: foto.url || null,
+        id: String(foto.id), licencia: 'Pexels License (uso libre, atribución no obligatoria pero recomendada)',
+        consulta,
+      },
+    };
   },
 };
+
+/** Olvida las fotos usadas por un proyecto (para regenerar desde cero). */
+export const olvidarUsadas = projectId => usadasPorProyecto.delete(projectId || 'sin-proyecto');
 
 const REGISTRY = { local, placeholder, pexels };
 
@@ -142,8 +199,11 @@ export async function provideImage(ctx, preferred = 'auto') {
     if (!p) continue;
     try {
       if (!(await p.isAvailable())) continue;
+      // Un provider puede devolver la ruta suelta o { path, credit } cuando el
+      // recurso viene de un banco y hay que guardar autor y licencia.
       const result = await p.provide(ctx);
-      if (result) return { path: result, provider: name };
+      const file = typeof result === 'string' ? result : result?.path;
+      if (file) return { path: file, provider: name, credit: (typeof result === 'object' && result?.credit) || null };
     } catch {
       /* seguimos con el siguiente provider */
     }

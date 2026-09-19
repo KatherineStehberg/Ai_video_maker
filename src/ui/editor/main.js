@@ -332,6 +332,24 @@ function pintarBorrador() {
     `${borrador.escenas.length} escenas · ${duracionTotal(borrador.escenas)} s estimados · plantilla ${borrador.templateId}.` +
     (borrador.llmError ? ` No se pudo usar el modelo (${borrador.llmError}); se usó la plantilla local.` : '');
   $('draft-cost').textContent = borrador.costo.resumen;
+
+  // Voz seleccionada y duración estimada, a la vista ANTES de producir.
+  const filas = [
+    ['Duración estimada', `${duracionTotal(borrador.escenas)} s (pedidos ${borrador.spec?.duration ?? '—'} s)`],
+    ['Voz', borrador.voz?.nombre ? `${borrador.voz.nombre} · ${borrador.voz.etiqueta}` : 'Sin narración'],
+    ['Visuales', borrador.costo.piezas.find(p => p.pieza === 'Visuales')?.proveedor ?? '—'],
+  ];
+  const ficha = document.createDocumentFragment();
+  for (const [clave, valor] of filas) {
+    const dt = document.createElement('dt'); dt.textContent = clave;
+    const dd = document.createElement('dd'); dd.textContent = valor;
+    ficha.append(dt, dd);
+  }
+  $('draft-facts').replaceChildren(ficha);
+
+  // Si la voz no es española, se avisa aquí, antes de gastar tiempo en el render.
+  $('draft-voice-warning').hidden = !borrador.voz?.aviso;
+  $('draft-voice-warning').textContent = borrador.voz?.aviso || '';
   renderDraft($('draft-scenes'), borrador.escenas, {
     onChange: escenas => { borrador.escenas = escenas; $('draft-summary').textContent =
       `${escenas.length} escenas · ${duracionTotal(escenas)} s estimados · plantilla ${borrador.templateId}.`; },
