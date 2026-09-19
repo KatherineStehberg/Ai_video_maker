@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { PATHS, ensureDir } from '../lib/paths.js';
 import { ASPECTS } from '../config.js';
-import { getProvider, DEFAULT_PROVIDER } from '../providers/video-generation/index.js';
+import { getProvider, defaultProvider } from '../providers/video-generation/index.js';
 import { analyzeExistingFile } from '../analysis/routes.js';
 import { draftScript } from './script.js';
 import { vozDisponible } from './voice.js';
@@ -175,7 +175,7 @@ export function estimarCosto(borrador = {}) {
 }
 
 /** Crea el trabajo en estado `queued` y lanza el proceso en segundo plano. */
-export function createJob(input, { providerName = DEFAULT_PROVIDER } = {}) {
+export function createJob(input, { providerName = defaultProvider() } = {}) {
   const spec = normalizeSpec(input);
   if (running) throw new Error('Ya hay una generación en curso; espera a que termine.');
   const provider = getProvider(providerName);

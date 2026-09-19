@@ -84,10 +84,16 @@ export const PROVIDERS = {
   }),
 };
 
-/** Proveedor por defecto: el montaje local real, salvo que el entorno diga otro. */
-export const DEFAULT_PROVIDER = process.env.VIDEO_GEN_PROVIDER || 'pipeline';
+/**
+ * Proveedor por defecto: el montaje local real, salvo que el entorno diga otro.
+ *
+ * Se lee en cada llamada, no al cargar el modulo: con una constante, cualquier
+ * codigo que ajuste process.env despues de los imports (los tests y los smokes
+ * lo hacen) quedaba ignorado en silencio.
+ */
+export const defaultProvider = () => process.env.VIDEO_GEN_PROVIDER || 'pipeline';
 
-export function getProvider(name = DEFAULT_PROVIDER) {
+export function getProvider(name = defaultProvider()) {
   const provider = PROVIDERS[name];
   if (!provider) throw new Error(`Proveedor de generación desconocido: ${name}. Disponibles: ${Object.keys(PROVIDERS).join(', ')}`);
   return provider;

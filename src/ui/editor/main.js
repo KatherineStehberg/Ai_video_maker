@@ -1,263 +1,395 @@
 /**
- * Orquestador de la interfaz: une estado, API, timeline, segmentos,
- * reproductores y mensajes.
+ * Orquestador del estudio. Une navegación, pasos, estado, API y vistas.
  *
  * Separación de responsabilidades (no la mezcles al editar):
- *   api.js       -> todo lo que habla con el backend
- *   state.js     -> qué se puede hacer en cada momento (sin DOM)
- *   format.js    -> convertir datos en texto legible (sin DOM)
- *   timeline.js  -> dibujar la línea de tiempo
- *   segments.js  -> dibujar y leer el panel de segmentos
- *   messages.js  -> estado, errores y advertencias
- *   main.js      -> este archivo: sólo coordina
+ *   api.js        -> todo lo que habla con el backend
+ *   state.js      -> qué se puede hacer en cada momento (sin DOM)
+ *   format.js     -> convertir datos en texto legible (sin DOM)
+ *   draft.js      -> tarjetas de escena del guion
+ *   segments.js   -> trozos del montaje
+ *   timeline.js   -> línea de tiempo
+ *   projects.js   -> tarjetas de proyectos recientes
+ *   inspector.js  -> panel derecho
+ *   messages.js   -> estado, errores y advertencias
+ *   main.js       -> este archivo: sólo coordina
  *
- * Aquí NO hay lógica de FFmpeg ni de análisis: todo eso vive en el backend.
+ * Aquí NO hay lógica de FFmpeg ni de análisis: eso vive en el backend.
  */
 import { createApi, uploadVideo, poll, ApiError } from './api.js';
-import { initialState, reduce, canAnalyze, canPropose, canApprove, canExport, exportBlockedReason } from './state.js';
-import { fileSummary, rhythmSummary, collectWarnings, summaryCards, proposalHeadline, seconds, frame, rampRow } from './format.js';
+import { initialState, reduce, canAnalyze, canPropose, canApprove, canExport, exportBlockedReason, STATE_LABELS } from './state.js';
+import { fileSummary, rhythmSummary, collectWarnings, summaryCards, seconds, frame, rampRow } from './format.js';
 import { renderTimeline } from './timeline.js';
 import { renderSegments, readSegments, validateSelection, hasChanges } from './segments.js';
 import { renderDraft, readDraft, validateDraft, duracionTotal } from './draft.js';
+import { renderProjects, duracionCorta } from './projects.js';
+import { renderInspector, renderVacio } from './inspector.js';
 import { createMessages } from './messages.js';
 import { createPlayer } from './player.js';
 
 const $ = id => document.getElementById(id);
 const api = createApi();
-let state = initialState();
-let analysisPoll = null;
-let generationPoll = null;
-let pendingSegments = null;   // selección del panel aún sin aplicar
-let borrador = null;          // guion y escenas revisables antes de producir
 
-const messages = createMessages({ statusEl: $('status'), stateEl: $('state-pill'), errorEl: $('error'), warningsEl: $('warnings') });
+let state = initialState();
+let analysisPoll = null, generationPoll = null;
+let pendingSegments = null;      // selección del panel aún sin aplicar
+let borrador = null;             // guion y escenas revisables antes de producir
+let guionOriginal = null;        // para el botón «Restaurar»
+let seccion = 'inicio';
+let paso = 'idea';
+let escenaSel = null;            // trozo seleccionado en la timeline
+let config = { durationOptions: [], styles: [] };
+
+const messages = createMessages({ statusEl: $('status'), stateEl: $('estado-pill'), errorEl: $('error'), warningsEl: $('warnings') });
 const sourcePlayer = createPlayer($('source-player'), { emptyEl: $('source-empty') });
 const exportPlayer = createPlayer($('export-player'), { emptyEl: $('export-empty') });
 
-/** Única puerta de entrada al estado: reduce y repinta. */
-function dispatch(action) {
-  state = reduce(state, action);
+/** Tono de la píldora de estado según en qué anda el sistema. */
+const TONOS = {
+  listo: 'neutro', cargando: 'trabajo', generando: 'trabajo', analizando: 'trabajo',
+  'analisis-completado': 'ok', 'creando-propuesta': 'trabajo', 'aprobacion-pendiente': 'aviso',
+  aprobado: 'ok', exportando: 'trabajo', exportado: 'ok', error: 'error',
+};
+
+/** Secciones sin implementar todavía: se dicen, no se simulan. */
+const PROXIMAMENTE = {
+  plantillas: 'Aquí podrás guardar tus propios formatos de video y reutilizarlos. Hoy el tipo de video se elige en el paso «Idea».',
+  recursos: 'Aquí verás tu biblioteca de imágenes, clips y música. Hoy las imágenes se buscan automáticamente al crear cada video.',
+  exportaciones: 'Aquí tendrás el historial de todos los MP4 exportados. Hoy cada video se descarga desde el paso «Exportar» y se guarda en output/video-edits/.',
+  ajustes: 'Aquí podrás cambiar la voz, la marca y las claves desde la interfaz. Hoy se configuran en el archivo .env.',
+};
+
+const dispatch = action => { state = reduce(state, action); render(); };
+
+// ========================================================= NAVEGACIÓN
+
+function irA(nueva) {
+  seccion = nueva;
+  for (const b of $('nav').querySelectorAll('.nav-item')) {
+    if (b.dataset.seccion === nueva) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  }
+
+  const pantalla = PROXIMAMENTE[nueva] ? 'proximamente'
+    : nueva === 'crear' ? 'crear'
+    : nueva === 'subir' ? 'subir'
+    : 'inicio';
+
+  for (const s of $('lienzo').querySelectorAll('[data-pantalla]')) {
+    s.hidden = s.dataset.pantalla !== pantalla;
+  }
+
+  if (pantalla === 'proximamente') {
+    $('prox-titulo').textContent = `${nueva.charAt(0).toUpperCase() + nueva.slice(1)} · Próximamente`;
+    $('prox-texto').textContent = PROXIMAMENTE[nueva];
+  }
+  if (pantalla === 'inicio') cargarProyectos();
+  // El panel derecho sólo aparece donde sirve para algo.
+  $('app').dataset.panel = pantalla === 'crear' && paso === 'editor' ? 'si' : 'no';
+  $('lienzo').scrollTop = 0;
   render();
 }
 
-// ============================================================ PINTADO
+for (const boton of $('nav').querySelectorAll('.nav-item')) {
+  boton.addEventListener('click', () => irA(boton.dataset.seccion));
+}
+$('ir-crear').addEventListener('click', () => { irA('crear'); irPaso('idea'); });
+$('ir-subir').addEventListener('click', () => irA('subir'));
+$('btn-inicio').addEventListener('click', () => irA('inicio'));
+$('prox-volver').addEventListener('click', () => irA('inicio'));
+$('btn-nuevo').addEventListener('click', () => {
+  analysisPoll?.stop(); generationPoll?.stop();
+  sourcePlayer.clear(); exportPlayer.clear();
+  borrador = null; guionOriginal = null; pendingSegments = null; escenaSel = null;
+  dispatch({ type: 'reset' });
+  irA('crear'); irPaso('idea');
+  messages.setStatus('Describe tu idea para empezar.');
+});
+
+// ============================================================ PASOS
+
+const PASOS = ['idea', 'guion', 'escenas', 'voz', 'preview', 'editor', 'exportar'];
+
+/** ¿Está disponible este paso con lo que hay hecho? */
+function pasoDisponible(p) {
+  if (p === 'idea') return true;
+  if (['guion', 'escenas', 'voz'].includes(p)) return Boolean(borrador);
+  if (p === 'preview') return Boolean(state.analysis);
+  return Boolean(state.proposal);   // editor y exportar
+}
+
+function irPaso(nuevo) {
+  if (!pasoDisponible(nuevo)) return;
+  paso = nuevo;
+  for (const panel of $('lienzo').querySelectorAll('[data-paso-panel]')) {
+    panel.hidden = panel.dataset.pasoPanel !== nuevo;
+  }
+  $('app').dataset.panel = nuevo === 'editor' ? 'si' : 'no';
+  $('lienzo').scrollTop = 0;
+  render();
+}
+
+for (const boton of $('pasos').querySelectorAll('.paso')) {
+  boton.addEventListener('click', () => irPaso(boton.dataset.paso));
+}
+
+// ========================================================= PINTADO
 
 function render() {
-  messages.setState(state.state);
+  const etiqueta = STATE_LABELS[state.state] || state.state;
+  $('estado-pill').textContent = etiqueta;
+  $('estado-pill').dataset.tono = TONOS[state.state] || 'neutro';
   messages.setError(state.error);
   $('progress').value = state.progress || 0;
-  $('progress').classList.toggle('trabajando', state.busy);
 
-  // Modo elegido: se muestra sólo el panel que corresponde. Sin modo, la
-  // pantalla inicial ocupa todo el ancho (ver editor.css, data-modo).
-  document.body.dataset.modo = state.mode || 'ninguno';
-  $('mode-chooser').hidden = Boolean(state.mode);
-  $('panel-upload').hidden = state.mode !== 'upload';
-  $('panel-prompt').hidden = state.mode !== 'prompt';
-  $('panel-settings').hidden = !state.mode;
-  $('panel-approve').hidden = !state.mode;
+  $('titulo-proyecto').textContent = borrador?.tema || state.generation?.script?.tema
+    || (state.file?.name ?? 'Sin proyecto abierto');
+
+  // Pasos: hecho / activo / disponible.
+  for (const boton of $('pasos').querySelectorAll('.paso')) {
+    const p = boton.dataset.paso;
+    const hecho = PASOS.indexOf(p) < PASOS.indexOf(paso) && pasoDisponible(p);
+    boton.dataset.estado = p === paso ? 'activo' : hecho ? 'hecho' : 'pendiente';
+    boton.disabled = !pasoDisponible(p);
+  }
+
   $('btn-draft').disabled = state.busy;
   $('btn-generate').disabled = state.busy || !borrador;
-  $('draft-card').hidden = !borrador;
-  renderPrompt();
-
   $('btn-analyze').disabled = !canAnalyze(state);
   $('btn-propose').disabled = !canPropose(state);
   $('btn-approve').disabled = !canApprove(state);
   $('btn-export').disabled = !canExport(state);
   $('export-blocked').textContent = exportBlockedReason(state) || '';
 
-  renderSteps();
-  renderFacts();
-  renderSummary();
-  renderTables();
-  // Las advertencias de la generación (p. ej. «esto es un video de prueba»)
-  // van primero: importan más que las del montaje.
+  pintarGuion();
+  pintarVoz();
+  pintarResumen();
+  pintarTablas();
+  pintarDescargas();
+
   messages.setWarnings([...new Set([
     ...(state.generation?.warnings || []),
     ...collectWarnings(state.proposal, state.exportResult),
   ])]);
-  renderTimeline($('timeline'), state.analysis, state.proposal, { onSeek: t => sourcePlayer.seek(t) });
-  renderDownloads();
+
+  renderTimeline($('timeline'), state.analysis, state.proposal, {
+    onSeek: t => sourcePlayer.seek(t),
+    onSelect: i => { escenaSel = i; pintarPanel(); render(); },
+    seleccionada: escenaSel,
+  });
+
+  if (state.proposal && !pendingSegments) {
+    renderSegments($('segments-list'), state.proposal, { onChange: alCambiarSegmentos });
+    actualizarBotonesSegmentos(readSegments($('segments-list')));
+  }
+  pintarPanel();
 }
 
-/** Marca los 5 pasos de la cabecera según dónde estamos. */
-function renderSteps() {
-  const hecho = {
-    video: Boolean(state.file) && !state.error,
-    analisis: state.analysis?.status === 'complete',
-    propuesta: Boolean(state.proposal),
-    aprobacion: Boolean(state.proposal) && (!state.proposal.approvalRequired || state.proposal.approval?.status === 'aprobada'),
-    exportacion: Boolean(state.exportResult),
-  };
-  const activo = {
-    listo: 'video', cargando: 'video',
-    analizando: 'analisis', 'analisis-completado': 'propuesta',
-    'creando-propuesta': 'propuesta', 'aprobacion-pendiente': 'aprobacion',
-    aprobado: 'exportacion', exportando: 'exportacion', exportado: 'exportacion',
-  }[state.state];
-
-  for (const li of $('pasos').querySelectorAll('.paso')) {
-    const paso = li.dataset.paso;
-    li.dataset.hecho = hecho[paso] ? 'si' : 'no';
-    li.dataset.activo = !hecho[paso] && paso === activo ? 'si' : 'no';
-    li.dataset.error = state.state === 'error' && paso === activo ? 'si' : 'no';
+function pintarPanel() {
+  if (paso !== 'editor' || !state.proposal) {
+    return renderVacio($('panel-contenido'),
+      paso === 'editor' ? 'Crea una propuesta para poder ajustar las escenas.' : undefined);
   }
+  renderInspector($('panel-contenido'), {
+    proposal: state.proposal, index: escenaSel ?? 0,
+    onIr: t => sourcePlayer.seek(t),
+    onCambio: ({ index, speed, incluido }) => {
+      const filas = [...$('segments-list').querySelectorAll('.seg-fila')];
+      const fila = filas[index];
+      if (!fila) return;
+      fila.querySelector('.segmento-velocidad').value = String(speed);
+      const casilla = fila.querySelector('.segmento-incluir');
+      casilla.checked = incluido;
+      fila.dataset.incluido = incluido ? 'si' : 'no';
+      alCambiarSegmentos(readSegments($('segments-list')));
+    },
+  });
 }
 
-/** Tarjeta con el prompt usado y los parámetros de la generación. */
-function renderPrompt() {
-  const job = state.generation;
-  $('prompt-card').hidden = !job;
-  if (!job) return;
-  $('prompt-used').textContent = job.spec.prompt;
-  $('gen-provider-badge').textContent = job.provider.mock ? 'Video de prueba (mock)' : job.provider.label;
+function pintarGuion() {
+  if (!borrador) return;
+  const fuentes = { 'plantilla-local': 'Plantilla local (sin IA)', llm: `Escrito por ${borrador.llmProvider}`, editado: 'Editado por ti' };
+  $('draft-source').textContent = fuentes[borrador.source] || borrador.source;
+  const modo = borrador.spec?.durationMode === 'auto' ? 'duración automática' : `objetivo ${borrador.spec?.duration} s`;
+  $('draft-summary').textContent =
+    `${borrador.escenas.length} escenas · ${duracionTotal(borrador.escenas)} s estimados · ${modo}.` +
+    (borrador.llmError ? ` No se pudo usar el modelo (${borrador.llmError}); se usó la plantilla local.` : '');
+  $('draft-cost').textContent = borrador.costo.resumen;
 
-  const filas = [
-    ['Duración pedida', `${job.spec.duration} s`],
-    ['Formato', job.spec.format],
-    ['Estilo', job.spec.style],
-  ];
-  for (const [clave, campo] of [['Música', 'music'], ['Público', 'audience'], ['Plataforma', 'platform'], ['Ritmo', 'tempo']]) {
-    if (job.spec[campo]) filas.push([clave, job.spec[campo]]);
-  }
-  filas.push(['Proveedor', job.provider.label]);
-  if (job.generation?.model) filas.push(['Modelo', job.generation.model]);
+  const palabras = borrador.escenas.map(e => e.text).join(' ').split(/\s+/).filter(Boolean).length;
+  $('guion-contador').textContent = `${palabras} palabras · ${duracionTotal(borrador.escenas)} s`;
 
-  const fragment = document.createDocumentFragment();
-  for (const [clave, valor] of filas) {
-    const dt = document.createElement('dt'); dt.textContent = clave;
-    const dd = document.createElement('dd'); dd.textContent = valor;
-    fragment.append(dt, dd);
-  }
-  $('prompt-specs').replaceChildren(fragment);
+  const ficha = document.createDocumentFragment();
+  for (const [k, v] of [
+    ['Duración estimada', `${duracionTotal(borrador.escenas)} s`],
+    ['Voz', borrador.voz?.nombre ? `${borrador.voz.nombre} · ${borrador.voz.etiqueta}` : 'Sin narración'],
+    ['Imágenes', borrador.costo.piezas.find(p => p.pieza === 'Visuales')?.proveedor ?? '—'],
+  ]) { ficha.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v })); }
+  $('draft-facts').replaceChildren(ficha);
+
+  $('draft-voice-warning').hidden = !borrador.voz?.aviso;
+  $('draft-voice-warning').textContent = borrador.voz?.aviso || '';
+
+  renderDraft($('draft-scenes'), borrador.escenas, {
+    onChange: escenas => { borrador.escenas = escenas; pintarGuion(); },
+    onRegenerate: regenerarEscena,
+  });
+  $('escenas-resumen').textContent = `${borrador.escenas.length} escenas · ${duracionTotal(borrador.escenas)} s`;
 }
 
-function renderFacts() {
-  const fragment = document.createDocumentFragment();
-  for (const [clave, valor] of fileSummary(state.file, state.analysis?.metadata)) {
-    const dt = document.createElement('dt'); dt.textContent = clave;
-    const dd = document.createElement('dd'); dd.textContent = valor;
-    fragment.append(dt, dd);
+function pintarVoz() {
+  if (!borrador?.voz) return;
+  const ficha = document.createDocumentFragment();
+  for (const [k, v] of [
+    ['Proveedor', borrador.voz.provider || '—'],
+    ['Voz', borrador.voz.nombre || 'Sin narración'],
+    ['Idioma', borrador.voz.etiqueta || '—'],
+    ['Subtítulos', 'Sincronizados y quemados en el video'],
+  ]) { ficha.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v })); }
+  $('voz-ficha').replaceChildren(ficha);
+  $('voz-aviso').hidden = !borrador.voz.aviso;
+  $('voz-aviso').textContent = borrador.voz.aviso || '';
+  $('fuente-imagenes').textContent = borrador.costo.piezas.find(p => p.pieza === 'Visuales')?.proveedor ?? '—';
+}
+
+function pintarResumen() {
+  const cards = summaryCards(state.analysis, state.proposal);
+  const frag = document.createDocumentFragment();
+  for (const c of cards) {
+    const caja = document.createElement('div'); caja.className = 'dato';
+    caja.append(
+      Object.assign(document.createElement('div'), { className: 'dato-valor', textContent: c.valor }),
+      Object.assign(document.createElement('div'), { className: 'dato-etq', textContent: c.etiqueta }),
+      Object.assign(document.createElement('div'), { className: 'dato-det', textContent: c.detalle }),
+    );
+    frag.append(caja);
   }
-  $('file-facts').replaceChildren(fragment);
+  if (!cards.length) {
+    frag.append(Object.assign(document.createElement('p'), { className: 'ayuda', textContent: 'Crea el video para ver aquí sus datos.' }));
+  }
+  $('resumen').replaceChildren(frag.cloneNode(true));
+  $('export-resumen').replaceChildren(frag);
+
+  const p = state.proposal;
+  $('approval-hint').textContent = !p
+    ? 'Primero crea el video.'
+    : (!p.approvalRequired || p.approval?.status === 'aprobada')
+      ? 'Aprobado. Ya puedes exportar.'
+      : 'Revisa el resumen y las advertencias antes de aprobar.';
 
   const ritmo = rhythmSummary(state.analysis?.local);
   $('tempo-summary').textContent = ritmo.tempo;
   $('sync-summary').textContent = ritmo.sync;
+
+  const fichaArchivo = document.createDocumentFragment();
+  for (const [k, v] of fileSummary(state.file, state.analysis?.metadata)) {
+    fichaArchivo.append(Object.assign(document.createElement('dt'), { textContent: k }), Object.assign(document.createElement('dd'), { textContent: v }));
+  }
+  $('file-facts').replaceChildren(fichaArchivo.cloneNode(true));
+  $('file-facts-subir').replaceChildren(fichaArchivo);
 }
 
-function renderSummary() {
-  const fragment = document.createDocumentFragment();
-  for (const card of summaryCards(state.analysis, state.proposal)) {
-    const caja = document.createElement('div');
-    caja.className = 'resumen-dato';
-    const valor = document.createElement('div'); valor.className = 'resumen-valor'; valor.textContent = card.valor;
-    const etiqueta = document.createElement('div'); etiqueta.textContent = card.etiqueta;
-    const detalle = document.createElement('div'); detalle.className = 'resumen-detalle'; detalle.textContent = card.detalle;
-    caja.append(valor, etiqueta, detalle);
-    fragment.append(caja);
-  }
-  if (!fragment.childNodes.length) {
-    const vacio = document.createElement('p');
-    vacio.className = 'texto-ayuda';
-    vacio.textContent = 'Analiza un video para ver aquí sus datos principales.';
-    fragment.append(vacio);
-  }
-  $('resumen').replaceChildren(fragment);
-  $('proposal-summary').textContent = proposalHeadline(state.proposal);
+const celda = (tr, txt) => { const td = document.createElement('td'); td.textContent = txt; tr.append(td); };
 
-  const p = state.proposal;
-  $('approval-hint').textContent = !p
-    ? 'Primero crea una propuesta.'
-    : (!p.approvalRequired || p.approval?.status === 'aprobada')
-      ? 'Propuesta aprobada. Ya puedes exportar.'
-      : 'Revisa la línea de tiempo y las advertencias antes de aprobar.';
-
-  // Panel de segmentos: sólo cuando hay propuesta.
-  $('segments-card').hidden = !p;
-  if (p && !pendingSegments) {
-    renderSegments($('segments-list'), p, { onChange: onSegmentsChanged });
-    // Se lee la selección recién dibujada: partir de [] haría creer que el
-    // usuario ha quitado todos los trozos antes de tocar nada.
-    updateSegmentButtons(readSegments($('segments-list')));
-  }
-}
-
-function celda(fila, texto) { const td = document.createElement('td'); td.textContent = texto; fila.append(td); }
-
-function renderTables() {
+function pintarTablas() {
   const cuts = state.analysis?.cuts || [];
   $('cuts-count').textContent = String(cuts.length);
-  const cuerpoCortes = document.createDocumentFragment();
+  const cuerpo = document.createDocumentFragment();
   for (const c of cuts) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    const boton = document.createElement('button');
-    boton.type = 'button'; boton.className = 'enlace-tiempo';
-    boton.textContent = c.timestamp.toFixed(3);
-    boton.addEventListener('click', () => sourcePlayer.seek(c.timestamp));
-    td.append(boton); tr.append(td);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'enlace-tiempo'; b.textContent = c.timestamp.toFixed(3);
+    b.addEventListener('click', () => sourcePlayer.seek(c.timestamp));
+    td.append(b); tr.append(td);
     celda(tr, frame(c)); celda(tr, c.source); celda(tr, c.reason);
-    cuerpoCortes.append(tr);
+    cuerpo.append(tr);
   }
-  $('cuts-body').replaceChildren(cuerpoCortes);
+  $('cuts-body').replaceChildren(cuerpo);
 
   const ramps = state.analysis?.local?.ramps || [];
   $('ramps-count').textContent = String(ramps.length);
-  const cuerpoRampas = document.createDocumentFragment();
+  const cuerpoR = document.createDocumentFragment();
   for (const r of ramps) {
     const tr = document.createElement('tr');
-    const vista = rampRow(r);
-    for (const clave of ['segmento', 'frames', 'duracion', 'factor', 'motivo']) celda(tr, vista[clave]);
-    cuerpoRampas.append(tr);
+    const v = rampRow(r);
+    for (const k of ['segmento', 'frames', 'duracion', 'factor', 'motivo']) celda(tr, v[k]);
+    cuerpoR.append(tr);
   }
-  $('ramps-body').replaceChildren(cuerpoRampas);
+  $('ramps-body').replaceChildren(cuerpoR);
 }
 
-function renderDownloads() {
+function pintarDescargas() {
   const caja = $('downloads');
   caja.replaceChildren();
   if (!state.analysisId) {
-    const vacio = document.createElement('p');
-    vacio.className = 'texto-ayuda';
-    vacio.textContent = 'Disponibles tras el análisis.';
-    caja.append(vacio);
+    caja.append(Object.assign(document.createElement('p'), { className: 'ayuda', textContent: 'Disponibles cuando el video esté montado.' }));
     return;
   }
+  const enlace = (href, txt, principal) => {
+    const a = document.createElement('a');
+    a.href = href; a.textContent = txt; a.className = `btn btn-mini${principal ? ' btn-accion' : ''}`;
+    return a;
+  };
   if (state.exportResult && state.proposal) {
-    const mp4 = enlace(api.exportedFileUrl(state.proposal.id), 'Descargar video MP4');
+    const mp4 = enlace(api.exportedFileUrl(state.proposal.id), 'Descargar MP4', true);
     mp4.setAttribute('download', '');
-    mp4.classList.add('descarga-principal');
     caja.append(mp4);
   }
   caja.append(enlace(api.analysisJsonUrl(state.analysisId), 'Datos del análisis (JSON)'));
   caja.append(enlace(api.analysisCsvUrl(state.analysisId), 'Lista de cortes (CSV)'));
 }
 
-function enlace(href, texto) {
-  const a = document.createElement('a');
-  a.href = href; a.textContent = texto; a.className = 'descarga';
-  return a;
+// ================================================== PROYECTOS (INICIO)
+
+async function cargarProyectos() {
+  try {
+    const { proyectos } = await api.listProjects();
+    $('proyectos-total').textContent = proyectos.length ? `${proyectos.length} guardados` : '';
+    renderProjects($('proyectos-lista'), proyectos, { onAbrir: abrirProyecto, onVer: abrirProyecto });
+  } catch (e) {
+    renderProjects($('proyectos-lista'), [], {});
+    $('proyectos-total').textContent = `No se pudieron cargar: ${e.message}`;
+  }
 }
 
-// ==================================================== SEGMENTOS EDITABLES
+/** Retoma un proyecto guardado: recupera su análisis y su propuesta. */
+async function abrirProyecto(p) {
+  irA('crear');
+  messages.setStatus(`Abriendo «${p.titulo}»…`);
+  try {
+    if (!p.analysisId) {
+      irPaso('idea');
+      $('prompt').value = p.prompt || '';
+      messages.setStatus('Este proyecto no llegó a montarse. Su idea está cargada: puedes crear el borrador de nuevo.');
+      return;
+    }
+    const analysis = await api.getAnalysis(p.analysisId);
+    const proposal = p.editId ? await api.getProposal(p.editId).catch(() => null) : null;
+    const job = { id: p.id, spec: { prompt: p.prompt, duration: p.duracionPedida, format: p.formato }, provider: {}, warnings: [], generation: {} };
+    dispatch({ type: 'generation-complete', job, analysis, proposal: proposal || { segments: [], approvalRequired: true, approval: {}, warnings: [], format: p.formato, dimensions: {}, estimatedDuration: 0, syncStatus: 'propuesto' } });
+    sourcePlayer.load(api.previewUrl(analysis.id));
+    irPaso(proposal ? 'editor' : 'preview');
+    messages.setStatus(`Proyecto recuperado. ${proposal ? 'Puedes seguir editando.' : 'Su montaje no está disponible.'}`);
+  } catch (e) {
+    dispatch({ type: 'error', error: `No pudimos abrir este proyecto: ${e.message}` });
+  }
+}
 
-function onSegmentsChanged(segments) {
+// ==================================================== SEGMENTOS
+
+function alCambiarSegmentos(segments) {
   pendingSegments = segments;
-  updateSegmentButtons(segments);
+  actualizarBotonesSegmentos(segments);
 }
 
-function updateSegmentButtons(segments) {
+function actualizarBotonesSegmentos(segments) {
   const cambiado = hasChanges(segments, state.proposal);
   const problema = cambiado ? validateSelection(segments) : null;
   $('btn-apply-segments').disabled = !cambiado || Boolean(problema) || state.busy;
   $('btn-reset-segments').disabled = !cambiado || state.busy;
-  $('segments-note').textContent = problema
-    ? problema
-    : cambiado
-      ? 'Al aplicar los cambios tendrás que aprobar de nuevo.'
-      : 'Desmarca lo que no quieras o cambia la velocidad de un trozo.';
+  $('segments-note').textContent = problema || (cambiado
+    ? 'Al aplicar los cambios tendrás que aprobar de nuevo.'
+    : 'Desmarca lo que no quieras o cambia la velocidad.');
 }
 
 $('btn-apply-segments').addEventListener('click', async () => {
@@ -271,131 +403,103 @@ $('btn-apply-segments').addEventListener('click', async () => {
     dispatch({ type: 'proposal-ready', proposal });
     exportPlayer.clear();
     messages.setStatus('Montaje actualizado. Apruébalo de nuevo para poder exportar.');
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
 
 $('btn-reset-segments').addEventListener('click', () => {
   pendingSegments = null;
-  renderSegments($('segments-list'), state.proposal, { onChange: onSegmentsChanged });
-  updateSegmentButtons(readSegments($('segments-list')));
+  renderSegments($('segments-list'), state.proposal, { onChange: alCambiarSegmentos });
+  actualizarBotonesSegmentos(readSegments($('segments-list')));
   messages.setStatus('Cambios descartados.');
 });
 
-// ================================================== MODO Y GENERACIÓN
+// ================================================= IDEA Y GUION
 
-function elegirModo(mode) {
-  analysisPoll?.stop(); generationPoll?.stop();
-  sourcePlayer.clear(); exportPlayer.clear();
-  pendingSegments = null;
-  borrador = null;
-  $('file').value = '';
-  $('file-label').textContent = 'Elige un video MP4';
-  dispatch({ type: 'mode-selected', mode });
-  messages.setStatus(mode === 'prompt'
-    ? 'Describe el video que quieres y pulsa «Generar video».'
-    : 'Elige un video para empezar.');
-}
-
-$('mode-prompt').addEventListener('click', () => elegirModo('prompt'));
-$('mode-upload').addEventListener('click', () => elegirModo('upload'));
-for (const id of ['btn-change-mode', 'btn-change-mode-2']) {
-  $(id).addEventListener('click', () => {
-    analysisPoll?.stop(); generationPoll?.stop();
-    sourcePlayer.clear(); exportPlayer.clear();
-    pendingSegments = null;
-    dispatch({ type: 'reset' });
-    messages.setStatus('Elige cómo quieres empezar.');
-  });
-}
-
-/** Lo que hay escrito en el formulario de la idea. */
 function leerFormulario() {
+  const dur = $('gen-duration').value;
   return {
     prompt: $('prompt').value.trim(),
-    duration: Number($('gen-duration').value),
+    duration: dur === 'auto' ? 'auto' : dur === 'custom' ? Number($('gen-duration-custom').value) : Number(dur),
     format: $('gen-format').value,
     style: $('gen-style').value,
-    music: $('gen-music').value.trim() || null,
     audience: $('gen-audience').value.trim() || null,
     platform: $('gen-platform').value.trim() || null,
+    music: $('gen-tono').value.trim() || null,
   };
 }
 
-/** Pinta el borrador: fuente del guion, coste estimado y escenas editables. */
-function pintarBorrador() {
-  if (!borrador) return;
-  const fuente = { 'plantilla-local': 'Plantilla local (sin IA)', llm: `Redactado por ${borrador.llmProvider}`, editado: 'Editado por ti' };
-  $('draft-source').textContent = fuente[borrador.source] || borrador.source;
-  $('draft-summary').textContent =
-    `${borrador.escenas.length} escenas · ${duracionTotal(borrador.escenas)} s estimados · plantilla ${borrador.templateId}.` +
-    (borrador.llmError ? ` No se pudo usar el modelo (${borrador.llmError}); se usó la plantilla local.` : '');
-  $('draft-cost').textContent = borrador.costo.resumen;
-
-  // Voz seleccionada y duración estimada, a la vista ANTES de producir.
-  const filas = [
-    ['Duración estimada', `${duracionTotal(borrador.escenas)} s (pedidos ${borrador.spec?.duration ?? '—'} s)`],
-    ['Voz', borrador.voz?.nombre ? `${borrador.voz.nombre} · ${borrador.voz.etiqueta}` : 'Sin narración'],
-    ['Visuales', borrador.costo.piezas.find(p => p.pieza === 'Visuales')?.proveedor ?? '—'],
-  ];
-  const ficha = document.createDocumentFragment();
-  for (const [clave, valor] of filas) {
-    const dt = document.createElement('dt'); dt.textContent = clave;
-    const dd = document.createElement('dd'); dd.textContent = valor;
-    ficha.append(dt, dd);
-  }
-  $('draft-facts').replaceChildren(ficha);
-
-  // Si la voz no es española, se avisa aquí, antes de gastar tiempo en el render.
-  $('draft-voice-warning').hidden = !borrador.voz?.aviso;
-  $('draft-voice-warning').textContent = borrador.voz?.aviso || '';
-  renderDraft($('draft-scenes'), borrador.escenas, {
-    onChange: escenas => { borrador.escenas = escenas; $('draft-summary').textContent =
-      `${escenas.length} escenas · ${duracionTotal(escenas)} s estimados · plantilla ${borrador.templateId}.`; },
-    onRegenerate: regenerarEscena,
-  });
-}
-
-/**
- * Regenera UNA escena: se vuelve a pedir el borrador completo y se toma sólo
- * la escena equivalente, conservando el resto tal y como está editada.
- */
-async function regenerarEscena(indice) {
-  const base = leerFormulario();
-  if (!base.prompt) { messages.setError('Escribe un prompt antes de regenerar.'); return; }
-  messages.setStatus(`Regenerando la escena ${indice + 1}…`);
-  try {
-    const fresco = await api.draftGeneration({ ...base, templateId: borrador.templateId });
-    const reemplazo = fresco.escenas[indice] || fresco.escenas[fresco.escenas.length - 1];
-    if (!reemplazo) throw new ApiError('El borrador nuevo no trae esa escena.', 0);
-    const escenas = readDraft($('draft-scenes'));
-    escenas[indice] = reemplazo;
-    borrador = { ...borrador, escenas, source: 'editado' };
-    pintarBorrador();
-    messages.setStatus(`Escena ${indice + 1} regenerada.`);
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
-}
+$('gen-duration').addEventListener('change', () => {
+  $('wrap-duracion-custom').hidden = $('gen-duration').value !== 'custom';
+});
 
 $('btn-draft').addEventListener('click', async () => {
   if (state.busy) return;
   const base = leerFormulario();
-  if (!base.prompt) { messages.setError('Escribe un prompt que describa el video que quieres.'); return; }
+  if (!base.prompt) { messages.setError('Escribe primero qué video quieres crear.'); return; }
   messages.clearError();
   messages.setStatus('Preparando el guion…');
   try {
     borrador = await api.draftGeneration(base);
-    pintarBorrador();
+    guionOriginal = JSON.parse(JSON.stringify(borrador.escenas));
+    $('guion-texto').value = borrador.escenas.map(e => e.text).join('\n');
     render();
-    messages.setStatus('Guion listo. Revísalo, edítalo y pulsa «Crear video».');
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
+    irPaso('guion');
+    messages.setStatus('Guion listo. Revísalo y apruébalo.');
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
 
 $('btn-redraft').addEventListener('click', () => $('btn-draft').click());
+
+$('btn-restaurar').addEventListener('click', () => {
+  if (!guionOriginal) return;
+  borrador.escenas = JSON.parse(JSON.stringify(guionOriginal));
+  borrador.source = borrador.source === 'editado' ? 'plantilla-local' : borrador.source;
+  $('guion-texto').value = borrador.escenas.map(e => e.text).join('\n');
+  render();
+  messages.setStatus('Guion restaurado a la versión propuesta.');
+});
+
+$('btn-aprobar-guion').addEventListener('click', () => {
+  if (!borrador) return;
+  // El texto del área grande manda sobre las tarjetas si se editó aquí.
+  const lineas = $('guion-texto').value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lineas.length === borrador.escenas.length) {
+    borrador.escenas = borrador.escenas.map((e, i) => ({ ...e, text: lineas[i] }));
+  }
+  borrador.source = 'editado';
+  render();
+  irPaso('escenas');
+  messages.setStatus('Guion aprobado. Revisa las escenas una a una.');
+});
+
+$('btn-add-escena').addEventListener('click', () => {
+  if (!borrador) return;
+  borrador.escenas = [...readDraft($('draft-scenes')), {
+    role: 'point', text: 'Escribe aquí lo que se narra en esta escena.',
+    onScreenTitle: 'Nueva escena', visualPrompt: borrador.tema || '', duration: 4,
+  }];
+  render();
+  messages.setStatus('Escena añadida al final.');
+});
+
+/** Regenera UNA escena conservando el resto tal y como está editado. */
+async function regenerarEscena(indice) {
+  const base = leerFormulario();
+  if (!base.prompt) { messages.setError('Escribe la idea antes de regenerar.'); return; }
+  messages.setStatus(`Regenerando la escena ${indice + 1}…`);
+  try {
+    const fresco = await api.draftGeneration({ ...base, templateId: borrador.templateId });
+    const reemplazo = fresco.escenas[indice] || fresco.escenas.at(-1);
+    if (!reemplazo) throw new ApiError('El borrador nuevo no trae esa escena.', 0);
+    const escenas = readDraft($('draft-scenes'));
+    escenas[indice] = reemplazo;
+    borrador = { ...borrador, escenas, source: 'editado' };
+    render();
+    messages.setStatus(`Escena ${indice + 1} regenerada.`);
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
+}
+
+// ================================================== CREAR EL VIDEO
 
 $('btn-generate').addEventListener('click', async () => {
   if (state.busy || !borrador) return;
@@ -404,12 +508,11 @@ $('btn-generate').addEventListener('click', async () => {
   if (problema) { messages.setError(problema); return; }
 
   const body = { ...leerFormulario(), templateId: borrador.templateId, escenas, scriptSource: borrador.source };
-  if (!body.prompt) { messages.setError('Escribe un prompt que describa el video que quieres.'); return; }
-
   try {
     const job = await api.createGeneration(body);
     dispatch({ type: 'generation-start', job });
-    messages.setStatus('Generando el video…');
+    irPaso('preview');
+    messages.setStatus('Preparando tu video…');
 
     generationPoll?.stop();
     generationPoll = poll(() => api.getGeneration(job.id), {
@@ -420,29 +523,23 @@ $('btn-generate').addEventListener('click', async () => {
         messages.setStatus(`${j.stage || 'Trabajando'} · ${(j.progress || 0).toFixed(0)} %`);
       },
     });
-    const finished = await generationPoll.done;
-    if (finished.status !== 'completed') throw new ApiError(finished.error || 'La generación no se completó.', 0);
+    const fin = await generationPoll.done;
+    if (fin.status !== 'completed') throw new ApiError(fin.error || 'No pudimos terminar tu video.', 0);
 
-    // El trabajo deja hechos el análisis y la propuesta: se cargan y a partir
-    // de aquí la interfaz es exactamente la misma que en el flujo de subida.
-    const [analysis, proposal] = await Promise.all([
-      api.getAnalysis(finished.analysisId),
-      api.getProposal(finished.editId),
-    ]);
-    dispatch({ type: 'generation-complete', job: finished, analysis, proposal });
+    const [analysis, proposal] = await Promise.all([api.getAnalysis(fin.analysisId), api.getProposal(fin.editId)]);
+    dispatch({ type: 'generation-complete', job: fin, analysis, proposal });
     sourcePlayer.load(api.previewUrl(analysis.id));
-    messages.setStatus('Video generado y montaje propuesto. Revísalo y apruébalo para exportar.');
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
+    irPaso('preview');
+    messages.setStatus('Tu video está listo. Revísalo y pasa a editar o exportar.');
+    cargarProyectos();
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
 
-// ============================================================ ACCIONES
+// ================================================ SUBIR UN MP4
 
 $('file').addEventListener('change', event => {
   analysisPoll?.stop();
   sourcePlayer.clear(); exportPlayer.clear();
-  pendingSegments = null;
   const file = event.target.files[0];
   $('file-label').textContent = file ? file.name : 'Elige un video MP4';
   dispatch({ type: 'file-selected', file });
@@ -454,11 +551,10 @@ $('btn-analyze').addEventListener('click', async () => {
   dispatch({ type: 'upload-start' });
   try {
     const job = await uploadVideo(state.file, {
-      onProgress: percent => { dispatch({ type: 'upload-progress', percent }); messages.setStatus(`Cargando el video: ${percent.toFixed(0)} %`); },
+      onProgress: p => { dispatch({ type: 'upload-progress', percent: p }); messages.setStatus(`Cargando el video: ${p.toFixed(0)} %`); },
     });
     dispatch({ type: 'analysis-start', id: job.id });
     analysisPoll?.stop();
-    // Sondeo: nunca dos peticiones a la vez, y se cancela al cambiar de archivo.
     analysisPoll = poll(() => api.getAnalysis(job.id), {
       intervalMs: 900,
       isDone: j => j.status !== 'running',
@@ -467,21 +563,19 @@ $('btn-analyze').addEventListener('click', async () => {
         messages.setStatus(`${j.stage || 'Analizando'} · ${(j.progress || 0).toFixed(0)} %`);
       },
     });
-    const finished = await analysisPoll.done;
-    if (finished.status !== 'complete') throw new ApiError(finished.error || `El análisis terminó en estado ${finished.status}`, 0);
-    dispatch({ type: 'analysis-complete', analysis: finished });
-    sourcePlayer.load(api.previewUrl(finished.id));
-    messages.setStatus('Análisis listo. Elige cómo quieres el montaje y crea la propuesta.');
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
+    const fin = await analysisPoll.done;
+    if (fin.status !== 'complete') throw new ApiError(fin.error || `El análisis terminó en estado ${fin.status}`, 0);
+    dispatch({ type: 'analysis-complete', analysis: fin });
+    sourcePlayer.load(api.previewUrl(fin.id));
+    messages.setStatus('Análisis listo. Elige cómo quieres el montaje.');
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
 
 $('btn-propose').addEventListener('click', async () => {
   if (!canPropose(state)) return;
   pendingSegments = null;
   dispatch({ type: 'proposal-start' });
-  messages.setStatus('Preparando la propuesta de montaje…');
+  messages.setStatus('Preparando el montaje…');
   try {
     const raw = $('target-duration').value.trim();
     const proposal = await api.createProposal({
@@ -493,71 +587,77 @@ $('btn-propose').addEventListener('click', async () => {
       approvalRequired: true,
     });
     dispatch({ type: 'proposal-ready', proposal });
-    messages.setStatus('Propuesta lista. Revísala y apruébala para exportar.');
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
+    irA('crear'); irPaso('editor');
+    messages.setStatus('Montaje propuesto. Revísalo y apruébalo.');
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
+
+// ============================================ APROBAR Y EXPORTAR
 
 $('btn-approve').addEventListener('click', async () => {
   if (!canApprove(state)) return;
   try {
-    const proposal = await api.approveProposal(state.proposal.id, 'editor-web');
+    const proposal = await api.approveProposal(state.proposal.id, 'estudio');
     dispatch({ type: 'approved', proposal });
-    messages.setStatus('Edición aprobada. Ya puedes exportar el MP4.');
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  }
+    messages.setStatus('Versión aprobada. Ya puedes exportar.');
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
 
 $('btn-export').addEventListener('click', async () => {
-  // El guardia de estado ya deshabilita el botón, pero un doble clic rápido no
-  // debe llegar nunca a lanzar dos exportaciones.
   if (!canExport(state)) return;
   dispatch({ type: 'export-start' });
   const inicio = Date.now();
-  messages.setStatus('Exportando el video. Puede tardar; no cierres la pestaña.');
-  const reloj = setInterval(() => messages.setStatus(`Exportando el video… ${Math.round((Date.now() - inicio) / 1000)} s`), 1000);
+  messages.setStatus('Exportando tu video. No cierres la pestaña.');
+  const reloj = setInterval(() => messages.setStatus(`Exportando tu video… ${Math.round((Date.now() - inicio) / 1000)} s`), 1000);
   try {
     const result = await api.exportProposal(state.proposal.id, $('fit').value);
     dispatch({ type: 'export-complete', result });
     exportPlayer.load(api.exportedFileUrl(state.proposal.id));
     const m = result.export.measured;
-    messages.setStatus(`Listo: ${m.width}×${m.height} · ${m.duration.toFixed(1)} s · ${m.audioTracks ? 'con audio' : 'sin audio'}. Ya puedes descargarlo.`);
-  } catch (e) {
-    dispatch({ type: 'error', error: e.message });
-  } finally {
-    clearInterval(reloj);
-  }
+    messages.setStatus(`Listo: ${m.width}×${m.height} · ${duracionCorta(m.duration)} · ${m.audioTracks ? 'con audio' : 'sin audio'}.`);
+    cargarProyectos();
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
+  finally { clearInterval(reloj); }
 });
 
-// ============================================================ ARRANQUE
+// =================================================== ARRANQUE
 
 try {
-  const config = await api.analysisConfig();
-  // Sólo se recibe disponibilidad; la clave nunca sale del backend.
-  $('config-hint').textContent = config.hasKey
+  const c = await api.analysisConfig();
+  $('config-hint').textContent = c.hasKey
     ? 'Todo se procesa en este equipo. La descripción con IA está en «Análisis avanzado».'
     : 'Todo se procesa en este equipo y sin coste.';
 } catch (e) {
   $('config-hint').textContent = `No se pudo conectar con el servidor: ${e.message}`;
 }
 
-// Proveedores y estilos de generación. La respuesta sólo trae disponibilidad:
-// las claves de cualquier proveedor viven únicamente en el backend.
 try {
-  const gen = await api.generationConfig();
-  $('gen-style').replaceChildren(...gen.styles.map(s => {
-    const option = document.createElement('option');
-    option.value = s; option.textContent = s.charAt(0).toUpperCase() + s.slice(1);
-    return option;
-  }));
-  const activo = gen.providers.find(p => p.id === gen.defaultProvider);
+  config = await api.generationConfig();
+  $('gen-style').replaceChildren(...config.styles.map(s => new Option(s.charAt(0).toUpperCase() + s.slice(1), s)));
+  $('gen-duration').replaceChildren(
+    ...config.durationOptions.map(o => new Option(o.label, String(o.value))),
+    new Option('Personalizada…', 'custom'),
+  );
+  $('gen-duration').value = '15';
+  const activo = config.providers.find(p => p.id === config.defaultProvider);
   $('gen-provider-hint').textContent = activo?.mock
-    ? 'Proveedor actual: mock. Genera un VIDEO DE PRUEBA local con FFmpeg, sin IA y sin coste, para que puedas recorrer todo el flujo.'
-    : `Proveedor actual: ${activo?.label ?? gen.defaultProvider}.`;
+    ? 'Se creará un video de PRUEBA, sin IA, para que puedas recorrer el flujo.'
+    : 'El guion, la voz y el montaje se hacen en este equipo, sin coste.';
 } catch (e) {
-  $('gen-provider-hint').textContent = `No se pudo leer la configuración de generación: ${e.message}`;
+  $('gen-provider-hint').textContent = `No se pudo leer la configuración: ${e.message}`;
 }
 
+// Marcas disponibles (si el backend las expone); si no, una opción neutra.
+try {
+  const marcas = await fetch('/api/brands').then(r => (r.ok ? r.json() : []));
+  const lista = Array.isArray(marcas) ? marcas : [];
+  $('gen-marca').replaceChildren(...(lista.length
+    ? lista.map(b => new Option(b.name || b.id, b.id))
+    : [new Option('Personal', 'personal')]));
+  // 'personal' es la marca neutra: mejor punto de partida que la primera de la lista.
+  if ([...$('gen-marca').options].some(o => o.value === 'personal')) $('gen-marca').value = 'personal';
+} catch { $('gen-marca').replaceChildren(new Option('Personal', 'personal')); }
+
+irA('inicio');
+irPaso('idea');
 render();

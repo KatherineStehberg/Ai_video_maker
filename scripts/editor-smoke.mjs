@@ -53,17 +53,15 @@ try {
   step('Carga de la página', 'modo local, sin clave Gemini');
 
   // Pantalla inicial: dos modos. Este smoke cubre el de subir un MP4.
-  assert.equal(await page.locator('#mode-chooser').isVisible(), true);
-  assert.equal(await page.locator('#panel-upload').isVisible(), false, 'el panel no se muestra hasta elegir modo');
-  await page.locator('#mode-upload').click();
-  await page.waitForFunction(() => !document.getElementById('panel-upload').hidden);
-  assert.equal(await page.locator('#mode-chooser').isVisible(), false);
+  assert.ok(await page.locator('.nav-item').count() >= 7, 'la navegación debe tener sus secciones');
+  await page.locator('#ir-subir').click();
+  await page.waitForFunction(() => !document.querySelector('[data-pantalla="subir"]').hidden);
   step('Elección de modo', 'editar un video existente');
 
   // Estado inicial: todo bloqueado.
   assert.equal(await page.locator('#btn-analyze').isDisabled(), true);
   assert.equal(await page.locator('#btn-export').isDisabled(), true);
-  assert.equal(await page.locator('#state-pill').textContent(), 'Listo');
+  assert.equal(await page.locator('#estado-pill').textContent(), 'Listo');
   step('Estado inicial', 'analizar y exportar deshabilitados');
 
   // 1. Subir el MP4.
@@ -74,7 +72,7 @@ try {
 
   // 2. Analizar, con polling real.
   await page.locator('#btn-analyze').click();
-  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Análisis completado', null, { timeout: 120000 });
+  await page.waitForFunction(() => document.getElementById('estado-pill').textContent === 'Análisis completado', null, { timeout: 120000 });
   const facts = await page.locator('#file-facts').textContent();
   assert.match(facts, /30\.000 \(nominal 30\.000, CFR\)/);
   assert.match(facts, /320 × 180/);
@@ -100,12 +98,11 @@ try {
   // 3. Crear propuesta en 9:16.
   await page.selectOption('#format', '9:16');
   await page.locator('#btn-propose').click();
-  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Aprobación pendiente', null, { timeout: 60000 });
-  assert.match(await page.locator('#resumen').textContent(), /9:16/);
-  assert.match(await page.locator('#resumen').textContent(), /1080×1920/);
-  assert.match(await page.locator('#proposal-summary').textContent(), /Pendiente de tu aprobación/);
-  assert.ok(await page.locator('.segmento').count() >= 1, 'se esperaban segmentos en la timeline');
-  step('Propuesta creada', await page.locator('#proposal-summary').textContent());
+  await page.waitForFunction(() => document.getElementById('estado-pill').textContent === 'Aprobación pendiente', null, { timeout: 60000 });
+  assert.match(await page.locator('#export-resumen').textContent(), /9:16/);
+  assert.match(await page.locator('#export-resumen').textContent(), /1080×1920/);
+  assert.ok(await page.locator('.bloque').count() >= 1, 'se esperaban segmentos en la timeline');
+  step('Propuesta creada', await page.locator('#export-resumen').textContent());
 
   // 4. Exportar debe seguir bloqueado hasta aprobar.
   assert.equal(await page.locator('#btn-export').isDisabled(), true);
@@ -118,8 +115,8 @@ try {
   if (warningsText.includes('atempo')) step('Advertencia de atempo', 'visible en la interfaz');
 
   // 4bis. Panel de segmentos editable: cambiar velocidad obliga a reaprobar.
-  assert.equal(await page.locator('#segments-card').isVisible(), true);
-  const filas = await page.locator('.segmento-fila').count();
+
+  const filas = await page.locator('.seg-fila').count();
   assert.ok(filas >= 1, 'se esperaba al menos un trozo editable');
   assert.equal(await page.locator('#btn-apply-segments').isDisabled(), true, 'sin cambios no hay nada que aplicar');
   // Sin tocar nada, el panel no debe acusar al usuario de haber vaciado el montaje.
@@ -142,18 +139,19 @@ try {
   assert.equal(await page.locator('#btn-export').isDisabled(), true, 'editar debe invalidar la aprobación');
   step('Segmentos editables', `${filas} trozos; velocidad cambiada y aprobación invalidada`);
 
-  // 5. Aprobar.
+  // 5. Aprobar (los botones viven en el paso «Exportar»).
+  await page.locator('.paso[data-paso="exportar"]').click();
+  await page.waitForFunction(() => !document.querySelector('[data-paso-panel="exportar"]').hidden);
   await page.locator('#btn-approve').click();
-  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Aprobado', null, { timeout: 30000 });
+  await page.waitForFunction(() => document.getElementById('estado-pill').textContent === 'Aprobado', null, { timeout: 30000 });
   assert.equal(await page.locator('#btn-export').isDisabled(), false);
-  assert.equal(await page.locator('.paso[data-paso="aprobacion"]').getAttribute('data-hecho'), 'si');
-  step('Aprobación', 'exportación habilitada, paso marcado');
+  step('Aprobación', 'exportación habilitada');
 
   // 6. Exportar (doble clic inmediato: no debe lanzar dos exportaciones).
   await page.locator('#btn-export').click();
-  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Exportando con FFmpeg');
+  await page.waitForFunction(() => document.getElementById('estado-pill').textContent === 'Exportando con FFmpeg');
   assert.equal(await page.locator('#btn-export').isDisabled(), true, 'el botón debe bloquearse durante la exportación');
-  await page.waitForFunction(() => document.getElementById('state-pill').textContent === 'Exportado', null, { timeout: 300000 });
+  await page.waitForFunction(() => document.getElementById('estado-pill').textContent === 'Exportado', null, { timeout: 300000 });
   const status = await page.locator('#status').textContent();
   assert.match(status, /1080×1920/);
   step('Exportación', status);
@@ -163,7 +161,7 @@ try {
   step('Reproductor del exportado', 'MP4 resultante decodificado en el navegador');
 
   const download = page.waitForEvent('download');
-  await page.locator('.descarga-principal').click();
+  await page.locator('#downloads a.btn-accion').click();
   const file = await download;
   const saved = path.join(dir, 'descargado.mp4');
   await file.saveAs(saved);
@@ -174,7 +172,7 @@ try {
   // Descargas del análisis.
   for (const label of ['Datos del análisis (JSON)', 'Lista de cortes (CSV)']) {
     const d = page.waitForEvent('download');
-    await page.locator('.descarga', { hasText: label }).click();
+    await page.locator('#downloads a', { hasText: label }).click();
     await (await d).saveAs(path.join(dir, label.includes('JSON') ? 'analisis.json' : 'cortes.csv'));
   }
   step('Descargas del análisis', 'JSON y CSV');

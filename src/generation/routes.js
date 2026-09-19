@@ -1,4 +1,4 @@
-import { listProviders, DEFAULT_PROVIDER } from '../providers/video-generation/index.js';
+import { listProviders, defaultProvider } from '../providers/video-generation/index.js';
 import { createJob, getJob, publicJob, draftJob, listJobs, FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX } from './jobs.js';
 
 /**
@@ -40,7 +40,7 @@ export async function generationRoute(req, res, url) {
   try {
     if (req.method === 'GET' && parts[2] === 'config') {
       reply(res, 200, {
-        providers: listProviders(), defaultProvider: DEFAULT_PROVIDER,
+        providers: listProviders(), defaultProvider: defaultProvider(),
         formats: FORMATS, styles: STYLES, duration: DURATION_LIMITS,
         durationOptions: DURATION_OPTIONS, promptMax: PROMPT_MAX,
       });

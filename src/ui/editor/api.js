@@ -82,6 +82,9 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
     }),
 
     getGeneration: (id) => call(`${ENDPOINTS.generationJobs}/${encodeURIComponent(id)}`),
+
+    /** Proyectos guardados, para la pantalla de inicio. No borra nada. */
+    listProjects: () => call('/api/video-generation/projects'),
   };
 }
 
