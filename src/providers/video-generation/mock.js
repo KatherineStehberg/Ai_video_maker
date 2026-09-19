@@ -17,7 +17,7 @@ import { ffmpegRun } from '../../lib/ffmpeg.js';
  */
 
 /** Paletas por estilo. Sólo afectan al color del mock; no hay semántica real. */
-const PALETAS = {
+export const PALETAS = {
   'cinematográfico': ['0x1a1a2e', '0x16213e', '0x0f3460', '0x533483'],
   documental: ['0x2d3142', '0x4f5d75', '0xbfc0c0', '0x5d737e'],
   dinámico: ['0xff6b35', '0x004e89', '0x1a659e', '0xf7c59f'],
@@ -28,21 +28,39 @@ const PALETAS = {
 /** Resolución de trabajo del mock. La exportación final reescala a 1080p. */
 const RESOLUCIONES = { '9:16': [540, 960], '16:9': [960, 540], '1:1': [720, 720] };
 
-const mezcla = (canal, destino, t) => Math.round(canal + (destino - canal) * t);
+/**
+ * Luminancia objetivo de los planos, alternando entre ellas.
+ *
+ * Ambos valores están lejos del negro a propósito: el plano tiene que VERSE.
+ * La diferencia entre los dos es lo bastante grande como para que el detector
+ * de escenas de FFmpeg (umbral 0.3) encuentre el corte entre planos.
+ */
+const LUMA_PLANO = [110, 205];
+const luminancia = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
 
 /**
- * Deriva el color de un plano alternando luminancia entre planos consecutivos.
+ * Lleva el color de la paleta a la luminancia objetivo conservando su tono.
  *
- * Sin esto el mock es inútil como material de prueba: varias paletas son
- * monocromas (la corporativa son todos azules) y el detector de escenas de
- * FFmpeg, con umbral 0.3, no ve ningún corte entre ellas. Alternar claro/oscuro
- * garantiza un salto de luminancia grande y, por tanto, cortes detectables.
+ * No se mezcla hacia negro: varias paletas ya son oscuras de por sí (la
+ * cinematográfica ronda luma 28) y oscurecerlas dejaba el primer plano
+ * prácticamente invisible, con lo que el video parecía estar en blanco.
  */
-function colorDePlano(base, indice) {
+export function colorDePlano(base, indice) {
   const n = parseInt(String(base).replace(/^0x/, ''), 16);
-  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  const [destino, t] = indice % 2 === 0 ? [0, 0.45] : [255, 0.75];
-  const hex = [mezcla(r, destino, t), mezcla(g, destino, t), mezcla(b, destino, t)]
+  const canales = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const objetivo = LUMA_PLANO[indice % LUMA_PLANO.length];
+  const actual = luminancia(...canales);
+
+  // Se mezcla hacia blanco o hacia negro, no se escalan los canales: escalar
+  // satura y recorta (el azul 0066ff no puede llegar a luma 205 de ese modo),
+  // y el recorte dejaba planos consecutivos sin contraste suficiente. Mezclar
+  // alcanza la luminancia pedida de forma exacta para cualquier color.
+  const [destino, t] = objetivo >= actual
+    ? [255, (objetivo - actual) / (255 - actual || 1)]
+    : [0, (actual - objetivo) / (actual || 1)];
+
+  const hex = canales
+    .map(c => Math.min(255, Math.max(0, Math.round(c + (destino - c) * t))))
     .map(c => c.toString(16).padStart(2, '0')).join('');
   return `0x${hex}`;
 }

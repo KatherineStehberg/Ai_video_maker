@@ -6,6 +6,7 @@ import { createServer } from '../src/server.js';
 import { probe } from '../src/analysis/local.js';
 import { normalizeSpec, STATES, FORMATS, STYLES } from '../src/generation/jobs.js';
 import { getProvider, listProviders, PROVIDERS } from '../src/providers/video-generation/index.js';
+import { PALETAS, colorDePlano } from '../src/providers/video-generation/mock.js';
 
 const dir = path.resolve('.tmp/generation-test');
 
@@ -52,6 +53,29 @@ test('registro de proveedores: sólo el mock funciona y ninguno filtra claves', 
   const serializado = JSON.stringify(lista);
   assert.ok(!/API_KEY=|sk-|Bearer/i.test(serializado));
   assert.throws(() => getProvider('inventado'), /Proveedor de generación desconocido/);
+});
+
+test('todos los estilos del mock producen planos visibles, nunca casi negros', () => {
+  // Un plano con luma muy baja se ve como pantalla en blanco: el usuario cree
+  // que el video está roto. Se comprueba el brillo medido de cada frame.
+  const luma = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+  for (const style of STYLES) {
+    const brillos = [];
+    for (let i = 0; i < 8; i++) {
+      const color = colorDePlano(PALETAS[style][i % PALETAS[style].length], i);
+      const n = parseInt(color.replace(/^0x/, ''), 16);
+      brillos.push(luma((n >> 16) & 255, (n >> 8) & 255, n & 255));
+    }
+    for (const [i, brillo] of brillos.entries()) {
+      assert.ok(brillo >= 80, `estilo "${style}", plano ${i}: luma ${brillo.toFixed(0)} es demasiado oscuro para verse`);
+      assert.ok(brillo <= 235, `estilo "${style}", plano ${i}: luma ${brillo.toFixed(0)} está quemado`);
+    }
+    // Planos consecutivos deben contrastar, o no habrá cortes detectables.
+    for (let i = 1; i < brillos.length; i++) {
+      assert.ok(Math.abs(brillos[i] - brillos[i - 1]) >= 60,
+        `estilo "${style}": planos ${i - 1} y ${i} apenas contrastan (${brillos[i - 1].toFixed(0)} vs ${brillos[i].toFixed(0)})`);
+    }
+  }
 });
 
 test('proveedor mock: produce un MP4 real, determinista y marcado como prueba', { timeout: 180000 }, async () => {
