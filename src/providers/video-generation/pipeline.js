@@ -102,8 +102,9 @@ export async function ajustarDuracion(project, objetivo, { onProgress = () => {}
 
 /** Template adecuado según lo que se pide: duración manda sobre el resto. */
 export function elegirTemplate(spec) {
-  if (spec.duration <= 20) return 'reel-promocional';
-  if (spec.duration >= 45) return 'short-educativo';
+  const d = Number(spec.duration) || 60;
+  if (d <= 20) return 'reel-promocional';
+  if (d >= 45) return 'short-educativo';
   return /promo|vende|oferta|producto|servicio|clase|curso/i.test(spec.prompt || '')
     ? 'reel-promocional' : 'short-educativo';
 }
@@ -170,7 +171,8 @@ export const pipelineProvider = {
     //    duración al objetivo, y sólo entonces se generan subtítulos y render.
     //    El orden importa: los subtítulos se calculan sobre el audio final.
     const etapas = { assets: 'Buscando visuales', narration: 'Generando la voz', subtitles: 'Creando subtítulos', render: 'Montando el video' };
-    const objetivo = Number(spec.duration) || null;
+    // En modo automático no se fuerza ninguna duración: manda el guion.
+    const objetivo = spec.duration === null || spec.duration === 'auto' ? null : Number(spec.duration) || null;
 
     const informeA = await runPipeline(project, {
       steps: ['assets', 'narration'],

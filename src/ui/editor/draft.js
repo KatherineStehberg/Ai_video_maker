@@ -45,7 +45,7 @@ export function renderDraft(container, escenas, { onChange, onRegenerate } = {})
     const visual = campo({ etiqueta: 'Instrucción visual', valor: e.visualPrompt, clase: 'escena-visual', extra: { maxLength: 200 } });
     const duracion = campo({ etiqueta: 'Segundos', valor: e.duration, clase: 'escena-duracion', tipo: 'number', extra: { min: 0.5, max: 30, step: 0.5 } });
 
-    const regenerar = el('button', 'boton boton-mini', 'Regenerar escena');
+    const regenerar = el('button', 'btn btn-mini', 'Regenerar escena');
     regenerar.type = 'button';
     regenerar.addEventListener('click', () => onRegenerate?.(i));
 

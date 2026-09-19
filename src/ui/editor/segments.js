@@ -32,7 +32,7 @@ export function renderSegments(container, proposal, { onChange } = {}) {
   if (!proposal?.segments?.length) return;
 
   proposal.segments.forEach((s, index) => {
-    const fila = el('div', 'segmento-fila');
+    const fila = el('div', 'seg-fila');
     fila.dataset.incluido = 'si';
     fila.dataset.index = String(index);
     // Se guarda la velocidad exacta del backend. El input sólo muestra dos
@@ -40,17 +40,17 @@ export function renderSegments(container, proposal, { onChange } = {}) {
     // la velocidad (y la duración) de todos los trozos sin tocarlos.
     fila.dataset.speedOriginal = String(s.speed);
 
-    fila.append(el('span', 'segmento-indice', String(index + 1)));
+    fila.append(el('span', 'escena-num', String(index + 1)));
 
     const info = el('div');
     info.append(
-      el('div', 'segmento-tiempo', `${s.sourceStart.toFixed(2)} s → ${s.sourceEnd.toFixed(2)} s  ·  dura ${(s.sourceEnd - s.sourceStart).toFixed(2)} s`),
-      el('div', 'segmento-motivo', MOTIVOS[s.reason] || s.reason),
+      el('div', 'mini', `${s.sourceStart.toFixed(2)} s → ${s.sourceEnd.toFixed(2)} s  ·  dura ${(s.sourceEnd - s.sourceStart).toFixed(2)} s`),
+      el('div', 'escena-rol', MOTIVOS[s.reason] || s.reason),
     );
     fila.append(info);
 
     // Velocidad: 1 = normal. Los límites son los que admite el backend.
-    const velocidad = el('label', 'texto-ayuda');
+    const velocidad = el('label', 'mini');
     velocidad.append(document.createTextNode('Velocidad'));
     const input = document.createElement('input');
     input.type = 'number';
@@ -62,7 +62,7 @@ export function renderSegments(container, proposal, { onChange } = {}) {
     velocidad.append(input);
     fila.append(velocidad);
 
-    const incluir = el('label', 'casilla texto-ayuda');
+    const incluir = el('label', 'casilla mini');
     const casilla = document.createElement('input');
     casilla.type = 'checkbox';
     casilla.checked = true;
@@ -90,7 +90,7 @@ export function renderSegments(container, proposal, { onChange } = {}) {
  */
 export function readSegments(container) {
   const segments = [];
-  for (const fila of container.querySelectorAll('.segmento-fila')) {
+  for (const fila of container.querySelectorAll('.seg-fila')) {
     if (fila.dataset.incluido === 'no') continue;
     const index = Number(fila.dataset.index);
     const mostrada = Number(fila.querySelector('.segmento-velocidad').value);

@@ -26,7 +26,23 @@ export const STATES = ['queued', 'generating', 'generated', 'analyzing', 'editin
 /** Formatos ofrecidos en este flujo (el backend de edición admite alguno más). */
 export const FORMATS = ['9:16', '16:9', '1:1'];
 export const STYLES = ['cinematográfico', 'documental', 'dinámico', 'minimalista', 'corporativo'];
-export const DURATION_LIMITS = { min: 3, max: 120 };
+/**
+ * Límites de duración. El máximo cubre lecciones de curso completas, no sólo
+ * reels: un video de 15 minutos es un caso de uso real, no un abuso.
+ * `duration: 'auto'` deja que la duración la decida el guion.
+ */
+export const DURATION_LIMITS = { min: 3, max: 900 };
+
+/** Opciones que ofrece la interfaz. `auto` = la marca el guion. */
+export const DURATION_OPTIONS = [
+  { value: 'auto', label: 'Automática según el guion' },
+  { value: 15, label: '15 segundos' },
+  { value: 30, label: '30 segundos' },
+  { value: 60, label: '1 minuto' },
+  { value: 120, label: '2 minutos' },
+  { value: 300, label: '5 minutos' },
+  { value: 600, label: '10 minutos' },
+];
 export const PROMPT_MAX = 2000;
 
 const root = path.join(PATHS.data, 'video-generation');
@@ -57,9 +73,13 @@ export function normalizeSpec(input = {}) {
   if (!prompt) throw new Error('Escribe un prompt que describa el video que quieres.');
   if (prompt.length > PROMPT_MAX) throw new Error(`El prompt no puede superar ${PROMPT_MAX} caracteres.`);
 
-  const duration = Number(input.duration ?? 15);
-  if (!Number.isFinite(duration) || duration < DURATION_LIMITS.min || duration > DURATION_LIMITS.max) {
-    throw new Error(`La duración debe estar entre ${DURATION_LIMITS.min} y ${DURATION_LIMITS.max} segundos.`);
+  // Duración: un número de segundos, o 'auto' para que la marque el guion.
+  // En modo automático NO se recorta contenido para acortar el video: es lo que
+  // necesita una lección de curso, donde manda el guion y no el reloj.
+  const auto = input.duration === 'auto' || input.duration === null;
+  const duration = auto ? null : Number(input.duration ?? 15);
+  if (!auto && (!Number.isFinite(duration) || duration < DURATION_LIMITS.min || duration > DURATION_LIMITS.max)) {
+    throw new Error(`La duración debe estar entre ${DURATION_LIMITS.min} y ${DURATION_LIMITS.max} segundos, o ser "auto".`);
   }
 
   const format = String(input.format ?? '9:16');
@@ -96,7 +116,7 @@ export function normalizeSpec(input = {}) {
     });
   }
 
-  return { prompt, duration, format, style,
+  return { prompt, duration, durationMode: auto ? 'auto' : 'fija', format, style,
     music: opcional('music'), tempo: opcional('tempo'),
     audience: opcional('audience'), platform: opcional('platform'),
     templateId: input.templateId ? String(input.templateId) : null,
@@ -111,7 +131,7 @@ export function normalizeSpec(input = {}) {
  */
 export async function draftJob(input) {
   const spec = normalizeSpec(input);
-  const templateId = spec.templateId || elegirTemplate(spec);
+  const templateId = spec.templateId || elegirTemplate({ ...spec, duration: spec.duration ?? 60 });
   const borrador = await draftScript(spec, { templateId });
   const voz = await vozDisponible();
   return {
@@ -236,6 +256,42 @@ async function run(job, provider) {
     running = false;
     try { persist(job); } catch { /* el estado en memoria sigue siendo válido */ }
   }
+}
+
+/**
+ * Proyectos recientes, leídos del disco. No borra nada: un trabajo antiguo
+ * sigue estando disponible para retomarlo mientras exista su archivo.
+ */
+export function listJobs({ limit = 40 } = {}) {
+  let archivos = [];
+  try { archivos = fs.readdirSync(root).filter(f => f.endsWith('.json')); } catch { return []; }
+
+  const proyectos = [];
+  for (const archivo of archivos) {
+    try {
+      const j = JSON.parse(fs.readFileSync(path.join(root, archivo), 'utf8'));
+      const interrumpido = !['completed', 'failed'].includes(j.status);
+      proyectos.push({
+        id: j.id,
+        titulo: j.script?.tema || j.spec?.prompt?.slice(0, 70) || 'Proyecto sin título',
+        prompt: j.spec?.prompt ?? '',
+        estado: interrumpido ? 'interrumpido' : j.status,
+        formato: j.spec?.format ?? null,
+        duracionPedida: j.spec?.duration ?? null,
+        duracionReal: j.generation?.spec?.duracion?.real ?? null,
+        escenas: j.script?.escenas?.length ?? null,
+        creado: j.createdAt ?? null,
+        terminado: j.finishedAt ?? null,
+        analysisId: j.analysisId ?? null,
+        editId: j.editId ?? null,
+        proveedor: j.provider?.id ?? null,
+        error: j.error ?? null,
+      });
+    } catch { /* un JSON corrupto no debe tumbar la lista entera */ }
+  }
+  return proyectos
+    .sort((a, b) => String(b.creado).localeCompare(String(a.creado)))
+    .slice(0, limit);
 }
 
 /** Vista pública: idéntica al job, pero sin rutas absolutas del servidor. */

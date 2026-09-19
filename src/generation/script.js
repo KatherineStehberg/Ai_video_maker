@@ -169,7 +169,9 @@ export function draftLocal(spec, template) {
   const tema = extraerTema(spec.prompt);
   const prompt = String(spec.prompt || '');
   const wpm = wpmEfectivo(template);
-  const objetivo = Number(spec.duration) || template.targetSeconds[0];
+  // `auto`: la duración la marca el guion, no al revés. No se recorta nada.
+  const automatico = spec.duration === null || spec.duration === undefined || spec.duration === 'auto';
+  const objetivo = automatico ? null : Number(spec.duration) || template.targetSeconds[0];
 
   // 1. Gancho: nombra el tema, acotado para no comerse el presupuesto.
   const temaCorto = recortarPalabras(tema, 7).replace(/\.$/, '');
@@ -210,7 +212,8 @@ export function draftLocal(spec, template) {
   }
 
   // 4. Presupuesto: se quitan escenas de menor prioridad hasta que quepa.
-  const presupuesto = palabrasQueCaben(objetivo, wpm);
+  //    En modo automático no hay recorte: cabe todo lo que diga el guion.
+  const presupuesto = automatico ? Infinity : palabrasQueCaben(objetivo, wpm);
   const cuenta = t => t.trim().split(/\s+/).length;
   let elegidas = [gancho, ...cuerpo, cierre];
   const descartadas = [];
@@ -224,7 +227,9 @@ export function draftLocal(spec, template) {
   //    que la suma sea exactamente el objetivo.
   const [minSec, maxSec] = template.sceneSeconds;
   const naturales = elegidas.map(e => Math.max(0.8, estimateDuration(e.text, wpm)));
-  const duraciones = repartirDuracion(naturales, objetivo, Math.min(minSec, 1.2), maxSec);
+  const duraciones = automatico
+    ? naturales.map(v => Math.max(1.2, v))          // el guion manda
+    : repartirDuracion(naturales, objetivo, Math.min(minSec, 1.2), maxSec);
 
   const escenas = elegidas.map((e, i) => ({
     role: e.role,
@@ -235,7 +240,8 @@ export function draftLocal(spec, template) {
     ...(e.beneficio ? { beneficio: e.beneficio } : {}),
   }));
 
-  return { escenas, tema, source: 'plantilla-local', descartadas, presupuestoPalabras: presupuesto };
+  return { escenas, tema, source: 'plantilla-local', descartadas,
+    presupuestoPalabras: automatico ? null : presupuesto, durationMode: automatico ? 'auto' : 'fija' };
 }
 
 /** Trocea el prompt en ideas aprovechables cuando no hay beneficios detectables. */
@@ -267,8 +273,9 @@ export async function draftScript(spec, { templateId, provider = 'auto' } = {}) 
   }
 
   try {
-    const objetivo = Number(spec.duration) || template.targetSeconds[0];
-    const presupuesto = palabrasQueCaben(objetivo, wpmEfectivo(template));
+    const automatico = spec.duration === null || spec.duration === undefined || spec.duration === 'auto';
+    const objetivo = automatico ? null : Number(spec.duration) || template.targetSeconds[0];
+    const presupuesto = automatico ? 400 : palabrasQueCaben(objetivo, wpmEfectivo(template));
     const raw = await llm.complete({
       system: [
         'Eres guionista de video corto en español.',
@@ -295,7 +302,7 @@ export async function draftScript(spec, { templateId, provider = 'auto' } = {}) 
     const [minSec, maxSec] = template.sceneSeconds;
     const tema = extraerTema(spec.prompt);
     const naturales = lineas.map(t => Math.max(0.8, estimateDuration(t, wpmEfectivo(template))));
-    const factor = objetivo / naturales.reduce((a, b) => a + b, 0);
+    const factor = automatico ? 1 : objetivo / naturales.reduce((a, b) => a + b, 0);
     const escenas = lineas.map((text, i) => ({
       role: template.beats[i]?.role || 'point',
       text,

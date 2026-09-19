@@ -1,5 +1,5 @@
 import { listProviders, DEFAULT_PROVIDER } from '../providers/video-generation/index.js';
-import { createJob, getJob, publicJob, draftJob, FORMATS, STYLES, DURATION_LIMITS, PROMPT_MAX } from './jobs.js';
+import { createJob, getJob, publicJob, draftJob, listJobs, FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX } from './jobs.js';
 
 /**
  * Endpoints de generación de video con IA.
@@ -41,8 +41,15 @@ export async function generationRoute(req, res, url) {
     if (req.method === 'GET' && parts[2] === 'config') {
       reply(res, 200, {
         providers: listProviders(), defaultProvider: DEFAULT_PROVIDER,
-        formats: FORMATS, styles: STYLES, duration: DURATION_LIMITS, promptMax: PROMPT_MAX,
+        formats: FORMATS, styles: STYLES, duration: DURATION_LIMITS,
+        durationOptions: DURATION_OPTIONS, promptMax: PROMPT_MAX,
       });
+      return true;
+    }
+
+    // Proyectos recientes, para la pantalla de inicio. No borra nada.
+    if (req.method === 'GET' && parts[2] === 'projects' && parts.length === 3) {
+      reply(res, 200, { proyectos: listJobs({ limit: Number(url.searchParams.get('limit')) || 40 }) });
       return true;
     }
 

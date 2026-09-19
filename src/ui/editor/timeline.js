@@ -14,26 +14,31 @@ const el = (tag, className, text) => {
   return node;
 };
 
-export function renderTimeline(container, analysis, proposal, { onSeek } = {}) {
+export function renderTimeline(container, analysis, proposal, { onSeek, onSelect, seleccionada = null } = {}) {
   const model = timelineModel(analysis, proposal);
   container.replaceChildren();
   if (!model) {
-    container.append(el('p', 'texto-ayuda', 'Aquí verás los cortes y el ritmo en cuanto analices un video.'));
+    container.append(el('p', 'ayuda', 'Aquí verás los cortes y el ritmo en cuanto analices un video.'));
     return;
   }
 
-  const linea = el('div', 'linea-tiempo');
+  const linea = el('div', 'timeline-lineas');
 
   // Pista 1: trozos del montaje propuesto, coloreados según su velocidad.
-  const segmentos = el('div', 'pista pista-segmentos');
+  const segmentos = el('div', 'pista pista-bloques');
   if (model.segments.length) {
     for (const s of model.segments) {
-      const bloque = el('div', `segmento segmento-${s.kind}`);
+      const bloque = el('div', `bloque bloque-${s.kind}`);
       bloque.style.left = `${s.at * 100}%`;
       bloque.style.width = `${Math.max(s.width * 100, 0.4)}%`;
       bloque.title = `Trozo ${s.index + 1}: ${s.sourceStart.toFixed(2)}–${s.sourceEnd.toFixed(2)} s · ${s.speed.toFixed(2)}×`;
-      bloque.append(el('span', 'segmento-etiqueta', s.kind === 'normal' ? `${s.index + 1}` : `${s.index + 1} · ${s.speed.toFixed(2)}×`));
-      bloque.addEventListener('click', () => onSeek?.(s.sourceStart));
+      if (s.index === seleccionada) bloque.setAttribute('aria-pressed', 'true');
+      bloque.append(el('span', 'bloque-txt', s.kind === 'normal' ? `${s.index + 1}` : `${s.index + 1} · ${s.speed.toFixed(2)}×`));
+      bloque.setAttribute('role', 'button');
+      bloque.setAttribute('tabindex', '0');
+      bloque.setAttribute('aria-pressed', 'false');
+      bloque.addEventListener('click', () => { onSeek?.(s.sourceStart); onSelect?.(s.index); });
+      bloque.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); bloque.click(); } });
       segmentos.append(bloque);
     }
   } else {
@@ -41,7 +46,7 @@ export function renderTimeline(container, analysis, proposal, { onSeek } = {}) {
   }
 
   // Pista 2: beats de la música y sonidos destacados.
-  const ritmo = el('div', 'pista pista-ritmo');
+  const ritmo = el('div', 'pista pista-fina pista-ritmo');
   for (const b of model.beats) {
     const marca = el('div', `beat${b.supported ? ' beat-fuerte' : ''}`);
     marca.style.left = `${b.at * 100}%`;
@@ -49,7 +54,7 @@ export function renderTimeline(container, analysis, proposal, { onSeek } = {}) {
     ritmo.append(marca);
   }
   for (const o of model.onsets) {
-    const punto = el('div', 'evento-audio');
+    const punto = el('div', 'evento');
     punto.style.left = `${o.at * 100}%`;
     punto.title = `Sonido · ${o.timestamp.toFixed(2)} s`;
     ritmo.append(punto);
@@ -57,7 +62,7 @@ export function renderTimeline(container, analysis, proposal, { onSeek } = {}) {
   if (!model.beats.length && !model.onsets.length) ritmo.append(el('p', 'pista-vacia', 'No se detectó ritmo en el audio.'));
 
   // Pista 3: cortes visuales detectados.
-  const cortes = el('div', 'pista pista-cortes');
+  const cortes = el('div', 'pista pista-fina pista-cortes');
   for (const c of model.cuts) {
     const marca = el('button', 'corte');
     marca.type = 'button';
