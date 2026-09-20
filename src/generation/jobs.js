@@ -305,6 +305,7 @@ export function createJob(input, { providerName = defaultProvider() } = {}) {
     projectId: null,
     // Progreso real, contado en escenas. Ver `states.js`.
     progreso: instantanea({ etapa: ESTADO_EN_COLA }),
+    progresoHistorial: [instantanea({ etapa: ESTADO_EN_COLA })],
     intentos: 0,
     warnings: [], error: null, finishedAt: null,
   };
@@ -425,10 +426,15 @@ async function run(job, provider) {
       onProgress: (p, stage, extra = {}) => {
         if (extra.projectId && !job.projectId) job.projectId = extra.projectId;
         if (extra.estado) {
-          job.progreso = instantanea({
+          const nueva = instantanea({
             etapa: extra.estado, hechas: extra.hechas ?? 0, totales: extra.totales ?? 0,
             operacion: stage, detalle: extra.detalle ?? null,
           });
+          job.progreso = nueva;
+          const ultima = job.progresoHistorial?.at(-1);
+          if (!ultima || ultima.estado !== nueva.estado || ultima.escenasCompletadas !== nueva.escenasCompletadas) {
+            job.progresoHistorial = [...(job.progresoHistorial || []), nueva].slice(-200);
+          }
         }
         progress(5 + Math.min(35, p * 0.35), stage || 'Generando el video');
       },
@@ -439,6 +445,7 @@ async function run(job, provider) {
       provider: result.provider, model: result.model ?? null, mock: Boolean(result.mock),
       file: path.relative(PATHS.root, result.file).split(path.sep).join('/'),
       bytes: (await fsp.stat(result.file)).size,
+      spec: result.spec ?? null,
       notes: result.notes ?? [], usage: result.usage ?? null,
       elapsedMs: Date.now() - began,
     };
@@ -454,23 +461,31 @@ async function run(job, provider) {
     job.status = 'generated';
     progress(40, 'Video generado');
 
-    // ---- 2. Analizarlo con el pipeline existente ------------------------
-    job.status = 'analyzing';
-    progress(45, 'Analizando cortes, ritmo y duración');
-    const analysis = await analyzeExistingFile(result.file, { label: `generación ${job.id}` });
-    if (analysis.status !== 'complete') throw new Error(analysis.error || 'No se pudo analizar el video generado.');
-    job.analysisId = analysis.id;
-    progress(75, 'Análisis terminado');
+    // ---- 2. Análisis y propuesta opcionales -----------------------------
+    // El MP4 ya es un resultado válido.  Un fallo posterior nunca debe
+    // convertir esa generación en fallida ni ocultar su descarga.
+    try {
+      job.status = 'analyzing';
+      progress(45, 'Analizando cortes, ritmo y duración');
+      const analysis = await analyzeExistingFile(result.file, { label: `generación ${job.id}` });
+      if (analysis.status !== 'complete') throw new Error(analysis.error || 'No se pudo analizar el video generado.');
+      job.analysisId = analysis.id;
+      progress(75, 'Análisis terminado');
 
-    // ---- 3. Crear la propuesta de edición -------------------------------
-    job.status = 'editing';
-    progress(80, 'Preparando la propuesta de montaje');
-    const proposal = planEdit(analysis, {
-      format: job.spec.format, syncMode: 'beats', enableSpeedRamps: true, approvalRequired: true,
-    });
-    saveProposal(proposal);
-    job.editId = proposal.id;
-    job.warnings.push(...(proposal.warnings ?? []));
+      job.status = 'editing';
+      progress(80, 'Preparando la propuesta de montaje');
+      const proposal = planEdit(analysis, {
+        format: job.spec.format, syncMode: 'beats', enableSpeedRamps: true, approvalRequired: true,
+      });
+      saveProposal(proposal);
+      job.editId = proposal.id;
+      job.warnings.push(...(proposal.warnings ?? []));
+    } catch (analysisError) {
+      job.analysisError = analysisError.message;
+      job.warnings.push(
+        `El video se generó correctamente, pero el análisis opcional no terminó: ${analysisError.message}`,
+      );
+    }
 
     job.status = 'completed';
     job.progreso = instantanea({
@@ -479,6 +494,7 @@ async function run(job, provider) {
       totales: job.script?.escenas?.length ?? 0,
       operacion: 'Listo para revisar y aprobar',
     });
+    job.progresoHistorial = [...(job.progresoHistorial || []), job.progreso].slice(-200);
     progress(100, 'Listo para revisar y aprobar');
   } catch (e) {
     job.status = 'failed';

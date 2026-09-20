@@ -13,6 +13,9 @@ import { elegirTemplate } from '../src/providers/video-generation/pipeline.js';
 import { porcentaje, instantanea, ETAPAS, ESTADOS, esReanudable, ESTADO_LISTO, ESTADO_ERROR_RECUPERABLE } from '../src/generation/states.js';
 import { normalizeOrchestratorInput, specDesdeContrato, CONTRACT_VERSION } from '../src/generation/orchestrator-contract.js';
 import { SCENE_TEXT_MAX, HTTP_BODY_MAX } from '../src/generation/limits.js';
+import { buildNarrationTrack, NARRATION_BLOCK_SIZE } from '../src/core/tts.js';
+import { ffmpegRun, probeDuration } from '../src/lib/ffmpeg.js';
+import { workDir, rel, abs } from '../src/lib/paths.js';
 
 /**
  * Videos LARGOS por el mismo flujo que los cortos.
@@ -155,13 +158,12 @@ test('la segmentación nunca parte una oración por la mitad', () => {
   }
 });
 
-test('una oración que no cabe en una escena se deja entera y se avisa', () => {
+test('una oración imposible se rechaza antes de que su duración sea truncada', () => {
   const larga = `${'palabra '.repeat(400).trim()}.`;
-  const { escenas, advertencias } = segmentarGuion(larga);
-
-  assert.equal(escenas.length, 1, 'una sola oración no puede repartirse entre escenas');
-  assert.equal(escenas[0].text, larga, 'la oración llega intacta');
-  assert.ok(advertencias.some(a => /no cabe/.test(a)), 'debe avisarse de que la escena queda larga');
+  assert.throws(
+    () => segmentarGuion(larga),
+    e => /400 palabras/.test(e.message) && /no se ha recortado nada/i.test(e.message),
+  );
 });
 
 test('los títulos cortan escena y dan el texto en pantalla; la narración con «##» no', () => {
@@ -351,12 +353,45 @@ test('el progreso publicado nunca retrocede y cuenta escenas de verdad', { timeo
 
   assert.equal(job.status, 'completed', job.error || '');
   // Las etapas declaradas aparecen de verdad: el progreso no es decorativo.
+  const historial = new Set([...(job.progresoHistorial || []).map(p => p.estado), ...vistos]);
   for (const etapa of ['buscando-visuales', 'generando-voz', 'renderizando-segmentos', 'listo']) {
-    assert.ok(vistos.includes(etapa), `nunca se informó la etapa «${etapa}»`);
+    assert.ok(historial.has(etapa), `nunca se informó la etapa «${etapa}»`);
   }
   assert.equal(job.progreso.porcentaje, 100);
   assert.equal(job.progreso.escenasCompletadas, job.progreso.escenasTotales);
   assert.ok(job.projectId, 'un trabajo terminado debe dejar projectId para poder regenerar escenas');
+});
+
+test('la narración larga se concatena en bloques sin abrir todas las escenas a la vez', { timeout: 120000 }, async () => {
+  const projectId = `audio-block-test-${process.pid}`;
+  const dir = workDir(projectId);
+  await fs.rm(dir, { recursive: true, force: true });
+  const audioDir = path.join(dir, 'audio');
+  await fs.mkdir(audioDir, { recursive: true });
+
+  const total = NARRATION_BLOCK_SIZE + 2;
+  const scenes = [];
+  for (let i = 0; i < total; i++) {
+    const wav = path.join(audioDir, `scene-${i}.wav`);
+    await ffmpegRun([
+      '-f', 'lavfi', '-i', `sine=frequency=${300 + i}:duration=0.08`,
+      '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', wav,
+    ]);
+    scenes.push({ id: `scene-${i}`, duration: 0.1, narrationPath: rel(wav), narrationKey: `key-${i}` });
+  }
+
+  const track = await buildNarrationTrack({ id: projectId, scenes });
+  const duration = await probeDuration(abs(track));
+  const blocks = (await fs.readdir(path.join(dir, 'narration-blocks'))).filter(f => f.endsWith('.wav'));
+
+  assert.equal(blocks.length, 2, '18 escenas con bloques de 16 deben producir dos WAV intermedios');
+  assert.ok(Math.abs(duration - total * 0.1) < 0.08, `duración ${duration} vs ${total * 0.1}`);
+
+  // A second pass must reuse the same blocks rather than rebuilding them.
+  const before = await Promise.all(blocks.map(async f => (await fs.stat(path.join(dir, 'narration-blocks', f))).mtimeMs));
+  await buildNarrationTrack({ id: projectId, scenes });
+  const after = await Promise.all(blocks.map(async f => (await fs.stat(path.join(dir, 'narration-blocks', f))).mtimeMs));
+  assert.deepEqual(after, before, 'los bloques válidos deben reutilizarse al reanudar');
 });
 
 test('reanudar y regenerar una escena: se rechazan si no hay nada que reutilizar', async () => {
