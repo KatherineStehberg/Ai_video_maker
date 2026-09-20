@@ -29,9 +29,9 @@ test('validación del prompt: rechaza lo inválido con mensajes accionables', ()
   assert.throws(() => normalizeSpec({ prompt: '   ' }), /Escribe un prompt/);
   assert.throws(() => normalizeSpec({}), /Escribe un prompt/);
   assert.throws(() => normalizeSpec({ prompt: 'x'.repeat(2001) }), /no puede superar 2000/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 1 }), /entre 3 y 120 segundos/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 500 }), /entre 3 y 120 segundos/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 'muchos' }), /entre 3 y 120 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 1 }), /entre 3 y 900 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 5000 }), /entre 3 y 900 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 'muchos' }), /entre 3 y 900 segundos/);
   assert.throws(() => normalizeSpec({ prompt: 'x', format: '4:3' }), /Formato no admitido/);
   assert.throws(() => normalizeSpec({ prompt: 'x', style: 'psicodélico' }), /Estilo no admitido/);
 
@@ -240,8 +240,9 @@ test('HTTP end-to-end: prompt → generación mock → análisis → propuesta l
   try {
     const config = await (await fetch(base + '/api/video-generation/config')).json();
     assert.ok(config.formats.includes('9:16'));
-    // El predeterminado es el montaje local real; el mock queda como fallback.
-    assert.equal(config.defaultProvider, 'pipeline');
+    // El predeterminado se lee del entorno; aquí se comprueba que la config lo
+    // refleja y que el mock sigue declarándose como tal, sea cual sea el .env.
+    assert.ok(config.providers.some(p => p.id === config.defaultProvider), 'el predeterminado debe existir');
     assert.ok(config.providers.some(p => p.id === 'mock' && p.mock === true));
     assert.ok(!JSON.stringify(config).includes('API_KEY='), 'la config no puede traer claves');
 

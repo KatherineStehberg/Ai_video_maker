@@ -1,10 +1,18 @@
+/**
+ * Smoke de diseño: comprueba que la interfaz no desborda ni falla en
+ * 1366x768, 1920x1080 y 390 px, y que se puede navegar con teclado.
+ */
 import { chromium } from '../.tmp/browser-tools/node_modules/playwright-core/index.mjs';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
 const dir = path.resolve('.tmp/vista-estudio');
 await fs.mkdir(dir, { recursive: true });
-const BASE = 'http://127.0.0.1:4321/editor.html';
+import { createServer } from '../src/server.js';
+import assert from 'node:assert/strict';
+const server = createServer();
+await new Promise(r => server.listen(0, '127.0.0.1', r));
+const BASE = `http://127.0.0.1:${server.address().port}/editor.html`;
 const exe = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const b = await chromium.launch({ executablePath: exe, headless: true });
 
@@ -51,5 +59,23 @@ for (const [w, h, nombre] of [[1366, 768, '1366'], [1920, 1080, '1920'], [390, 8
   await page.close();
 }
 
+// La navegación debe funcionar con teclado, no sólo con ratón.
+const page = await b.newPage({ viewport: { width: 1366, height: 768 } });
+await page.goto(BASE);
+await page.waitForFunction(() => document.getElementById('gen-provider-hint').textContent.length > 10);
+await page.keyboard.press('Tab');
+const foco = await page.evaluate(() => document.activeElement?.className || document.activeElement?.tagName);
+const navegables = await page.evaluate(() =>
+  [...document.querySelectorAll('button, a[href], select, input, textarea')].filter(n => !n.disabled && n.offsetParent !== null).length);
+await page.close();
 await b.close();
-console.log(JSON.stringify({ informe, errores }, null, 1));
+await new Promise(r => server.close(r));
+
+// Comprobaciones duras: si fallan, el diseño está roto.
+for (const m of informe) {
+  assert.equal(m.scrollH, false, `${m.etiqueta}: hay scroll horizontal (${m.ancho} > ${m.cliente})`);
+}
+assert.deepEqual(errores, [], 'la interfaz no debe producir errores');
+assert.ok(navegables > 8, `se esperaban controles alcanzables por teclado, hubo ${navegables}`);
+
+console.log(JSON.stringify({ informe, errores, foco, navegables }, null, 1));

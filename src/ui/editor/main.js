@@ -20,7 +20,7 @@ import { initialState, reduce, canAnalyze, canPropose, canApprove, canExport, ex
 import { fileSummary, rhythmSummary, collectWarnings, summaryCards, seconds, frame, rampRow } from './format.js';
 import { renderTimeline } from './timeline.js';
 import { renderSegments, readSegments, validateSelection, hasChanges } from './segments.js';
-import { renderDraft, readDraft, validateDraft, duracionTotal } from './draft.js';
+import { renderDraft, readDraft, validateDraft, duracionTotal, aplicarAccion, escenasIncluidas } from './draft.js';
 import { renderProjects, duracionCorta } from './projects.js';
 import { renderInspector, renderVacio } from './inspector.js';
 import { createMessages } from './messages.js';
@@ -230,10 +230,16 @@ function pintarGuion() {
   $('draft-voice-warning').textContent = borrador.voz?.aviso || '';
 
   renderDraft($('draft-scenes'), borrador.escenas, {
-    onChange: escenas => { borrador.escenas = escenas; pintarGuion(); },
+    onChange: escenas => { borrador.escenas = escenas; $('escenas-resumen').textContent = `${escenasIncluidas(escenas).length} escenas · ${duracionTotal(escenas)} s`; },
     onRegenerate: regenerarEscena,
+    onAccion: accion => {
+      // Duplicar, excluir o reordenar cambia el montaje: hay que revisarlo.
+      borrador = { ...borrador, escenas: aplicarAccion(readDraft($('draft-scenes')), accion), source: 'editado' };
+      render();
+      messages.setStatus('Escenas actualizadas. Revisa el orden antes de crear el video.');
+    },
   });
-  $('escenas-resumen').textContent = `${borrador.escenas.length} escenas · ${duracionTotal(borrador.escenas)} s`;
+  $('escenas-resumen').textContent = `${escenasIncluidas(borrador.escenas).length} escenas · ${duracionTotal(borrador.escenas)} s`;
 }
 
 function pintarVoz() {
@@ -507,7 +513,9 @@ $('btn-generate').addEventListener('click', async () => {
   const problema = validateDraft(escenas);
   if (problema) { messages.setError(problema); return; }
 
-  const body = { ...leerFormulario(), templateId: borrador.templateId, escenas, scriptSource: borrador.source };
+  // Las escenas excluidas no viajan al backend: no forman parte del video.
+  const body = { ...leerFormulario(), templateId: borrador.templateId,
+    escenas: escenasIncluidas(escenas).map(({ excluida, ...e }) => e), scriptSource: borrador.source };
   try {
     const job = await api.createGeneration(body);
     dispatch({ type: 'generation-start', job });

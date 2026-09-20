@@ -80,9 +80,16 @@ try {
   await page.waitForFunction(() => !document.querySelector('[data-paso-panel="escenas"]').hidden);
   await page.locator('.escena-titulo').first().fill('Aprende inglés online');
   await page.locator('.escena-text').first().fill('Aprende inglés online a tu ritmo, con clases pensadas para adultos.');
-  await page.locator('.escena').nth(1).locator('button', { hasText: 'Regenerar escena' }).click();
+  await page.locator('.escena').nth(1).locator('button', { hasText: 'Regenerar' }).first().click();
   await page.waitForFunction(() => document.getElementById('status').textContent.includes('regenerada'), null, { timeout: 60000 });
-  step('Edición del guion', 'escena editada y otra regenerada');
+  // Duplicar y excluir: el montaje cambia sin perder escenas.
+  const antes = await page.locator('.escena').count();
+  await page.locator('.escena').first().locator('button', { hasText: 'Duplicar' }).click();
+  await page.waitForFunction(n => document.querySelectorAll('.escena').length === n + 1, antes);
+  await page.locator('.escena').nth(1).locator('button', { hasText: 'Excluir' }).click();
+  await page.waitForFunction(() => document.querySelector('.escena[data-incluida="no"]') !== null);
+  assert.equal(await page.locator('.escena').count(), antes + 1, 'excluir no debe borrar la escena');
+  step('Edición del guion', `escena editada, regenerada, duplicada y una excluida (${antes} → ${antes + 1})`);
 
   // 5. Producir el video real (paso «Voz y recursos»).
   await page.locator('.paso[data-paso="voz"]').click();
@@ -108,10 +115,13 @@ try {
 
   // 5. El análisis encadenado pobló resumen y timeline.
   assert.match(await page.locator('#export-resumen').textContent(), /Cortes detectados/);
-  assert.ok(await page.locator('.corte').count() >= 1, 'se esperaban cortes en la timeline');
+  // Los cortes pueden ser 0 legítimamente: entre fotos con fundido no hay
+  // cambio brusco que detectar. Lo que sí debe existir es el montaje.
+  const cortes = await page.locator('.corte').count();
   assert.ok(await page.locator('.bloque').count() >= 1, 'se esperaban segmentos propuestos');
+  assert.ok(await page.locator('.pista').count() >= 3, 'la timeline debe tener sus pistas');
   await page.waitForFunction(() => document.getElementById('source-player').readyState >= 2, null, { timeout: 60000 });
-  step('Análisis y montaje', `${await page.locator('.corte').count()} cortes, ${await page.locator('.bloque').count()} trozos`);
+  step('Análisis y montaje', `${cortes} cortes, ${await page.locator('.bloque').count()} trozos`);
 
   // 6. Editar un segmento en el paso «Editar».
   await page.locator('.paso[data-paso="editor"]').click();
