@@ -222,21 +222,48 @@ export const pipelineProvider = {
     const ESTADO = {
       assets: 'buscando-visuales', narration: 'generando-voz',
       subtitles: 'creando-subtitulos', scene: 'renderizando-segmentos',
-      render: 'renderizando-segmentos', encode: 'concatenando',
-      concat: 'concatenando', audio: 'concatenando', compose: 'concatenando',
+      encode: 'concatenando', concat: 'concatenando',
+      audio: 'concatenando', compose: 'concatenando',
     };
-    /** Progreso real: las escenas hechas salen del propio pipeline, no de un reloj. */
-    const reportar = (base, span) => p => onProgress(
-      base + Math.round(p.pct * span),
-      etapas[p.step] || p.message,
-      {
-        estado: ESTADO[p.step] || null,
-        hechas: Number.isInteger(p.index) ? p.index + 1 : (p.step === 'concat' || p.step === 'encode' ? totales : 0),
+
+    /**
+     * Pasos que ocurren UNA VEZ POR ESCENA. Sólo en ellos tiene sentido un
+     * contador parcial; en los demás todas las escenas ya están hechas.
+     */
+    const POR_ESCENA = new Set(['assets', 'narration', 'scene']);
+
+    /**
+     * Progreso real: las escenas hechas salen del propio pipeline, no de un
+     * reloj.
+     *
+     * Una etapa emite varias veces, y no todas traen índice de escena: la
+     * primera llamada anuncia el comienzo, y algunas intermedias (construir la
+     * pista de voz, mezclar el audio) son de proyecto, no de escena. Por eso se
+     * guarda la marca más alta alcanzada en cada etapa: el contador nunca
+     * retrocede, y nunca afirma más escenas de las que se han contado.
+     */
+    const maximos = new Map();
+    const reportar = (base, span) => p => {
+      // `render` sin índice es la pasada final de composición, no el montaje
+      // de escenas: llamarlo «renderizando segmentos» haría retroceder la
+      // etapa mostrada después de haber dicho «concatenando».
+      const estado = ESTADO[p.step] || (p.step === 'render' ? 'concatenando' : null);
+      const contadas = Number.isInteger(p.index)
+        ? p.index + 1
+        // Sin índice: en una etapa por escena es que acaba de empezar; en una
+        // de proyecto, que ya no queda ninguna escena pendiente.
+        : (POR_ESCENA.has(p.step) ? 0 : totales);
+      const hechas = Math.max(maximos.get(estado) ?? 0, contadas);
+      if (estado) maximos.set(estado, hechas);
+
+      onProgress(base + Math.round(p.pct * span), etapas[p.step] || p.message, {
+        estado,
+        hechas,
         totales: p.total || totales,
         detalle: p.message || null,
         projectId: project.id,
-      },
-    );
+      });
+    };
 
     // En modo automático no se fuerza ninguna duración: manda el guion.
     const objetivo = spec.duration === null || spec.duration === undefined || spec.duration === 'auto'
