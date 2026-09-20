@@ -44,11 +44,11 @@ Si pides una duración y el guion no cuadra, la interfaz **avisa** y produce el 
 
 ### Proyectos largos: progreso, reanudar y regenerar una escena
 
-Un proyecto largo **no se carga entero en memoria**: cada escena se renderiza a su propio clip MP4 en disco, con una huella que evita rehacerlo si no cambió, y FFmpeg los concatena al final sin recodificar. Medido en un proyecto de 105 escenas: **pico de 59 MB de RSS**.
+Un proyecto largo **no se carga entero en memoria**: cada escena se renderiza a su propio clip MP4 en disco, con una huella que evita rehacerlo si no cambió, y FFmpeg los concatena al final sin recodificar. Medido en un proyecto de 105 escenas (16 min 39 s de video): **pico de 60 MB de RSS**.
 
 - **Progreso real.** La interfaz muestra `Escena 34 de 105 · Generando la voz`. Si una etapa tarda, el número se queda quieto: no hay animación que finja avance. Los estados son `preparando-guion`, `creando-escenas`, `buscando-visuales`, `generando-voz`, `creando-subtitulos`, `renderizando-segmentos`, `concatenando`, `listo` y `error-recuperable`.
 - **Reanudar.** Si algo falla dejando trabajo en disco, el proyecto se marca `error-recuperable` y aparece **«Reanudar este proyecto»**. Lo ya producido se conserva y sólo se rehace lo que falta. No se reanuda solo a propósito: con un proveedor de pago, reanudar sin permiso podría cobrar.
-- **Regenerar una escena.** Cambias una escena y se rehace sólo esa; las demás se reutilizan. Medido: 42.6 s frente a 96.5 s del render completo.
+- **Regenerar una escena.** Cambias una escena y se rehace sólo esa; las demás se reutilizan. Medido en un proyecto de 105 escenas: 675 s frente a 1 843 s del flujo completo, con 104 de 104 escenas conservadas.
 
 Detalle completo, con las cifras de una ejecución real, en [`docs/reports/AVM-LONG-FORM.md`](docs/reports/AVM-LONG-FORM.md).
 
@@ -182,7 +182,7 @@ node scripts/long-form-smoke.mjs --palabras 2500
 
 Todo local y sin coste: voz SAPI, fondos generados con FFmpeg, sin Pexels, sin Gemini y sin ninguna API de pago. Informa, con cifras medidas: palabras, escenas, duración estimada, **duración real medida con ffprobe**, estado final, pico de memoria, si el proyecto es reanudable, y una verificación de que el guion llegó entero sin truncar. Además **calibra la voz** de este equipo, comparando la duración estimada con la real, y dice qué `NARRATION_WPM` usar.
 
-Medición del 2026-09-20 con `--full`, proyecto completo: guion de **15 706 caracteres** y 2 702 palabras (2 667 narradas), **105 escenas**, 7 secciones, plantilla `video-curso` elegida automáticamente, planificación en 14 ms, guion íntegro verificado. El MP4 resultante son **46,4 MB** y **998,97 s (16 min 39 s) medidos con ffprobe**, con audio y subtítulos, y contiene las mismas 2 667 palabras que entraron. Pico de RSS **59 MB** con 105 escenas. Render completo ~27 min con 4 hilos.
+Medición del 2026-09-20 con `--full`, proyecto completo: guion de **15 706 caracteres** y 2 702 palabras (2 667 narradas), **105 escenas**, 7 secciones, plantilla `video-curso` elegida automáticamente, planificación en 14 ms, guion íntegro verificado. El MP4 resultante son **46,4 MB** y **998,97 s (16 min 39 s) medidos con ffprobe**, con audio y subtítulos, y contiene las mismas 2 667 palabras que entraron. Pico de RSS **60 MB** con 105 escenas. Flujo completo 1 843 s (~31 min) con 4 hilos; regenerar una sola escena de las 105 costó 675 s conservando **104 de 104**.
 
 La estimación previa fue de 23 min 48 s: la voz de esta máquina narra a **166 wpm**, no a los 115 supuestos por defecto (43 % de desvío). El smoke lo calibra y dice qué `NARRATION_WPM` usar; la duración real siempre se mide con ffprobe. Ver la limitación 1 del informe.
 

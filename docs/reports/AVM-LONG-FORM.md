@@ -121,8 +121,8 @@ que se hizo fue apoyarse en ello y exponerlo.
 - Al final, FFmpeg concatena los clips **sin recodificar** (`concat` + `-c copy`).
 - El proyecto se guarda en disco de forma atómica tras cada etapa.
 
-**Consecuencia medida:** el pico de RSS de un proyecto de 105 escenas fue de
-**59 MB**. El video nunca está entero en memoria.
+**Consecuencia medida:** el pico de RSS de un proyecto de 105 escenas (16 min 39 s
+de video, 46 MB de MP4) fue de **60 MB**. El video nunca está entero en memoria.
 
 ---
 
@@ -158,8 +158,19 @@ se marca `error` y dice que hay que empezar de nuevo.
 cambia esa escena, se invalida su huella y se vuelve a montar. Las demás se
 reutilizan.
 
-**Medido en este equipo:** render de 6 escenas **96.5 s**; regenerar una sola de
-esas escenas **42.6 s**, con las otras 5 intactas.
+**Medido en este equipo:**
+
+| Proyecto | Flujo completo | Regenerar 1 escena | Escenas conservadas |
+|---|---|---|---|
+| 6 escenas | 96,5 s | **42,6 s** | 5 de 5 |
+| **105 escenas** | 1 843 s (30,7 min) | **675 s (11,3 min)** | **104 de 104** |
+
+En el proyecto de 105 escenas, regenerar una sola cuesta **2,7× menos** que
+rehacerlo entero. Y conviene ser preciso sobre en qué se va ese tiempo: el
+re-render de la escena y la concatenación son la parte pequeña; la mayor parte de
+los 675 s es el **re-análisis del video de 16 minutos** que el flujo encadena
+después (ver limitación 3). El ahorro real del caché de escenas es mayor que lo
+que sugiere esa cifra.
 
 ---
 
@@ -190,10 +201,10 @@ pago.
 | Subtítulos | `output/drafts/vid_muaa12ir25c6d8/captions.srt` |
 | Palabras en el MP4 final | 2 667 — **las mismas que entraron** |
 | Estado final | `completed` / `listo` |
-| Tiempo de render | ~27 min (4 hilos de CPU) |
-| **Pico de RSS** | **59 MB** con 105 escenas |
+| Tiempo total del flujo | **1 843 s ≈ 30,7 min** (4 hilos de CPU) |
+| **Pico de RSS** | **60 MB** con 105 escenas |
 | Reanudable | sí (`projectId` persistido desde antes del render) |
-| Regenerar 1 escena sobre las 105 | re-montaje completo en ~4 min, sin rehacer las otras 104 |
+| Regenerar 1 escena sobre las 105 | **675 s**, con **104 de 104** escenas intactas |
 
 **Calibración de la voz medida sobre las 105 escenas:** 2 667 palabras en 998.97 s
 dan **166 wpm reales**, frente a los 115 supuestos: un **43 % de desvío**. La

@@ -34,7 +34,8 @@ el mismo flujo y las mismas funciones**. No hay un botón de «corto» y otro de
 - `POST /api/video-generation/jobs/:id/resume`: reanuda un proyecto
   interrumpido reutilizando los WAV y los clips ya producidos.
 - `POST /api/video-generation/jobs/:id/scenes/:n`: regenera **una sola escena**;
-  las demás se reutilizan por huella. Medido: 42,6 s frente a 96,5 s.
+  las demás se reutilizan por huella. Medido sobre 105 escenas: 675 s frente a
+  1 843 s del flujo completo, con 104 de 104 escenas conservadas.
 - `src/generation/orchestrator-contract.js`: contrato de entrada del
   **Orquestador KSL**, con `POST /api/video-generation/orchestrator` y modo
   `dryRun`. Acepta `projectId`, `brandId`, `title`, `prompt`, `script`,
@@ -55,7 +56,7 @@ el mismo flujo y las mismas funciones**. No hay un botón de «corto» y otro de
 **Verificado de punta a punta** (`node scripts/long-form-smoke.mjs --full`): un
 guion de 15 706 caracteres y 2 667 palabras narradas produjo 105 escenas y un
 MP4 de 46,4 MB con **998,97 s (16 min 39 s) medidos con ffprobe**, con audio y
-subtítulos, conservando las 2 667 palabras. Pico de RSS **59 MB**.
+subtítulos, conservando las 2 667 palabras. Pico de RSS **60 MB**.
 
 ### Cambiado — Límites
 
