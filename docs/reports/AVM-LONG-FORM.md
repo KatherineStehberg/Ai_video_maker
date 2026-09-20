@@ -169,31 +169,53 @@ esas escenas **42.6 s**, con las otras 5 intactas.
 entero). Todo local: voz SAPI, fondos FFmpeg, sin Pexels, sin Gemini, sin API de
 pago.
 
-### Ejecución del 2026-09-20 (muestra de render)
+### Ejecución del 2026-09-20 — `--full`, proyecto completo renderizado
 
 | Medida | Valor |
 |---|---|
-| Caracteres del guion | 15 706 (7,8× el viejo tope de 2 000) |
+| Caracteres del guion | **15 706** (7,8× el viejo tope de 2 000) |
 | Palabras del guion | 2 702 |
-| Palabras narradas | 2 667 (las otras 35 son títulos, van en pantalla) |
-| Escenas | 105 |
-| Secciones | 7 |
+| Palabras narradas | **2 667** (las otras 35 son títulos: van en pantalla, no se narran) |
+| **Escenas** | **105** |
+| Secciones detectadas | 7 |
 | Plantilla elegida | `video-curso` (automático, por extensión del guion) |
-| Duración estimada | 1 428.42 s — 23 min 48 s |
-| Tiempo de planificación | 9 ms |
-| **Guion completo, sin truncar** | **sí, verificado con `sinPerdidaDeTexto`** |
-| Objetivo incompatible (60 s) | avisa; 105 escenas antes y después |
-| Escenas renderizadas (muestra) | 6 de 105 |
-| Duración prevista de la muestra | 80.89 s |
-| **Duración real (ffprobe)** | **56.40 s** |
-| MP4 producido | 3.75 MB, 16:9, con audio y subtítulos |
+| Duración estimada (a 115 wpm) | 1 428.42 s — 23 min 48 s |
+| Tiempo de planificación | 14 ms |
+| **Guion completo, sin truncar** | **sí**, verificado con `sinPerdidaDeTexto` |
+| Objetivo incompatible (60 s) | avisa; **105 escenas antes y después** |
+| Escenas renderizadas | **105 de 105** |
+| **Duración real (ffprobe)** | **998.97 s = 16 min 39 s** |
+| Duración registrada en el proyecto | 998.97 s (sincronizada con la narración real) |
+| MP4 producido | **46.4 MB**, 16:9, con audio |
+| Subtítulos | `output/drafts/vid_muaa12ir25c6d8/captions.srt` |
+| Palabras en el MP4 final | 2 667 — **las mismas que entraron** |
 | Estado final | `completed` / `listo` |
-| **Pico de RSS** | **59 MB** |
-| Reanudable | sí (`projectId` persistido) |
-| Regenerar 1 escena | 42.6 s vs 96.5 s del render completo |
+| Tiempo de render | ~27 min (4 hilos de CPU) |
+| **Pico de RSS** | **59 MB** con 105 escenas |
+| Reanudable | sí (`projectId` persistido desde antes del render) |
+| Regenerar 1 escena sobre las 105 | re-montaje completo en ~4 min, sin rehacer las otras 104 |
+
+**Calibración de la voz medida sobre las 105 escenas:** 2 667 palabras en 998.97 s
+dan **166 wpm reales**, frente a los 115 supuestos: un **43 % de desvío**. La
+cifra coincide con la de la muestra de 6 escenas (167 wpm), así que es estable y
+no un artefacto del tamaño. Ver la limitación 1.
 
 El informe en JSON queda en `.tmp/long-form-smoke/informe.json` y el guion usado
 en `.tmp/long-form-smoke/guion.txt`.
+
+### Progreso observado (real, no simulado)
+
+Medido sobre un proyecto de 4 escenas, comprobando que el porcentaje **nunca
+retrocede** (hay una prueba automática que lo verifica):
+
+```
+creando-escenas         0/4    3.0%
+buscando-visuales       1/4   10.3%   …   4/4   20.0%
+generando-voz           1/4   26.8%   …   4/4   47.0%
+renderizando-segmentos  1/4   62.0%   …   4/4   92.0%
+concatenando            4/4  100.0%
+listo                   4/4  100.0%
+```
 
 ---
 
@@ -263,17 +285,21 @@ en el código.**
 
 Con honestidad, porque afecta al uso real:
 
-1. **La estimación de duración va corta en este equipo.** Con `NARRATION_WPM=115`
-   se estimaron 80.89 s para una muestra que duró 56.40 s: un **43 % de desvío**.
-   La voz SAPI «Sabina» de esta máquina narra a ~167 wpm, no a 115. El valor es
-   configurable (`NARRATION_WPM` o el campo del editor) y el smoke ahora
-   **calcula la calibración** y dice qué número poner. No se ha cambiado el
-   valor por defecto para no ajustarlo a una sola máquina. La duración real
-   siempre se mide con ffprobe; la estimación nunca se da por buena.
-2. **El render completo de 12 minutos es lento en esta CPU.** 6 escenas tardaron
-   96 s, así que 105 escenas rondan la media hora. `npm run doctor` ya avisa de
-   que sólo hay 4 hilos. La reanudación y la caché lo hacen soportable, pero no
-   lo hacen rápido.
+1. **La estimación de duración se pasa por exceso en este equipo.** Con
+   `NARRATION_WPM=115` se estimaron 23 min 48 s para un video que duró
+   **16 min 39 s**: un **43 % de desvío**. La voz SAPI «Sabina» de esta máquina
+   narra a **166 wpm**, no a 115 (misma cifra en la muestra de 6 escenas y en
+   las 105, así que es estable). El valor es configurable con `NARRATION_WPM` o
+   con el campo del editor, y el smoke **calcula la calibración** y dice qué
+   número poner. **No se ha cambiado el valor por defecto** para no ajustarlo a
+   una sola máquina y una sola voz: quien use Piper o una voz distinta tendrá
+   otro número. La duración real siempre se mide con ffprobe; la estimación
+   nunca se da por buena. Pendiente: calibrar automáticamente en el primer
+   render y guardar el resultado por voz.
+2. **El render completo es lento en esta CPU.** Las 105 escenas tardaron ~27
+   minutos con 4 hilos; `npm run doctor` ya avisa de esa limitación. La caché
+   por huella y la reanudación lo hacen soportable —regenerar una escena no
+   vuelve a pagar las otras 104—, pero no lo hacen rápido.
 3. **La revisión escena a escena en la interfaz no está paginada.** 105 tarjetas
    se dibujan de una vez; se nota al desplazar.
 4. **No hay reanudación automática tras reiniciar el servidor.** Se marca como

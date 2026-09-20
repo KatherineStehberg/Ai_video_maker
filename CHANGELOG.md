@@ -49,8 +49,13 @@ el mismo flujo y las mismas funciones**. No hay un botón de «corto» y otro de
   palabras. Informa palabras, escenas, duración estimada, duración **real**
   medida con ffprobe, estado, pico de memoria, reanudabilidad e integridad del
   guion, y **calibra** la velocidad real de la voz local.
-- `tests/long-form.test.js`: 20 pruebas nuevas. Toda la suite pasa en **Node 18
-  y Node 22** (77 pruebas).
+- `tests/long-form.test.js`: 22 pruebas nuevas. Toda la suite pasa en **Node 18
+  y Node 22** (79 pruebas).
+
+**Verificado de punta a punta** (`node scripts/long-form-smoke.mjs --full`): un
+guion de 15 706 caracteres y 2 667 palabras narradas produjo 105 escenas y un
+MP4 de 46,4 MB con **998,97 s (16 min 39 s) medidos con ffprobe**, con audio y
+subtítulos, conservando las 2 667 palabras. Pico de RSS **59 MB**.
 
 ### Cambiado — Límites
 
@@ -81,6 +86,17 @@ mensaje que dice el número exacto.
 - `runPipeline` no propagaba `index` ni `total` de las etapas de visuales, voz y
   render, así que el contador de escenas de la interfaz se quedaba en `0/N`.
   Ahora el progreso mostrado es el realmente contado.
+- Al conservar el paso que informa el renderer se coló su `done`, que el renderer
+  emite **al terminar cada formato** y que `STEP_TO_STATUS` de `core/jobs.js`
+  traduce a `COMPLETED`: un proyecto multiformato se habría marcado terminado
+  tras el primer formato, con los demás y los metadatos aún pendientes, y un
+  reinicio en esa ventana habría escapado al rescate de `restoreJobs()`. Se
+  aísla en `pasoDeRender()`, con prueba de regresión.
+- El progreso podía retroceder al final del montaje (`concatenando` →
+  `renderizando-segmentos`, y el contador de una etapa que arranca volviendo a
+  cero). Cada etapa guarda ahora su marca más alta: el porcentaje nunca baja y
+  nunca se afirman más escenas de las contadas. Hay una prueba que lo verifica
+  sobre un render real.
 - El README afirmaba que «hoy sólo está implementado el proveedor mock». Es
   falso desde que `pipeline` es el predeterminado; corregido.
 
