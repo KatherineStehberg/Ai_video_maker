@@ -5,6 +5,7 @@ import { resolveProvider } from '../providers/tts/index.js';
 import { probeDuration, ffmpegRun } from '../lib/ffmpeg.js';
 import { workDir, rel, abs } from '../lib/paths.js';
 import { logger } from '../lib/logger.js';
+import { narrationPlan, resolveVoices } from './lang.js';
 
 const log = logger('tts-core');
 
@@ -102,6 +103,14 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
   const durations = [];
   const errors = [];
 
+  // Voces instaladas del motor elegido: hacen falta para saber que idioma habla
+  // cada voz y para sustituirla cuando no coincide con el idioma del proyecto.
+  let installed = [];
+  try { installed = await engine.listVoices(); } catch { /* sin catalogo: se usa la voz tal cual */ }
+
+  const { warnings: voiceWarnings, base: baseVoice, voices: langVoices } = resolveVoices(project, installed);
+  for (const w of voiceWarnings) log.warn(w);
+
   for (let i = 0; i < project.scenes.length; i++) {
     const scene = project.scenes[i];
     const text = String(scene.text || '').trim();
@@ -113,9 +122,17 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       continue;
     }
 
+    // Tramos por idioma. Sin tags y con voz unica, `ssml` es null y el camino
+    // es exactamente el de siempre.
+    const plan = narrationPlan(text, project, installed);
+    const useSsml = engine.supportsSsml ? plan.ssml : null;
+
     const rawFile = path.join(dir, `${scene.id}.raw.wav`);
     const outFile = path.join(dir, `${scene.id}.wav`);
-    const narrationKey = createHash('sha256').update(JSON.stringify({text,engine:engine.id,voice:project.voice})).digest('hex');
+    const narrationKey = createHash('sha256').update(JSON.stringify({
+      text, engine: engine.id, voice: project.voice,
+      language: project.language, ssml: useSsml, base: plan.base,
+    })).digest('hex');
 
     // Reutiliza audio ya generado si el texto no cambio (ahorra minutos de CPU).
     if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey) {
@@ -125,10 +142,11 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     }
 
     try {
-      await engine.synthesize(text, rawFile, {
-        voice: project.voice?.name || '',
+      await engine.synthesize(plan.plain, rawFile, {
+        voice: plan.base || project.voice?.name || '',
         rate: project.voice?.rate ?? 0,
         volume: project.voice?.volume ?? 100,
+        ssml: useSsml,
       });
       // Normaliza a 48kHz estereo y recorta silencios largos de los extremos.
       await ffmpegRun([
@@ -144,8 +162,12 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       const d = await probeDuration(outFile);
       narrations.push(rel(outFile));
       durations.push(d);
-      scene.narrationText = text; // marca de cache
+      scene.narrationText = plan.plain; // marca de cache, ya sin tags
       scene.narrationKey = narrationKey;
+      scene.narrationLangs = [...new Set(plan.segments.map(s => s.lang))];
+      // Queda registrado con que voz se narro cada escena: es lo que permite
+      // auditar despues que el idioma y la voz cuadran.
+      scene.narrationVoices = [...new Set(plan.segments.map(s => plan.voices[s.lang] || plan.base))];
     } catch (e) {
       log.error(`Escena ${i + 1} sin narracion:`, e.message);
       errors.push({ sceneId: scene.id, error: e.message });
@@ -154,7 +176,10 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     }
   }
 
-  return { provider: engine.id, narrations, durations, errors };
+  return {
+    provider: engine.id, narrations, durations, errors,
+    voice: baseVoice, voices: langVoices, warnings: voiceWarnings,
+  };
 }
 
 /**

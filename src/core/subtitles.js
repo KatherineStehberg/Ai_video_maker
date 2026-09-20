@@ -3,6 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { workDir, rel, abs } from '../lib/paths.js';
 import { srtTime, wrapText, clamp } from '../lib/util.js';
+import { stripLangTags } from './lang.js';
 import { CONFIG } from '../config.js';
 import { logger } from '../lib/logger.js';
 
@@ -52,7 +53,9 @@ export function buildCues(project) {
   const cues = [];
   let t = 0;
   for (const s of project.scenes || []) {
-    const text = (s.caption ?? s.text ?? '').trim();
+    // Las marcas [en]/[es] son de produccion: se narran como cambio de voz,
+    // nunca se leen en pantalla.
+    const text = stripLangTags(s.caption ?? s.text ?? '');
     const dur = Number(s.duration) || 0;
     if (text) cues.push(...cuesForScene(text, t, dur, maxChars));
     t += dur;

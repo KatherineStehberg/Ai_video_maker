@@ -4,6 +4,7 @@ import { PATHS, ensureDir, rel } from '../lib/paths.js';
 import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js';
 import { ASPECTS } from '../config.js';
 import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
+import { normalizeLanguage } from './lang.js';
 
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
@@ -59,7 +60,7 @@ export function makeProject(partial = {}) {
     exportFormats: Array.isArray(partial.exportFormats) && partial.exportFormats.length
       ? partial.exportFormats.filter((a) => ASPECTS[a])
       : [aspectRatio],
-    language: partial.language || 'es',
+    language: normalizeLanguage(partial.language),
     brief: partial.brief || '',
     script: partial.script || '',
     studio: partial.studio ?? null,
@@ -70,6 +71,10 @@ export function makeProject(partial = {}) {
       rate: partial.voice?.rate ?? 0,                // -10..10 (SAPI)
       volume: partial.voice?.volume ?? 100,
       enabled: partial.voice?.enabled ?? true,
+      // Voz por idioma para guiones con marcas [en]/[es]. Vacio => se elige
+      // la voz por defecto del idioma entre las instaladas.
+      en: partial.voice?.en ?? '',
+      es: partial.voice?.es ?? '',
     },
     music: {
       path: partial.music?.path ?? null,

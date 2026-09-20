@@ -120,7 +120,9 @@ export async function runPipeline(project, {
         force: force.narration,
         onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
       });
-      report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0 };
+      report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0, voice: res.voice || null, voices: res.voices || null };
+      // Desajuste entre idioma declarado y voz elegida: ya corregido, pero visible.
+      if (res.warnings?.length) report.warnings.push(...res.warnings);
       if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {
         throw new Error('La narración solicitada no se pudo completar. Configura la voz o elige explícitamente sin narración.');
       }

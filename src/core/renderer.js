@@ -9,6 +9,7 @@ import { assetKind } from './asset-manager.js';
 import { writeAssForFormat } from './subtitles.js';
 import { slugify, clamp } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
+import { stripLangTags } from './lang.js';
 
 const log = logger('render');
 
@@ -144,16 +145,17 @@ async function renderSceneClip(scene, index, ctx) {
   }
 
   // Titulo en pantalla (opcional, por escena).
-  if (scene.onScreenTitle?.trim() && ctx.fontFile) {
+  const onScreenTitle = stripLangTags(scene.onScreenTitle);
+  if (onScreenTitle && ctx.fontFile) {
     // El tamano se adapta al largo del texto: con un tamano fijo, un titulo
     // largo se sale del encuadre por ambos lados (x=(w-text_w)/2 se vuelve
     // negativo). Se estima el ancho en ~0.5 em por caracter y se deja un 10%
     // de margen. Nunca crece por encima del tamano de diseno.
-    const largo = Math.max(1, scene.onScreenTitle.trim().length);
+    const largo = Math.max(1, onScreenTitle.length);
     const size = Math.round(Math.max(W / 40, Math.min(W / 16, (W * 1.8) / largo)));
     filters.push(
       `drawtext=fontfile='${escapeFilterPath(ctx.fontFile)}':` +
-      `text='${escapeDrawtext(scene.onScreenTitle.trim())}':` +
+      `text='${escapeDrawtext(onScreenTitle)}':` +
       `fontcolor=${brand?.colors?.text || '#ffffff'}:fontsize=${size}:` +
       `x=(w-text_w)/2:y=h*0.12:` +
       `box=1:boxcolor=black@0.45:boxborderw=${Math.round(size / 3)}`,
@@ -292,7 +294,7 @@ function buildOverlayGraph(project, brand, ctx, subsAbs, logoAbs, totalSeconds) 
   }
 
   if (project.cta?.trim() || brand?.cta?.trim()) {
-    const text = (project.cta || brand.cta).trim();
+    const text = stripLangTags(project.cta || brand.cta);
     if (ctx.fontFile) {
       const size = Math.round(W / 20);
       const from = Math.max(0, totalSeconds - 3.5);
