@@ -290,6 +290,27 @@ test('los estados del flujo son los declarados y el progreso se cuenta en escena
   assert.equal(esReanudable(ESTADO_LISTO), false);
 });
 
+test('el progreso del render no puede declarar el trabajo terminado antes de tiempo', async () => {
+  const { pasoDeRender } = await import('../src/core/pipeline.js');
+
+  // Los pasos reales del renderer se conservan: alimentan el contador de escenas.
+  for (const paso of ['scene', 'concat', 'audio', 'compose', 'encode', 'intro']) {
+    assert.equal(pasoDeRender(paso), paso, `${paso} debe llegar tal cual a la interfaz`);
+  }
+
+  // `done` NO. El renderer lo emite al acabar CADA formato, y core/jobs.js lo
+  // traduce a COMPLETED: dejarlo pasar marcaría el trabajo como terminado con
+  // los otros formatos y los metadatos todavía pendientes.
+  assert.equal(pasoDeRender('done'), 'render');
+  assert.equal(pasoDeRender(undefined), 'render');
+  assert.equal(pasoDeRender(''), 'render');
+
+  // Y se comprueba contra el mapa real, no contra una copia de este test.
+  const fuente = await fs.readFile(path.resolve('src/core/jobs.js'), 'utf8');
+  assert.match(fuente, /done:\s*JOB_STATUS\.COMPLETED/,
+    'si este mapa cambia, revisa pasoDeRender: es la razón de que `done` se filtre');
+});
+
 test('reanudar y regenerar una escena: se rechazan si no hay nada que reutilizar', async () => {
   const { resumeJob, regenerateScene } = await import('../src/generation/jobs.js');
   // Sin trabajo previo no se puede reanudar, y se dice por qué.

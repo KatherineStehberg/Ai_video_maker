@@ -25,6 +25,19 @@ const log = logger('pipeline');
 
 export const STEPS = ['script', 'scenes', 'assets', 'narration', 'subtitles', 'render', 'metadata'];
 
+/**
+ * Traduce el paso que informa el renderer al paso que publica el pipeline.
+ *
+ * Se conservan `scene`, `concat`, `audio` y `encode` porque describen lo que
+ * está pasando de verdad y alimentan el contador de escenas de la interfaz.
+ *
+ * `done` es la excepción: el renderer lo emite al terminar CADA formato, y
+ * `STEP_TO_STATUS` de core/jobs.js lo traduce a COMPLETED. Dejarlo pasar
+ * marcaría el trabajo como terminado tras el primer formato, con los demás
+ * formatos y los metadatos todavía pendientes.
+ */
+export const pasoDeRender = paso => (paso === 'done' ? 'render' : (paso || 'render'));
+
 export async function runPipeline(project, {
   steps = STEPS,
   onProgress = () => {},
@@ -167,10 +180,7 @@ export async function runPipeline(project, {
         const res = await renderProject(project, brand, {
           aspectRatio: fmt,
           subtitlesPath: subs,
-          // El renderer distingue `scene`, `concat`, `audio` y `encode`: se
-          // conserva su paso y su cuenta de escenas en vez de aplanarlo todo a
-          // «render», para que el estado publicado sea el de verdad.
-          onProgress: (p) => emit(p.step === 'scene' ? 'scene' : p.step || 'render',
+          onProgress: (p) => emit(pasoDeRender(p.step),
             base + Math.round((p.pct / 100) * span), p.message || `Render ${fmt}`,
             { format: fmt, index: p.index, total: p.total }),
         });
