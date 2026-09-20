@@ -311,6 +311,54 @@ test('el progreso del render no puede declarar el trabajo terminado antes de tie
     'si este mapa cambia, revisa pasoDeRender: es la razón de que `done` se filtre');
 });
 
+test('el progreso publicado nunca retrocede y cuenta escenas de verdad', { timeout: 300000 }, async () => {
+  const { createJob, getJob } = await import('../src/generation/jobs.js');
+  const escenas = [1, 2].map(i => ({
+    role: 'point', text: `Escena número ${i} de la prueba de progreso.`,
+    onScreenTitle: `E${i}`, visualPrompt: 'study desk', duration: 2,
+  }));
+
+  let job = createJob(
+    { prompt: 'Prueba de progreso', escenas, duration: 'auto', format: '16:9' },
+    { providerName: 'pipeline' },
+  );
+
+  const vistos = [];
+  let pctPrevio = -1;
+  const porEtapa = new Map();
+
+  while (!['completed', 'failed'].includes(job.status)) {
+    await new Promise(r => setTimeout(r, 250));
+    job = getJob(job.id);
+    const p = job.progreso;
+    if (!p) continue;
+
+    // El porcentaje jamás baja: si bajara, la barra retrocedería en pantalla.
+    assert.ok(p.porcentaje >= pctPrevio,
+      `el progreso retrocedió de ${pctPrevio}% a ${p.porcentaje}% en «${p.estado}»`);
+    pctPrevio = p.porcentaje;
+
+    // Dentro de una etapa, el contador de escenas tampoco retrocede.
+    const previo = porEtapa.get(p.estado) ?? 0;
+    assert.ok(p.escenasCompletadas >= previo,
+      `«${p.estado}» pasó de ${previo} a ${p.escenasCompletadas} escenas hechas`);
+    porEtapa.set(p.estado, p.escenasCompletadas);
+
+    // Nunca se declaran más escenas hechas de las que hay.
+    assert.ok(p.escenasCompletadas <= p.escenasTotales, 'no puede haber más escenas hechas que totales');
+    vistos.push(p.estado);
+  }
+
+  assert.equal(job.status, 'completed', job.error || '');
+  // Las etapas declaradas aparecen de verdad: el progreso no es decorativo.
+  for (const etapa of ['buscando-visuales', 'generando-voz', 'renderizando-segmentos', 'listo']) {
+    assert.ok(vistos.includes(etapa), `nunca se informó la etapa «${etapa}»`);
+  }
+  assert.equal(job.progreso.porcentaje, 100);
+  assert.equal(job.progreso.escenasCompletadas, job.progreso.escenasTotales);
+  assert.ok(job.projectId, 'un trabajo terminado debe dejar projectId para poder regenerar escenas');
+});
+
 test('reanudar y regenerar una escena: se rechazan si no hay nada que reutilizar', async () => {
   const { resumeJob, regenerateScene } = await import('../src/generation/jobs.js');
   // Sin trabajo previo no se puede reanudar, y se dice por qué.
