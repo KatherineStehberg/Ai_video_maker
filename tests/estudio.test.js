@@ -39,9 +39,11 @@ test('videos de varios minutos: se aceptan y se reparten bien', async () => {
     assert.ok(Math.abs(d.duracionEstimada - objetivo) <= 1, `objetivo ${objetivo}s -> ${d.duracionEstimada}s`);
     assert.ok(d.escenas.every(e => e.duration > 0));
   }
-  // Fuera de rango sigue rechazándose con un mensaje claro.
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 5000 }), /entre 3 y 900 segundos/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 1 }), /entre 3 y 900 segundos/);
+  // El techo ahora cubre clases largas de verdad, no sólo 15 minutos.
+  assert.ok(DURATION_LIMITS.max >= 3600, 'debe admitir al menos una hora de video');
+  // Fuera de rango sigue rechazándose con un mensaje claro que dice el número.
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 99999 }), /entre 3 y 7200 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 1 }), /entre 3 y 7200 segundos/);
 });
 
 // ------------------------------------------------ PROVEEDORES Y CLAVES
@@ -152,7 +154,9 @@ test('edición de escenas: se respeta lo editado y se valida antes de producir',
 
   // Añadir una escena vacía se rechaza antes de gastar tiempo en el render.
   assert.throws(() => normalizeSpec({ ...base, escenas: [...editadas, { text: '   ', duration: 3 }] }), /no tiene narración/);
-  assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: 'x', duration: 40 }] }), /entre 0.5 y 30 segundos/);
+  // 40 s por escena ahora es legítimo: una escena de clase dura eso.
+  assert.equal(normalizeSpec({ ...base, escenas: [{ text: 'x', duration: 40 }] }).escenas[0].duration, 40);
+  assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: 'x', duration: 500 }] }), /entre 0.5 y 120 segundos/);
 });
 
 // ------------------------------------------------ TEXTOS DE LA INTERFAZ

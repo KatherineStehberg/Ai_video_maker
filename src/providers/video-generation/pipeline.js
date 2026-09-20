@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeProject, makeScene, saveProject } from '../../core/project.js';
+import { makeProject, makeScene, saveProject, loadProject } from '../../core/project.js';
 import { runPipeline } from '../../core/pipeline.js';
 import { buildNarrationTrack } from '../../core/tts.js';
 import { draftScript, escenasAGuion } from '../../generation/script.js';
+import { contarPalabras, WPM_POR_DEFECTO, formatearDuracion } from '../../generation/segmenter.js';
 import { vozDisponible } from '../../generation/voice.js';
 import { abs } from '../../lib/paths.js';
 import { ffmpegRun, probeDuration } from '../../lib/ffmpeg.js';
@@ -100,10 +101,28 @@ export async function ajustarDuracion(project, objetivo, { onProgress = () => {}
  * ese caso el trabajo lo declara en `visualSources`.
  */
 
-/** Template adecuado según lo que se pide: duración manda sobre el resto. */
+/**
+ * Template adecuado según lo que se pide.
+ *
+ * Cuando hay un GUION propio, su extensión manda sobre cualquier otra señal:
+ * un guion de 1 400 palabras es una clase, no un reel, y necesita escenas
+ * largas y ritmo pausado aunque nadie haya pedido una duración.
+ */
 export function elegirTemplate(spec) {
+  const palabras = contarPalabras(spec.script || '');
+  if (palabras > 0) {
+    const segundos = (palabras / (Number(spec.wpm) || WPM_POR_DEFECTO)) * 60;
+    if (segundos >= 300) return 'video-curso';         // 5 min o más: clase
+    if (segundos >= 60) return 'video-explicativo';    // 1-5 min: explicativo
+    if (segundos >= 25) return 'short-educativo';
+    return 'reel-promocional';
+  }
+
+  // Sin guion propio manda la duración objetivo, como hasta ahora.
   const d = Number(spec.duration) || 60;
   if (d <= 20) return 'reel-promocional';
+  if (d >= 300) return 'video-curso';
+  if (d >= 90) return 'video-explicativo';
   if (d >= 45) return 'short-educativo';
   return /promo|vende|oferta|producto|servicio|clase|curso/i.test(spec.prompt || '')
     ? 'reel-promocional' : 'short-educativo';
@@ -133,59 +152,108 @@ export const pipelineProvider = {
   async generate(spec, { onProgress = () => {} } = {}) {
     const templateId = spec.templateId || elegirTemplate(spec);
 
+    // 0. REANUDACIÓN: si viene un proyecto anterior, se retoma tal cual. Sus
+    //    WAV de voz y sus clips MP4 siguen en disco, y tanto el TTS como el
+    //    render comprueban una huella antes de rehacer nada, así que lo ya
+    //    terminado se salta solo. Esto es lo que evita empezar de cero.
+    const previo = spec.resumeProjectId ? loadProject(spec.resumeProjectId) : null;
+
     // 1. Guion: se reutiliza el borrador ya revisado por la usuaria si viene;
     //    si no, se redacta ahora (LLM si hay, plantilla local si no).
-    onProgress(5, 'Redactando el guion');
-    const borrador = Array.isArray(spec.escenas) && spec.escenas.length
-      ? { escenas: spec.escenas, source: spec.scriptSource || 'editado', templateId }
-      : await draftScript(spec, { templateId });
+    onProgress(5, 'Preparando el guion', { estado: 'preparando-guion' });
+    const borrador = previo
+      ? { escenas: previo.scenes.map(s => ({ role: 'point', text: s.text, onScreenTitle: s.onScreenTitle, visualPrompt: s.visualPrompt, duration: s.duration })),
+        source: spec.scriptSource || 'reanudado', tema: previo.title, templateId }
+      : Array.isArray(spec.escenas) && spec.escenas.length
+        ? { escenas: spec.escenas, source: spec.scriptSource || 'editado', templateId }
+        : await draftScript(spec, { templateId });
 
     const template = templateId;
     const escenas = borrador.escenas;
+    const totales = escenas.length;
 
     // 2. Proyecto con el guion y las escenas ya resueltas: el pipeline no
     //    vuelve a inventarlas, sólo produce a partir de ellas.
-    onProgress(12, `Preparando ${escenas.length} escenas`);
+    onProgress(12, `Preparando ${totales} escenas`, { estado: 'creando-escenas', hechas: 0, totales });
     const aspectRatio = ASPECTS[spec.format] ? spec.format : '9:16';
 
     // Voz: se busca una española entre las instaladas. Si no hay, se avisa y
     // se narra igualmente, pero nunca en silencio sobre el problema.
     const voz = await vozDisponible();
-    const project = makeProject({
-      title: borrador.tema || String(spec.prompt).slice(0, 60),
-      brand: 'personal',
+    const vozPedida = spec.voice || null;
+    const musica = spec.musicTrack || null;
+    const subtitulos = spec.subtitles || { enabled: true, burnIn: true };
+
+    const project = previo || makeProject({
+      title: spec.title || borrador.tema || String(spec.prompt || '').slice(0, 60) || 'Video',
+      // La marca es configuración del proyecto, no una constante del código.
+      brand: spec.brandId || 'personal',
       template,
       aspectRatio,
       exportFormats: [aspectRatio],
-      brief: spec.prompt,
+      brief: spec.prompt || '',
       audience: spec.audience || '',
       script: escenasAGuion(escenas),
-      voice: { provider: voz.provider === 'none' ? 'none' : 'auto', name: voz.nombre || '', enabled: voz.provider !== 'none' },
-      music: { enabled: Boolean(spec.musicPath), path: spec.musicPath || null, volume: 0.12 },
-      captions: { enabled: true, burnIn: true },
+      voice: vozPedida?.enabled === false
+        ? { provider: 'none', name: '', enabled: false }
+        : { provider: vozPedida?.provider && vozPedida.provider !== 'auto' ? vozPedida.provider : (voz.provider === 'none' ? 'none' : 'auto'),
+          name: vozPedida?.name || voz.nombre || '',
+          rate: vozPedida?.rate ?? 0,
+          enabled: voz.provider !== 'none' },
+      music: musica?.path
+        ? { enabled: musica.enabled !== false, path: musica.path, volume: musica.volume ?? 0.12 }
+        : { enabled: Boolean(spec.musicPath), path: spec.musicPath || null, volume: 0.12 },
+      captions: { enabled: subtitulos.enabled !== false, burnIn: subtitulos.burnIn !== false },
+      // Logo del proyecto: si no se indica, se usa el de la marca. Nunca hay
+      // un logo concreto incrustado en el código.
+      assets: spec.logo?.path ? { logo: spec.logo.path } : {},
     });
-    project.scenes = aEscenasProyecto(escenas, template);
+    if (!previo) project.scenes = aEscenasProyecto(escenas, template);
     saveProject(project);
+    // Se publica el id ANTES de producir nada pesado: si algo falla después,
+    // ya hay por dónde reanudar.
+    onProgress(13, `Proyecto ${project.id} preparado`, { estado: 'creando-escenas', hechas: totales, totales, projectId: project.id });
 
     // 3. Producción en dos fases: primero visuales y voz, luego se AJUSTA la
     //    duración al objetivo, y sólo entonces se generan subtítulos y render.
     //    El orden importa: los subtítulos se calculan sobre el audio final.
     const etapas = { assets: 'Buscando visuales', narration: 'Generando la voz', subtitles: 'Creando subtítulos', render: 'Montando el video' };
+    // Traducción de la etapa interna del pipeline al estado que ve la usuaria.
+    const ESTADO = {
+      assets: 'buscando-visuales', narration: 'generando-voz',
+      subtitles: 'creando-subtitulos', scene: 'renderizando-segmentos',
+      render: 'renderizando-segmentos', encode: 'concatenando',
+      concat: 'concatenando', audio: 'concatenando', compose: 'concatenando',
+    };
+    /** Progreso real: las escenas hechas salen del propio pipeline, no de un reloj. */
+    const reportar = (base, span) => p => onProgress(
+      base + Math.round(p.pct * span),
+      etapas[p.step] || p.message,
+      {
+        estado: ESTADO[p.step] || null,
+        hechas: Number.isInteger(p.index) ? p.index + 1 : (p.step === 'concat' || p.step === 'encode' ? totales : 0),
+        totales: p.total || totales,
+        detalle: p.message || null,
+        projectId: project.id,
+      },
+    );
+
     // En modo automático no se fuerza ninguna duración: manda el guion.
-    const objetivo = spec.duration === null || spec.duration === 'auto' ? null : Number(spec.duration) || null;
+    const objetivo = spec.duration === null || spec.duration === undefined || spec.duration === 'auto'
+      ? null : Number(spec.duration) || null;
 
     const informeA = await runPipeline(project, {
       steps: ['assets', 'narration'],
-      onProgress: p => onProgress(15 + Math.round(p.pct * 0.45), etapas[p.step] || p.message),
+      onProgress: reportar(15, 0.45),
     });
 
     const ajuste = objetivo
-      ? await ajustarDuracion(project, objetivo, { onProgress: msg => onProgress(58, msg) })
+      ? await ajustarDuracion(project, objetivo, { onProgress: msg => onProgress(58, msg, { estado: 'generando-voz', hechas: totales, totales, projectId: project.id }) })
       : { ajustado: false, motivo: 'sin duración objetivo' };
 
     const informeB = await runPipeline(project, {
       steps: ['subtitles', 'render'],
-      onProgress: p => onProgress(62 + Math.round(p.pct * 0.35), etapas[p.step] || p.message),
+      onProgress: reportar(62, 0.35),
     });
 
     const informe = {
@@ -200,6 +268,7 @@ export const pipelineProvider = {
     const visualSources = [...new Set(project.scenes.map(s => s.assetProvider || 'placeholder'))];
     const narracion = informe.steps?.narration?.provider || 'none';
     const duracionReal = (await probeDuration(abs(salida))) || null;
+    const duracionPrevista = Number(project.scenes.reduce((a, s) => a + (Number(s.duration) || 0), 0).toFixed(2));
     const desfase = objetivo && duracionReal ? Number((duracionReal - objetivo).toFixed(2)) : null;
 
     const notes = [
@@ -210,7 +279,11 @@ export const pipelineProvider = {
         : `Voz: ${voz.nombre || narracion} (${voz.etiqueta}).`,
       ...(voz.aviso ? [voz.aviso] : []),
       'Subtítulos sincronizados con la narración y quemados en el video.',
-      ...(duracionReal ? [`Duración pedida ${objetivo} s, real ${duracionReal.toFixed(2)} s (desfase ${desfase >= 0 ? '+' : ''}${desfase} s).`] : []),
+      // Prevista vs real, siempre: la prevista sale del guion, la real de ffprobe.
+      `Duración prevista ${formatearDuracion(duracionPrevista)}${duracionReal ? `, real ${formatearDuracion(duracionReal)}` : ' (no medida)'}.`,
+      ...(objetivo && duracionReal
+        ? [`Duración pedida ${objetivo} s, real ${duracionReal.toFixed(2)} s (desfase ${desfase >= 0 ? '+' : ''}${desfase} s).`]
+        : []),
       ...(ajuste.aviso ? [ajuste.aviso] : []),
       ...(informe.warnings || []),
     ];
@@ -229,7 +302,13 @@ export const pipelineProvider = {
         subtitulos: Boolean(informe.steps?.subtitles?.file),
         projectId: project.id,
         voz: { nombre: voz.nombre, provider: voz.provider, esEspanol: voz.esEspanol, etiqueta: voz.etiqueta },
-        duracion: { pedida: objetivo, real: duracionReal, desfase, dentroDeTolerancia: desfase === null ? null : Math.abs(desfase) <= TOLERANCIA_SEGUNDOS },
+        duracion: {
+          pedida: objetivo, prevista: duracionPrevista, real: duracionReal, desfase,
+          dentroDeTolerancia: desfase === null ? null : Math.abs(desfase) <= TOLERANCIA_SEGUNDOS,
+        },
+        palabras: contarPalabras(project.scenes.map(s => s.text).join(' ')),
+        brand: project.brand,
+        reanudado: Boolean(previo),
         ajuste,
       },
       script: { source: borrador.source, tema: borrador.tema ?? null, escenas },

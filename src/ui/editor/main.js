@@ -423,11 +423,16 @@ $('btn-reset-segments').addEventListener('click', () => {
 
 function leerFormulario() {
   const dur = $('gen-duration').value;
+  const wpm = Number($('gen-wpm')?.value);
   return {
     prompt: $('prompt').value.trim(),
+    // Guion propio: si está escrito, manda sobre el prompt y no se reescribe.
+    script: $('guion-propio')?.value.trim() || null,
     duration: dur === 'auto' ? 'auto' : dur === 'custom' ? Number($('gen-duration-custom').value) : Number(dur),
+    wpm: Number.isFinite(wpm) && wpm > 0 ? wpm : undefined,
     format: $('gen-format').value,
     style: $('gen-style').value,
+    brandId: $('gen-marca')?.value || undefined,
     audience: $('gen-audience').value.trim() || null,
     platform: $('gen-platform').value.trim() || null,
     music: $('gen-tono').value.trim() || null,
@@ -436,14 +441,44 @@ function leerFormulario() {
 
 $('gen-duration').addEventListener('change', () => {
   $('wrap-duracion-custom').hidden = $('gen-duration').value !== 'custom';
+  estimar();
 });
+
+/**
+ * Estimación en vivo de la duración, pedida al backend (que usa exactamente el
+ * mismo segmentador que la producción, para que lo previsto y lo producido no
+ * se contradigan). Se espera a que pare de escribir antes de preguntar.
+ */
+let estimarTimer = null;
+async function estimar() {
+  const salida = $('guion-propio-estado');
+  if (!salida) return;
+  const base = leerFormulario();
+  if (!base.script && !base.prompt) { salida.textContent = 'La duración se calcula a partir del guion.'; return; }
+  try {
+    const p = await api.planGeneration(base);
+    const aviso = p.advertencias?.[0] ? ` ⚠ ${p.advertencias[0]}` : '';
+    salida.textContent =
+      `${p.palabras.toLocaleString('es')} palabras · ${p.escenas} escenas · ` +
+      `dura unos ${p.duracionEstimadaLegible} a ${p.wpm} palabras por minuto.${aviso}`;
+  } catch (e) {
+    salida.textContent = e.message;
+  }
+}
+const estimarPronto = () => { clearTimeout(estimarTimer); estimarTimer = setTimeout(estimar, 400); };
+$('guion-propio')?.addEventListener('input', estimarPronto);
+$('prompt').addEventListener('input', estimarPronto);
+$('gen-wpm')?.addEventListener('change', estimar);
 
 $('btn-draft').addEventListener('click', async () => {
   if (state.busy) return;
   const base = leerFormulario();
-  if (!base.prompt) { messages.setError('Escribe primero qué video quieres crear.'); return; }
+  if (!base.prompt && !base.script) {
+    messages.setError('Escribe tu idea, o pega el guion que quieres narrar.');
+    return;
+  }
   messages.clearError();
-  messages.setStatus('Preparando el guion…');
+  messages.setStatus(base.script ? 'Segmentando tu guion en escenas…' : 'Preparando el guion…');
   try {
     borrador = await api.draftGeneration(base);
     guionOriginal = JSON.parse(JSON.stringify(borrador.escenas));
@@ -491,7 +526,7 @@ $('btn-add-escena').addEventListener('click', () => {
 /** Regenera UNA escena conservando el resto tal y como está editado. */
 async function regenerarEscena(indice) {
   const base = leerFormulario();
-  if (!base.prompt) { messages.setError('Escribe la idea antes de regenerar.'); return; }
+  if (!base.prompt && !base.script) { messages.setError('Escribe la idea o el guion antes de regenerar.'); return; }
   messages.setStatus(`Regenerando la escena ${indice + 1}…`);
   try {
     const fresco = await api.draftGeneration({ ...base, templateId: borrador.templateId });
@@ -503,6 +538,74 @@ async function regenerarEscena(indice) {
     render();
     messages.setStatus(`Escena ${indice + 1} regenerada.`);
   } catch (e) { dispatch({ type: 'error', error: e.message }); }
+}
+
+// ============================================ PROGRESO REAL Y REANUDACIÓN
+
+/**
+ * Muestra el avance CONTADO por el backend: etapa, escenas terminadas sobre el
+ * total y porcentaje. Si una etapa tarda, el número se queda quieto, que es lo
+ * que realmente está pasando; aquí no se anima nada para disimular.
+ */
+function mostrarProgreso(job) {
+  const p = job.progreso;
+  const caja = $('progreso-escenas');
+  if (!p) {
+    messages.setStatus(`${job.stage || 'Trabajando'} · ${(job.progress || 0).toFixed(0)} %`);
+    if (caja) caja.hidden = true;
+    return;
+  }
+  messages.setStatus(`${p.etiqueta} · ${p.porcentaje.toFixed(0)} %`);
+  if (!caja) return;
+  caja.hidden = false;
+  caja.textContent = p.escenasTotales
+    ? `Escena ${p.escenasCompletadas} de ${p.escenasTotales} · ${p.operacion || p.etiqueta}`
+    : (p.operacion || p.etiqueta);
+}
+
+/** Ofrece reanudar cuando el fallo dejó trabajo aprovechable en disco. */
+function ofrecerReanudar(job) {
+  const boton = $('btn-reanudar');
+  if (!boton) return;
+  const puede = Boolean(job?.projectId) && job.status !== 'completed';
+  boton.hidden = !puede;
+  boton.dataset.jobId = puede ? job.id : '';
+  if (puede) {
+    messages.setStatus('El proyecto se interrumpió. Las escenas ya terminadas se conservan: puedes reanudarlo.');
+  }
+}
+
+$('btn-reanudar')?.addEventListener('click', async () => {
+  const id = $('btn-reanudar').dataset.jobId;
+  if (!id) return;
+  $('btn-reanudar').hidden = true;
+  messages.clearError();
+  messages.setStatus('Reanudando: sólo se rehará lo que quedó a medias…');
+  try {
+    const job = await api.resumeGeneration(id);
+    dispatch({ type: 'generation-start', job });
+    await seguirGeneracion(job);
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
+});
+
+/** Sondea un trabajo hasta el final y carga el resultado. Compartido por crear y reanudar. */
+async function seguirGeneracion(job) {
+  generationPoll?.stop();
+  generationPoll = poll(() => api.getGeneration(job.id), {
+    intervalMs: 900,
+    isDone: j => ['completed', 'failed'].includes(j.status),
+    onTick: j => { dispatch({ type: 'generation-progress', job: j }); mostrarProgreso(j); },
+  });
+  const fin = await generationPoll.done;
+  if (fin.status !== 'completed') { ofrecerReanudar(fin); throw new ApiError(fin.error || 'No pudimos terminar tu video.', 0); }
+
+  const [analysis, proposal] = await Promise.all([api.getAnalysis(fin.analysisId), api.getProposal(fin.editId)]);
+  dispatch({ type: 'generation-complete', job: fin, analysis, proposal });
+  sourcePlayer.load(api.previewUrl(analysis.id));
+  irPaso('preview');
+  messages.setStatus('Tu video está listo. Revísalo y pasa a editar o exportar.');
+  cargarProyectos();
+  return fin;
 }
 
 // ================================================== CREAR EL VIDEO
@@ -528,11 +631,15 @@ $('btn-generate').addEventListener('click', async () => {
       isDone: j => ['completed', 'failed'].includes(j.status),
       onTick: j => {
         dispatch({ type: 'generation-progress', job: j });
-        messages.setStatus(`${j.stage || 'Trabajando'} · ${(j.progress || 0).toFixed(0)} %`);
+        mostrarProgreso(j);
       },
     });
     const fin = await generationPoll.done;
-    if (fin.status !== 'completed') throw new ApiError(fin.error || 'No pudimos terminar tu video.', 0);
+    if (fin.status !== 'completed') {
+      // Si quedó proyecto en disco, lo hecho se conserva y se puede reanudar.
+      ofrecerReanudar(fin);
+      throw new ApiError(fin.error || 'No pudimos terminar tu video.', 0);
+    }
 
     const [analysis, proposal] = await Promise.all([api.getAnalysis(fin.analysisId), api.getProposal(fin.editId)]);
     dispatch({ type: 'generation-complete', job: fin, analysis, proposal });
@@ -646,7 +753,10 @@ try {
     ...config.durationOptions.map(o => new Option(o.label, String(o.value))),
     new Option('Personalizada…', 'custom'),
   );
-  $('gen-duration').value = '15';
+  // «Automática» por defecto: manda el guion. Los presets siguen ahí para
+  // quien quiera pedir una duración concreta, corta o larga, en la misma lista.
+  $('gen-duration').value = 'auto';
+  if (config.narration?.wpm && $('gen-wpm')) $('gen-wpm').value = String(config.narration.wpm);
   const activo = config.providers.find(p => p.id === config.defaultProvider);
   $('gen-provider-hint').textContent = activo?.mock
     ? 'Se creará un video de PRUEBA, sin IA, para que puedas recorrer el flujo.'

@@ -2,6 +2,24 @@ import { getTemplate } from '../templates/index.js';
 import { resolveProvider } from '../providers/llm/index.js';
 import { keywordsFrom, parseScriptOutput } from '../core/script-generator.js';
 import { estimateDuration, clamp } from '../lib/util.js';
+import { segmentarGuion, WPM_POR_DEFECTO, SEGUNDOS_POR_ESCENA } from './segmenter.js';
+
+/**
+ * Ventana de segundos por escena que toca usar con este template.
+ *
+ * Un template corto (`reel-promocional`, 2.5-5 s) partiría un guion educativo
+ * en cientos de escenas de una frase. Para guiones propios se respeta la
+ * ventana del template, pero nunca por debajo de lo que hace falta para que
+ * una escena contenga una idea completa.
+ */
+export function segundosPorEscenaDe(template) {
+  const [min, max] = template?.sceneSeconds || [SEGUNDOS_POR_ESCENA.min, SEGUNDOS_POR_ESCENA.max];
+  return {
+    min: Math.max(1.2, min),
+    objetivo: Math.max(SEGUNDOS_POR_ESCENA.min, Math.min(SEGUNDOS_POR_ESCENA.objetivo, (min + max) / 2)),
+    max: Math.max(min + 1, max),
+  };
+}
 
 /**
  * Redacción del guion a partir del prompt.
@@ -266,6 +284,26 @@ export const duracionGuion = escenas =>
  */
 export async function draftScript(spec, { templateId, provider = 'auto' } = {}) {
   const template = getTemplate(templateId);
+
+  // GUION PROPIO: manda sobre todo lo demás. No se reescribe, no se resume y
+  // no se recorta; sólo se trocea en escenas narrables. Ni el LLM ni la
+  // plantilla local intervienen, porque el texto ya está escrito.
+  if (spec.script && String(spec.script).trim()) {
+    const wpm = Number(spec.wpm) > 0 ? Number(spec.wpm) : WPM_POR_DEFECTO;
+    const tema = spec.title || extraerTema(spec.prompt || spec.script);
+    const { escenas, advertencias } = segmentarGuion(spec.script, {
+      wpm,
+      segundosPorEscena: segundosPorEscenaDe(template),
+      tema,
+    });
+    if (!escenas.length) throw new Error('El guion no tiene texto narrable.');
+    return {
+      escenas, tema, source: 'guion-propio', provider: 'ninguno',
+      templateId: template.id, durationMode: spec.duration == null ? 'auto' : 'fija',
+      advertencias,
+    };
+  }
+
   const llm = await resolveProvider(provider);
 
   if (llm.id === 'none') {

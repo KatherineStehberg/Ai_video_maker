@@ -13,6 +13,7 @@ const ENDPOINTS = {
   generationConfig: '/api/video-generation/config',
   generationJobs: '/api/video-generation/jobs',
   generationDraft: '/api/video-generation/draft',
+  generationPlan: '/api/video-generation/plan',
 };
 
 export class ApiError extends Error {
@@ -81,7 +82,24 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
     }),
 
+    /**
+     * Estimación pura: palabras, escenas y duración del guion, sin producir
+     * nada. Es lo que alimenta el «dura unos X min» mientras se escribe.
+     */
+    planGeneration: (body) => call(ENDPOINTS.generationPlan, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    }),
+
     getGeneration: (id) => call(`${ENDPOINTS.generationJobs}/${encodeURIComponent(id)}`),
+
+    /** Reanuda un proyecto interrumpido reutilizando lo ya producido. */
+    resumeGeneration: (id) => call(`${ENDPOINTS.generationJobs}/${encodeURIComponent(id)}/resume`, { method: 'POST' }),
+
+    /** Regenera UNA escena; las demás se reutilizan tal cual. */
+    regenerateScene: (id, indice, parche = {}) => call(
+      `${ENDPOINTS.generationJobs}/${encodeURIComponent(id)}/scenes/${Number(indice)}`,
+      { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(parche) },
+    ),
 
     /** Proyectos guardados, para la pantalla de inicio. No borra nada. */
     listProjects: () => call('/api/video-generation/projects'),

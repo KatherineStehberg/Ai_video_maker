@@ -1,5 +1,12 @@
 import { listProviders, defaultProvider } from '../providers/video-generation/index.js';
-import { createJob, getJob, publicJob, draftJob, listJobs, FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX } from './jobs.js';
+import {
+  createJob, getJob, publicJob, draftJob, planJob, listJobs, resumeJob, regenerateScene,
+  FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX, SCRIPT_MAX_CHARS, MAX_ESCENAS,
+} from './jobs.js';
+import { HTTP_BODY_MAX, SCENE_TEXT_MAX, SCENE_DURATION_LIMITS } from './limits.js';
+import { ETAPAS, ESTADOS } from './states.js';
+import { WPM_POR_DEFECTO, PAUSA_ENTRE_ESCENAS } from './segmenter.js';
+import { normalizeOrchestratorInput, specDesdeContrato, CONTRACT_VERSION } from './orchestrator-contract.js';
 
 /**
  * Endpoints de generación de video con IA.
@@ -18,11 +25,18 @@ const reply = (res, status, data) => {
   res.end(JSON.stringify(data));
 };
 
-async function readJson(req, limit = 256 * 1024) {
+/**
+ * El límite tiene que dejar pasar un guion largo COMPLETO más sus escenas ya
+ * editadas (que repiten el mismo texto). Ver `limits.js`: son 8 MB, muy por
+ * encima de las ~400 KB que ocupa el guion más largo admitido.
+ */
+async function readJson(req, limit = HTTP_BODY_MAX) {
   const chunks = []; let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > limit) throw new Error('El cuerpo de la petición es demasiado grande');
+    if (size > limit) {
+      throw new Error(`El cuerpo de la petición supera ${(limit / 1024 / 1024).toFixed(0)} MB, que es el límite técnico. No se ha procesado nada.`);
+    }
     chunks.push(chunk);
   }
   if (!size) return {};
@@ -42,8 +56,25 @@ export async function generationRoute(req, res, url) {
       reply(res, 200, {
         providers: listProviders(), defaultProvider: defaultProvider(),
         formats: FORMATS, styles: STYLES, duration: DURATION_LIMITS,
-        durationOptions: DURATION_OPTIONS, promptMax: PROMPT_MAX,
+        durationOptions: DURATION_OPTIONS,
+        // Límites técnicos REALES, publicados para que la interfaz los muestre
+        // en vez de inventarse los suyos.
+        limits: {
+          promptMax: PROMPT_MAX, scriptMax: SCRIPT_MAX_CHARS, maxEscenas: MAX_ESCENAS,
+          sceneTextMax: SCENE_TEXT_MAX, sceneDuration: SCENE_DURATION_LIMITS,
+          duration: DURATION_LIMITS, httpBodyMax: HTTP_BODY_MAX,
+        },
+        narration: { wpm: WPM_POR_DEFECTO, pausaEntreEscenas: PAUSA_ENTRE_ESCENAS },
+        states: ESTADOS, stages: ETAPAS,
+        orchestratorContract: CONTRACT_VERSION,
+        promptMax: PROMPT_MAX,   // compatibilidad con la interfaz anterior
       });
+      return true;
+    }
+
+    // Estimación pura: palabras, escenas y duración, sin producir nada.
+    if (req.method === 'POST' && parts[2] === 'plan' && parts.length === 3) {
+      reply(res, 200, planJob(await readJson(req)));
       return true;
     }
 
@@ -70,6 +101,39 @@ export async function generationRoute(req, res, url) {
       const job = getJob(parts[3]);
       if (!job) { reply(res, 404, { error: 'Trabajo de generación no encontrado' }); return true; }
       reply(res, 200, publicJob(job));
+      return true;
+    }
+
+    // Reanudar un proyecto interrumpido, reutilizando lo ya producido.
+    if (req.method === 'POST' && parts[2] === 'jobs' && parts[4] === 'resume' && parts.length === 5) {
+      reply(res, 202, publicJob(resumeJob(parts[3])));
+      return true;
+    }
+
+    // Regenerar UNA escena; las demás se reutilizan tal cual.
+    if (req.method === 'POST' && parts[2] === 'jobs' && parts[4] === 'scenes' && parts.length === 6) {
+      const body = await readJson(req);
+      reply(res, 202, publicJob(regenerateScene(parts[3], Number(parts[5]), body)));
+      return true;
+    }
+
+    /*
+     * Contrato del Orquestador KSL. Valida y normaliza SIN producir nada
+     * cuando `dryRun` viene marcado, que es como el Orquestador podrá
+     * comprobar su carga útil antes de mandarla de verdad.
+     *
+     * Aquí no hay ningún cliente del Orquestador ni ninguna credencial: esto
+     * sólo recibe.
+     */
+    if (req.method === 'POST' && parts[2] === 'orchestrator' && parts.length === 3) {
+      const body = await readJson(req);
+      const contrato = normalizeOrchestratorInput(body);
+      const spec = specDesdeContrato(contrato);
+      if (body.dryRun) {
+        reply(res, 200, { contractVersion: CONTRACT_VERSION, aceptado: true, contrato, plan: planJob(spec) });
+        return true;
+      }
+      reply(res, 202, publicJob(createJob(spec)));
       return true;
     }
 

@@ -5,6 +5,13 @@
  * Clases CSS: ver editor.css, sección "ESCENAS (GUION)".
  */
 
+/**
+ * Mismo rango que acepta el backend (`limits.js`). Una escena de una clase
+ * puede durar bastante más que una de un reel, así que el tope no puede ser el
+ * de un reel.
+ */
+export const SCENE_SEGUNDOS = { min: 0.5, max: 120 };
+
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -68,7 +75,7 @@ export function renderDraft(container, escenas, { onChange, onRegenerate, onAcci
     const fila = el('div', 'escena-fila');
     const titulo = campo({ etiqueta: 'Texto en pantalla', valor: e.onScreenTitle, clase: 'escena-titulo', extra: { maxLength: 60 } });
     const visual = campo({ etiqueta: 'Qué se busca', valor: e.visualPrompt, clase: 'escena-visual', extra: { maxLength: 200 } });
-    const duracion = campo({ etiqueta: 'Segundos', valor: e.duration, clase: 'escena-duracion', tipo: 'number', extra: { min: 0.5, max: 30, step: 0.5 } });
+    const duracion = campo({ etiqueta: 'Segundos', valor: e.duration, clase: 'escena-duracion', tipo: 'number', extra: { min: SCENE_SEGUNDOS.min, max: SCENE_SEGUNDOS.max, step: 0.5 } });
     fila.append(titulo.label, visual.label, duracion.label);
     campos.append(fila);
 
@@ -140,8 +147,8 @@ export function validateDraft(escenas) {
   for (const [i, e] of escenas.entries()) {
     if (e.excluida) continue;
     if (!e.text) return `La escena ${i + 1} se quedó sin narración.`;
-    if (!Number.isFinite(e.duration) || e.duration < 0.5 || e.duration > 30) {
-      return `La duración de la escena ${i + 1} debe estar entre 0.5 y 30 segundos.`;
+    if (!Number.isFinite(e.duration) || e.duration < SCENE_SEGUNDOS.min || e.duration > SCENE_SEGUNDOS.max) {
+      return `La duración de la escena ${i + 1} debe estar entre ${SCENE_SEGUNDOS.min} y ${SCENE_SEGUNDOS.max} segundos.`;
     }
   }
   return null;

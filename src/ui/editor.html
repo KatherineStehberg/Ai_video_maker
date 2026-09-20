@@ -104,6 +104,9 @@
         <div class="barra tarjeta" style="margin-bottom:var(--e3)">
           <progress id="progress" max="100" value="0"></progress>
           <span class="mini" id="status" role="status" aria-live="polite">Describe tu idea para empezar.</span>
+          <!-- Progreso REAL: escenas terminadas sobre el total, no una animación. -->
+          <span class="mini" id="progreso-escenas" hidden></span>
+          <button class="btn btn-mini" id="btn-reanudar" hidden>Reanudar este proyecto</button>
         </div>
 
         <p class="aviso aviso-error" id="error" role="alert" hidden></p>
@@ -113,9 +116,23 @@
         <div class="tarjeta" data-paso-panel="idea">
           <h2>Tu idea</h2>
           <label>¿Qué video quieres crear?
-            <textarea id="prompt" rows="4" maxlength="2000"
+            <textarea id="prompt" rows="4"
               placeholder="Ej: Un reel vertical para promocionar clases particulares de inglés online para adultos, con horarios flexibles y práctica de conversación."></textarea>
           </label>
+
+          <!--
+            Guion propio: el MISMO flujo sirve para un reel de 15 segundos y
+            para una clase de 12 minutos. No hay dos botones ni dos modos; lo
+            único que cambia es si pegas un guion o sólo la idea.
+          -->
+          <details id="guion-propio-wrap">
+            <summary>Ya tengo el guion escrito (pégalo aquí)</summary>
+            <label>Guion completo
+              <textarea id="guion-propio" rows="8"
+                placeholder="Pega aquí el guion tal cual. Puedes usar títulos (# Módulo 1) para marcar secciones.&#10;No se recorta ni se reescribe: se trocea en escenas respetando cada frase."></textarea>
+            </label>
+            <p class="ayuda" id="guion-propio-estado">La duración se calcula a partir del guion.</p>
+          </details>
           <div class="rejilla-2">
             <label>Tipo de video
               <select id="gen-tipo">
@@ -145,7 +162,11 @@
               <select id="gen-duration"></select>
             </label>
             <label id="wrap-duracion-custom" hidden>Segundos
-              <input type="number" id="gen-duration-custom" min="3" max="900" step="5" value="45">
+              <input type="number" id="gen-duration-custom" min="3" max="7200" step="5" value="45">
+            </label>
+            <label>Palabras por minuto (narración)
+              <input type="number" id="gen-wpm" min="40" max="400" step="5" value="115"
+                title="Velocidad de la voz. Es lo que convierte palabras en segundos.">
             </label>
             <label>Idioma
               <select id="gen-idioma"><option value="es">Español</option><option value="en">Inglés</option></select>

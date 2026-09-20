@@ -20,18 +20,20 @@ test('validación del prompt: rechaza lo inválido con mensajes accionables', ()
   assert.equal(ok.duration, 15);
   assert.equal(ok.platform, null, 'los campos opcionales vacíos quedan en null, no en cadena vacía');
 
-  // Por defecto: 15 s, vertical y el primer estilo.
+  // Por defecto la duración es AUTOMÁTICA: la marca el guion, no un preset.
+  // Indicar una duración objetivo es opcional en todo el flujo.
   const porDefecto = normalizeSpec({ prompt: 'x' });
-  assert.equal(porDefecto.duration, 15);
+  assert.equal(porDefecto.duration, null, 'sin duración pedida, manda el guion');
+  assert.equal(porDefecto.durationMode, 'auto');
   assert.equal(porDefecto.format, '9:16');
   assert.equal(porDefecto.style, STYLES[0]);
 
   assert.throws(() => normalizeSpec({ prompt: '   ' }), /Escribe un prompt/);
   assert.throws(() => normalizeSpec({}), /Escribe un prompt/);
-  assert.throws(() => normalizeSpec({ prompt: 'x'.repeat(2001) }), /no puede superar 2000/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 1 }), /entre 3 y 900 segundos/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 5000 }), /entre 3 y 900 segundos/);
-  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 'muchos' }), /entre 3 y 900 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x'.repeat(20001) }), /límite es 20.000/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 1 }), /entre 3 y 7200 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 99999 }), /entre 3 y 7200 segundos/);
+  assert.throws(() => normalizeSpec({ prompt: 'x', duration: 'muchos' }), /entre 3 y 7200 segundos/);
   assert.throws(() => normalizeSpec({ prompt: 'x', format: '4:3' }), /Formato no admitido/);
   assert.throws(() => normalizeSpec({ prompt: 'x', style: 'psicodélico' }), /Estilo no admitido/);
 
@@ -153,6 +155,9 @@ test('guion local: extrae el tema y redacta escenas que hablan de él', async ()
 test('elección de plantilla y validación de escenas editadas', () => {
   assert.equal(elegirTemplate({ duration: 10, prompt: 'x' }), 'reel-promocional');
   assert.equal(elegirTemplate({ duration: 60, prompt: 'x' }), 'short-educativo');
+  // Una duración de clase elige una plantilla de clase, no un short.
+  assert.equal(elegirTemplate({ duration: 120, prompt: 'x' }), 'video-explicativo');
+  assert.equal(elegirTemplate({ duration: 720, prompt: 'x' }), 'video-curso');
   assert.equal(elegirTemplate({ duration: 30, prompt: 'promo de un curso' }), 'reel-promocional');
   assert.equal(elegirTemplate({ duration: 30, prompt: 'cómo funciona la fotosíntesis' }), 'short-educativo');
 
@@ -164,8 +169,16 @@ test('elección de plantilla y validación de escenas editadas', () => {
   assert.equal(normalizeSpec(base).escenas, null, 'sin escenas el campo queda en null');
   assert.throws(() => normalizeSpec({ ...base, escenas: [] }), /al menos una escena/);
   assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: '  ' }] }), /no tiene narración/);
-  assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: 'a', duration: 99 }] }), /entre 0.5 y 30 segundos/);
-  assert.throws(() => normalizeSpec({ ...base, escenas: new Array(21).fill({ text: 'a', duration: 2 }) }), /Máximo 20 escenas/);
+  // 99 s por escena ya es válido (una escena de clase); 500 s sigue sin serlo.
+  assert.equal(normalizeSpec({ ...base, escenas: [{ text: 'a', duration: 99 }] }).escenas[0].duration, 99);
+  assert.throws(() => normalizeSpec({ ...base, escenas: [{ text: 'a', duration: 500 }] }), /entre 0.5 y 120 segundos/);
+  // 21 escenas era el viejo tope de producto; ahora entran las de una clase.
+  assert.equal(normalizeSpec({ ...base, escenas: new Array(21).fill({ text: 'a', duration: 2 }) }).escenas.length, 21);
+  assert.equal(normalizeSpec({ ...base, escenas: new Array(300).fill({ text: 'a', duration: 2 }) }).escenas.length, 300);
+  assert.throws(
+    () => normalizeSpec({ ...base, escenas: new Array(601).fill({ text: 'a', duration: 2 }) }),
+    /601 escenas y el límite técnico es 600/,
+  );
 });
 
 test('borrador: no produce nada y declara el coste real de cada pieza', async () => {
@@ -248,7 +261,7 @@ test('HTTP end-to-end: prompt → generación mock → análisis → propuesta l
 
     // Peticiones inválidas se rechazan antes de generar nada.
     assert.equal((await post('/api/video-generation/jobs', {})).status, 400);
-    assert.equal((await post('/api/video-generation/jobs', { prompt: 'x', duration: 999 })).status, 400);
+    assert.equal((await post('/api/video-generation/jobs', { prompt: 'x', duration: 99999 })).status, 400);
     assert.equal((await fetch(base + '/api/video-generation/jobs/no-existe')).status, 404);
 
     const created = await post('/api/video-generation/jobs', {
