@@ -84,8 +84,10 @@ export async function runPipeline(project, {
       saveProject(project);
       emit('assets', 25, 'Resolviendo visuales');
       const res = await ensureSceneAssets(project, brand, {
+        // `index` y `total` viajan hasta arriba: son el progreso REAL que
+        // muestra la interfaz («escena 34 de 105»), no un porcentaje inventado.
+        onProgress: (p) => emit('assets', 25 + Math.round((p.index / p.total) * 10), `Visual ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
         force: force.assets,
-        onProgress: (p) => emit('assets', 25 + Math.round((p.index / p.total) * 10), `Visual ${p.index + 1}/${p.total}`),
       });
       report.steps.assets = { resolved: res.filter((r) => r.path).length, total: res.length };
       const missing = missingAssets(project);
@@ -103,7 +105,7 @@ export async function runPipeline(project, {
       emit('narration', 38, 'Generando narracion');
       const res = await narrateProject(project, {
         force: force.narration,
-        onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`),
+        onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
       });
       report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0 };
       if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {
@@ -165,7 +167,12 @@ export async function runPipeline(project, {
         const res = await renderProject(project, brand, {
           aspectRatio: fmt,
           subtitlesPath: subs,
-          onProgress: (p) => emit('render', base + Math.round((p.pct / 100) * span), p.message || `Render ${fmt}`, { format: fmt }),
+          // El renderer distingue `scene`, `concat`, `audio` y `encode`: se
+          // conserva su paso y su cuenta de escenas en vez de aplanarlo todo a
+          // «render», para que el estado publicado sea el de verdad.
+          onProgress: (p) => emit(p.step === 'scene' ? 'scene' : p.step || 'render',
+            base + Math.round((p.pct / 100) * span), p.message || `Render ${fmt}`,
+            { format: fmt, index: p.index, total: p.total }),
         });
         outputs[fmt] = res.file;
         logToProject(project, `Render ${fmt} -> ${res.file} (${(res.bytes / 1e6).toFixed(1)} MB)`);

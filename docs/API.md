@@ -52,10 +52,54 @@ Flujo alternativo a la subida: un prompt produce un video que **se encadena
 automáticamente** con el mismo análisis y la misma edición. La aprobación humana
 y la exportación siguen siendo pasos aparte, con idénticas garantías.
 
+El **mismo** flujo produce un reel de 15 segundos y una clase de 12 minutos. No
+hay dos modos ni dos botones: lo único que cambia es si mandas una idea
+(`prompt`) o un guion ya escrito (`script`), y si pides una duración objetivo o
+dejas que la marque el guion.
+
 ### `GET /api/video-generation/config`
 
 Proveedores disponibles, formatos, estilos y límites. De cada proveedor publica
 `configured` y qué variables de entorno necesitaría, **nunca sus valores**.
+
+Publica además los **límites técnicos reales**, para que la interfaz no se
+invente los suyos:
+
+```json
+{
+  "limits": {
+    "promptMax": 20000, "scriptMax": 400000, "maxEscenas": 600,
+    "sceneTextMax": 2000, "sceneDuration": { "min": 0.5, "max": 120 },
+    "duration": { "min": 3, "max": 7200 }, "httpBodyMax": 8388608
+  },
+  "narration": { "wpm": 115, "pausaEntreEscenas": 0.35 },
+  "states": ["en-cola", "preparando-guion", "…", "listo", "error-recuperable"],
+  "durationOptions": [{ "value": "auto", "label": "Automática según el guion" }, "…"]
+}
+```
+
+### `POST /api/video-generation/plan`
+
+Estimación **pura**: cuántas palabras, cuántas escenas y cuánto duraría. No toca
+disco, ni red, ni proveedores; es lo que alimenta el «dura unos 12 min» mientras
+se escribe el guion. Usa el mismo segmentador que la producción, así que lo
+estimado y lo producido no se contradicen.
+
+```json
+{ "script": "# Módulo 1\n\nEl presente simple…", "duration": "auto", "wpm": 115 }
+```
+
+Devuelve `palabras`, `escenas`, `secciones`, `wpm`, `duracionEstimada`,
+`duracionEstimadaLegible`, `templateId`, `compatibleConObjetivo` y
+`advertencias[]`.
+
+**Cómo se calcula la duración:**
+
+```
+duración = (palabras ÷ wpm) × 60 + (escenas × 0.35 s de pausa)
+```
+
+`wpm` por defecto es 115, configurable con `NARRATION_WPM` o en el cuerpo.
 
 ### `POST /api/video-generation/draft`
 
@@ -64,25 +108,47 @@ voz y no descarga imágenes. Es instantáneo y no puede gastar créditos salvo q
 haya un LLM de pago configurado, cosa que la respuesta declara en `costo`.
 
 Acepta el mismo cuerpo que `jobs`. Devuelve `escenas[]` (con `text`,
-`onScreenTitle`, `visualPrompt`, `duration` y `role`), `templateId`, `source`
-(`plantilla-local` o `llm`) y `costo`, con el desglose por pieza.
+`onScreenTitle`, `visualPrompt`, `duration`, `role` y `seccion`), `templateId`,
+`source` (`plantilla-local`, `llm` o `guion-propio`), `palabras`,
+`duracionEstimada`, `compatibleConObjetivo`, `advertencias[]` y `costo`, con el
+desglose por pieza.
+
+Con `script`, `source` es `guion-propio` y el guion **no se reescribe ni se
+resume**: sólo se trocea en escenas respetando cada oración.
 
 ### `POST /api/video-generation/jobs`
 
 ```json
 {
   "prompt": "Video vertical promocional sobre...",
-  "duration": 15,
-  "format": "9:16",
-  "style": "cinematográfico",
-  "platform": "TikTok"
+  "script": "# Módulo 1\n\nEl presente simple se usa para…",
+  "duration": "auto",
+  "format": "16:9",
+  "style": "documental",
+  "brandId": "personal",
+  "wpm": 115,
+  "platform": "youtube"
 }
 ```
 
-`prompt` es obligatorio (máx. 2000 caracteres). `duration` entre 3 y 120 s,
-`format` uno de `9:16`, `16:9`, `1:1`, y `style` uno de los que lista la config.
-`music`, `tempo`, `audience` y `platform` son opcionales y se pasan al proveedor
-sin interpretarlos. Responde `202` con el trabajo en estado `queued`.
+Hace falta **`prompt` o `script`**, y basta con uno:
+
+- `prompt` — la idea, hasta **20 000** caracteres.
+- `script` — el guion ya escrito, hasta **400 000** caracteres (~65 000
+  palabras). Manda sobre `prompt` y no se reescribe.
+
+`duration` es **opcional**: `"auto"` (por defecto) deja que la marque el guion, o
+un número entre **3 y 7 200** segundos. Si el objetivo y el guion son
+incompatibles se **avisa** en `advertencias[]` y se produce el guion completo:
+nunca se recorta texto ni se inventa relleno.
+
+`format` uno de `9:16`, `16:9`, `1:1`; `style` uno de los que lista la config.
+`brandId`, `logo`, `voice`, `musicTrack`, `subtitles`, `wpm`, `music`, `tempo`,
+`audience` y `platform` son opcionales. Responde `202` con el trabajo en estado
+`queued`.
+
+**Ningún límite recorta texto en silencio.** Cuando algo no cabe, la petición se
+rechaza entera con un `400` que dice el número exacto.
 
 ### `GET /api/video-generation/jobs/:id`
 
@@ -92,11 +158,68 @@ trae `analysisId` y `editId`, que se consultan con los endpoints normales de
 análisis y de edición.
 
 Un trabajo interrumpido por un reinicio del servidor se marca `failed` y **no se
-reanuda solo**: con un proveedor de pago, reanudar podría volver a cobrar.
+reanuda solo**: con un proveedor de pago, reanudar podría volver a cobrar. Pero
+si llegó a crear un proyecto, trae `projectId` y `recuperable: true`, y se puede
+reanudar a mano (ver abajo).
 
 Al cuerpo se le puede añadir `escenas[]` (las que la usuaria revisó en el
 borrador) y `templateId`. Si vienen, mandan sobre cualquier redacción
 automática: el proveedor no vuelve a inventar el guion.
+
+#### Progreso real
+
+El trabajo trae un objeto `progreso` con el avance **contado**, no simulado:
+
+```json
+{
+  "estado": "renderizando-segmentos",
+  "etiqueta": "Renderizando segmentos",
+  "escenasCompletadas": 34,
+  "escenasTotales": 105,
+  "porcentaje": 61.4,
+  "operacion": "Escena 34/105 (16:9)"
+}
+```
+
+Estados: `en-cola` → `preparando-guion` → `creando-escenas` →
+`buscando-visuales` → `generando-voz` → `creando-subtitulos` →
+`renderizando-segmentos` → `concatenando` → `listo`. En caso de fallo,
+`error-recuperable` (queda proyecto en disco que se puede reanudar) o `error`.
+
+Si una etapa tarda, el porcentaje se queda quieto: eso es lo que está pasando.
+
+### `POST /api/video-generation/jobs/:id/resume`
+
+Reanuda un proyecto interrumpido **sin rehacer lo ya producido**. Los WAV de voz
+y los clips MP4 siguen en disco y llevan una huella; lo terminado se salta solo.
+Exige que el trabajo tenga `projectId`. Responde `202`.
+
+### `POST /api/video-generation/jobs/:id/scenes/:n`
+
+Regenera **una sola escena**; las demás se reutilizan tal cual.
+
+```json
+{ "text": "Nueva narración de esta escena.", "duration": 12, "regenerarVisual": true }
+```
+
+Todos los campos son opcionales: `text`, `onScreenTitle`, `visualPrompt`,
+`duration` y `regenerarVisual`. Cambiar el texto invalida la voz y el clip de
+esa escena, pero no los de las otras. Responde `202`.
+
+### `POST /api/video-generation/orchestrator`
+
+Contrato de entrada del **Orquestador KSL**. Con `"dryRun": true` valida y
+devuelve el plan **sin producir nada** (`200`); sin él, crea el trabajo (`202`).
+
+Campos: `projectId`, `brandId`, `title`, `prompt`, `script`, `sourceReference`,
+`format`, `targetDurationSeconds` (opcional), `platform`, `style`, `voice`,
+`music`, `subtitles`, `logo` y `course` (metadatos de curso, módulo o
+presentación). Detalle completo en
+[`docs/reports/AVM-LONG-FORM.md`](reports/AVM-LONG-FORM.md).
+
+`sourceReference` admite `{ "kind": "drive", "id": "…" }` y **se guarda sin
+resolverse** (`resolved: false`). Esta entrega **no** conecta con Drive ni
+guarda credenciales, y **no modifica el repositorio del Orquestador**.
 
 ### Proveedores
 

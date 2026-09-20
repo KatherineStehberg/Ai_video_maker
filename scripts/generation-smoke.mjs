@@ -55,8 +55,17 @@ try {
   assert.equal(await page.locator('#btn-generate').isDisabled(), true);
   await page.locator('#btn-draft').click();
   await page.waitForFunction(() => !document.getElementById('error').hidden);
-  assert.match(await page.locator('#error').textContent(), /Escribe primero/);
-  step('Validación', 'prompt vacío rechazado en la interfaz');
+  // El mensaje nombra las DOS entradas posibles: la idea o el guion ya escrito.
+  assert.match(await page.locator('#error').textContent(), /Escribe tu idea, o pega el guion/);
+  step('Validación', 'sin idea ni guion, rechazado en la interfaz');
+
+  // El campo del guion no puede llevar tope de caracteres: un guion de clase
+  // pasa de 2 000 y el navegador lo truncaría en silencio.
+  for (const campo of ['#prompt', '#guion-propio']) {
+    const tope = await page.locator(campo).getAttribute('maxlength');
+    assert.equal(tope, null, `${campo} no puede tener maxlength: truncaría el guion sin avisar`);
+  }
+  step('Sin truncamiento', 'ni el prompt ni el guion llevan maxlength');
 
   // 3. Rellenar el formulario y pedir el BORRADOR (sin producir nada).
   await page.locator('#prompt').fill(PROMPT);

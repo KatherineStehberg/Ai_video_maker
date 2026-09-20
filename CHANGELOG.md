@@ -5,6 +5,85 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Videos largos por el mismo flujo (2026-09-20)
+
+Un reel de 15 segundos y una clase de 12 minutos usan ahora **la misma pantalla,
+el mismo flujo y las mismas funciones**. No hay un botón de «corto» y otro de
+«largo»: lo único que cambia es si mandas una idea o un guion ya escrito.
+
+- **Guion propio (`script`)**: nueva entrada, hasta **400 000 caracteres**
+  (~65 000 palabras). Manda sobre el prompt y **no se reescribe, no se resume y
+  no se recorta**: sólo se trocea en escenas.
+- `src/generation/segmenter.js`: segmentación por **título → párrafo → oración**,
+  y nunca dentro de una oración. Una frase que no cabe ocupa su propia escena y
+  se declara en `advertencias`. `sinPerdidaDeTexto()` verifica que ninguna
+  palabra del guion desaparece.
+- **Duración derivada del contenido**: `(palabras ÷ wpm) × 60 + escenas × 0.35 s`.
+  La velocidad de narración es configurable con `NARRATION_WPM` o desde el
+  editor. La duración objetivo es **opcional**; «Automática según el guion» es
+  el valor por defecto.
+- `POST /api/video-generation/plan`: estimación pura (palabras, escenas,
+  duración) **sin producir nada**, con el mismo segmentador que la producción.
+  La interfaz la muestra mientras se escribe.
+- **Objetivo incompatible ⇒ aviso, no recorte.** Si el guion no cabe en la
+  duración pedida se avisa y se produce el guion completo.
+- `src/generation/states.js`: estados `preparando-guion`, `creando-escenas`,
+  `buscando-visuales`, `generando-voz`, `creando-subtitulos`,
+  `renderizando-segmentos`, `concatenando`, `listo`, `error-recuperable`. El
+  porcentaje se **cuenta** en escenas terminadas; no se simula avance.
+- `POST /api/video-generation/jobs/:id/resume`: reanuda un proyecto
+  interrumpido reutilizando los WAV y los clips ya producidos.
+- `POST /api/video-generation/jobs/:id/scenes/:n`: regenera **una sola escena**;
+  las demás se reutilizan por huella. Medido: 42,6 s frente a 96,5 s.
+- `src/generation/orchestrator-contract.js`: contrato de entrada del
+  **Orquestador KSL**, con `POST /api/video-generation/orchestrator` y modo
+  `dryRun`. Acepta `projectId`, `brandId`, `title`, `prompt`, `script`,
+  `sourceReference`, `format`, `targetDurationSeconds`, `platform`, `style`,
+  `voice`, `music`, `subtitles`, `logo` y metadatos de curso. **El repositorio
+  del Orquestador no se ha tocado**, `sourceReference` no se resuelve y no se
+  conecta con Drive ni se guarda ninguna credencial.
+- **Marca por proyecto**: `brandId` y `logo` (`path`, `position`, `scale`,
+  `opacity`) viajan con la petición. Ningún logo concreto está incrustado en el
+  código y `data/brands/personal.json` se conserva.
+- `scripts/long-form-smoke.mjs`: prueba reproducible con guion de 2 500+
+  palabras. Informa palabras, escenas, duración estimada, duración **real**
+  medida con ffprobe, estado, pico de memoria, reanudabilidad e integridad del
+  guion, y **calibra** la velocidad real de la voz local.
+- `tests/long-form.test.js`: 20 pruebas nuevas. Toda la suite pasa en **Node 18
+  y Node 22** (77 pruebas).
+
+### Cambiado — Límites
+
+Los topes que bloqueaban un guion largo eran **seis**, no uno. Ninguno recorta ya
+texto en silencio: cuando algo no cabe, la petición se rechaza entera con un
+mensaje que dice el número exacto.
+
+| Límite | Antes | Ahora |
+|---|---|---|
+| `PROMPT_MAX` | 2 000 car. | 20 000 |
+| `maxlength` del prompt en el HTML | 2 000 (truncaba al pegar) | sin tope |
+| Guion completo | *no existía* | 400 000 car. |
+| Escenas por proyecto | 20 | 600 |
+| Texto por escena | 600 car., **recortado con `.slice()`** | 2 000, se rechaza |
+| Duración por escena | 0,5–30 s | 0,5–120 s |
+| Duración objetivo | 3–900 s | 3–7 200 s |
+| Cuerpo HTTP de generación | 256 KB | 8 MB |
+
+- La duración por defecto de `normalizeSpec` pasa de **15 s fijos** a
+  **automática**: la marca el guion. La interfaz siempre envía una explícita.
+- `elegirTemplate` tiene en cuenta la extensión del guion: una clase elige
+  `video-curso` (escenas largas, sin efectos), no un template de reel.
+- `GET /api/video-generation/config` publica los límites técnicos reales, los
+  estados y la velocidad de narración, para que la interfaz no se los invente.
+
+### Corregido
+
+- `runPipeline` no propagaba `index` ni `total` de las etapas de visuales, voz y
+  render, así que el contador de escenas de la interfaz se quedaba en `0/N`.
+  Ahora el progreso mostrado es el realmente contado.
+- El README afirmaba que «hoy sólo está implementado el proveedor mock». Es
+  falso desde que `pipeline` es el predeterminado; corregido.
+
 ### Añadido — Prompt a video real (2026-09-19)
 
 - **Proveedor `pipeline`, ahora el predeterminado**: encadena los módulos que ya

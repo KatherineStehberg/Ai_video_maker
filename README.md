@@ -15,9 +15,42 @@ Abre **http://127.0.0.1:4321/editor.html**. El puerto se cambia con `PORT`.
 
 La pantalla inicial ofrece dos caminos:
 
-**1 · Crear video con un prompt.** Escribes lo que quieres, eliges duración, formato y estilo, y el sistema genera un video, lo analiza y propone el montaje automáticamente. Después sigue el mismo circuito: revisar, editar trozos, aprobar y exportar.
+**1 · Crear video con un prompt o con tu guion.** Escribes tu idea —o pegas el guion ya escrito—, eliges formato y estilo, y el sistema genera el video, lo analiza y propone el montaje. Después sigue el mismo circuito: revisar, editar trozos, aprobar y exportar.
 
-> **Importante:** hoy sólo está implementado el proveedor **mock**, que construye un video de prueba con FFmpeg en local. **No es generación con IA** y no representa el contenido del prompt: sirve para recorrer el flujo completo sin gastar créditos ni enviar nada a ningún servicio. La interfaz lo advierte siempre. Para conectar un proveedor real, el contrato está documentado en [`src/providers/video-generation/index.js`](src/providers/video-generation/index.js); las claves van sólo en `.env`, nunca en el frontend.
+> El proveedor predeterminado es **`pipeline`**: monta el video en este equipo encadenando guion → escenas → visuales → voz local → subtítulos → FFmpeg. Su contenido **sí** corresponde a lo que escribiste. Coste cero. El proveedor **`mock`** sigue disponible para pruebas rápidas y la interfaz advierte siempre cuando se usa, porque produce material de prueba que no representa el prompt. Para conectar un proveedor externo, el contrato está en [`src/providers/video-generation/index.js`](src/providers/video-generation/index.js); las claves van sólo en `.env`, nunca en el frontend.
+
+### Videos cortos y videos largos: el mismo flujo
+
+**No hay un modo «reel» y otro modo «clase».** Es la misma pantalla y las mismas funciones; lo único que cambia es lo que escribes:
+
+| Quieres… | Qué haces |
+|---|---|
+| Un reel de ~15 s | Escribes la idea en **«¿Qué video quieres crear?»** y eliges 15 s |
+| Un video de ~1 min | Lo mismo, con duración 1 minuto — o «Automática» |
+| Una clase de 10-12 min | Despliegas **«Ya tengo el guion escrito»** y lo pegas entero |
+| Algo más largo | Igual: el límite técnico son ~65 000 palabras |
+
+**La duración objetivo es opcional.** Por defecto es «Automática según el guion», y la duración sale del contenido narrado:
+
+```
+duración = (palabras ÷ palabras_por_minuto) × 60 + (escenas × 0.35 s de pausa)
+```
+
+`palabras_por_minuto` es 115 por defecto y se ajusta con `NARRATION_WPM` o con el campo del editor. La estimación se ve **antes de generar**, mientras escribes.
+
+Si pides una duración y el guion no cuadra, la interfaz **avisa** y produce el guion completo. **Nunca se recorta texto en silencio ni se inventa relleno.**
+
+**Límites técnicos reales** (el `GET /api/video-generation/config` los publica): prompt 20 000 caracteres, guion 400 000, 600 escenas, 2 000 caracteres por escena, duración objetivo 3–7 200 s, cuerpo HTTP 8 MB. Cuando algo no cabe, la petición se rechaza con el número exacto.
+
+### Proyectos largos: progreso, reanudar y regenerar una escena
+
+Un proyecto largo **no se carga entero en memoria**: cada escena se renderiza a su propio clip MP4 en disco, con una huella que evita rehacerlo si no cambió, y FFmpeg los concatena al final sin recodificar. Medido en un proyecto de 105 escenas: **pico de 59 MB de RSS**.
+
+- **Progreso real.** La interfaz muestra `Escena 34 de 105 · Generando la voz`. Si una etapa tarda, el número se queda quieto: no hay animación que finja avance. Los estados son `preparando-guion`, `creando-escenas`, `buscando-visuales`, `generando-voz`, `creando-subtitulos`, `renderizando-segmentos`, `concatenando`, `listo` y `error-recuperable`.
+- **Reanudar.** Si algo falla dejando trabajo en disco, el proyecto se marca `error-recuperable` y aparece **«Reanudar este proyecto»**. Lo ya producido se conserva y sólo se rehace lo que falta. No se reanuda solo a propósito: con un proveedor de pago, reanudar sin permiso podría cobrar.
+- **Regenerar una escena.** Cambias una escena y se rehace sólo esa; las demás se reutilizan. Medido: 42.6 s frente a 96.5 s del render completo.
+
+Detalle completo, con las cifras de una ejecución real, en [`docs/reports/AVM-LONG-FORM.md`](docs/reports/AVM-LONG-FORM.md).
 
 **2 · Editar un video existente.** Subes un MP4 tuyo y el editor detecta cortes, ritmo y beats, y propone el montaje.
 
@@ -138,6 +171,20 @@ Prueba opcional de navegador, después de `npm.cmd test`:
 npm.cmd install --no-save --package-lock=false --prefix .tmp/browser-tools playwright-core
 node scripts/browser-smoke.mjs
 ```
+
+### Prueba de guion largo
+
+```powershell
+node scripts/long-form-smoke.mjs            # planifica el guion largo, renderiza una muestra
+node scripts/long-form-smoke.mjs --full     # renderiza el proyecto largo entero (lento)
+node scripts/long-form-smoke.mjs --palabras 2500
+```
+
+Todo local y sin coste: voz SAPI, fondos generados con FFmpeg, sin Pexels, sin Gemini y sin ninguna API de pago. Informa, con cifras medidas: palabras, escenas, duración estimada, **duración real medida con ffprobe**, estado final, pico de memoria, si el proyecto es reanudable, y una verificación de que el guion llegó entero sin truncar. Además **calibra la voz** de este equipo, comparando la duración estimada con la real, y dice qué `NARRATION_WPM` usar.
+
+Medición del 2026-09-20 sobre un guion de 15 706 caracteres y 2 702 palabras: 105 escenas, 7 secciones, plantilla `video-curso` elegida automáticamente, 23 min 48 s estimados, planificación en 9 ms, guion íntegro verificado, pico de RSS **59 MB**. La muestra de 6 escenas produjo un MP4 de 3,75 MB con audio y subtítulos, 56,40 s medidos con ffprobe frente a 80,89 s previstos (la voz de esta máquina narra a ~167 wpm, no a los 115 supuestos: ver limitación 1 en el informe). Regenerar una sola escena costó 42,6 s frente a 96,5 s del render completo.
+
+`tests/long-form.test.js` cubre en 20 pruebas: guion de más de 2 000 caracteres aceptado sin truncar, video de ~1 minuto, guion de 10-12 minutos, segmentación que nunca parte una oración, duración automática, objetivo incompatible que avisa sin recortar, estados y progreso contado, reanudación y regeneración de una escena, ausencia de claves en respuestas y frontend, contrato del Orquestador y no regresión del flujo corto.
 
 Hay dos smoke tests de navegador. `scripts/editor-smoke.mjs` recorre el **flujo completo del editor web** (subir → analizar → propuesta → aprobar → exportar → descargar) y comprueba, entre otras cosas, que exportar esté bloqueado antes de aprobar, que el botón se bloquee durante la exportación, que los dos reproductores decodifiquen, que el MP4 descargado no esté vacío, que el original no cambie y que la página no produzca **ningún** error ni respuesta HTTP ≥ 400. `scripts/browser-smoke.mjs` cubre la página `/analysis.html`.
 
