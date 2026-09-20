@@ -300,11 +300,19 @@ Con honestidad, porque afecta al uso real:
    minutos con 4 hilos; `npm run doctor` ya avisa de esa limitación. La caché
    por huella y la reanudación lo hacen soportable —regenerar una escena no
    vuelve a pagar las otras 104—, pero no lo hacen rápido.
-3. **La revisión escena a escena en la interfaz no está paginada.** 105 tarjetas
+3. **El análisis que sigue a la generación es el cuello de botella de un video
+   largo, no el render.** El flujo encadena `generación → análisis → propuesta`,
+   y el análisis de 16 min 39 s copia el original (46 MB) y transcodifica una
+   previsualización (>53 MB): más de 100 MB en disco por proyecto y varios
+   minutos de CPU, después de los ~27 del render. Para un video largo eso es
+   trabajo que casi nunca se aprovecha, porque el montaje ya viene definido por
+   las escenas del guion. Pendiente: saltarse el análisis —o limitarlo a
+   `ffprobe`— cuando el video lo produjo el propio pipeline.
+4. **La revisión escena a escena en la interfaz no está paginada.** 105 tarjetas
    se dibujan de una vez; se nota al desplazar.
-4. **No hay reanudación automática tras reiniciar el servidor.** Se marca como
+5. **No hay reanudación automática tras reiniciar el servidor.** Se marca como
    recuperable y se ofrece el botón, pero no se retoma solo, a propósito: un
    proveedor de pago podría gastar créditos sin que nadie lo pida.
-5. **`sourceReference` no se resuelve.** Drive queda fuera de esta entrega.
-6. **Los subtítulos son estimados**, no transcritos. Whisper está declarado como
+6. **`sourceReference` no se resuelve.** Drive queda fuera de esta entrega.
+7. **Los subtítulos son estimados**, no transcritos. Whisper está declarado como
    opcional pero no se ha validado con guiones largos.
