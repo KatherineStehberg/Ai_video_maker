@@ -204,7 +204,7 @@ test('borrador: no produce nada y declara el coste real de cada pieza', async ()
   assert.equal(estimarCosto({ source: 'llm', provider: 'ollama' }).tieneCostoPotencial, false);
 });
 
-test('pipeline real: MP4 con imagen visible, audio y subtítulos del prompt', { timeout: 900000 }, async () => {
+test('pipeline real: MP4 visible, subtítulos y voz cuando hay TTS local', { timeout: 900000 }, async () => {
   const spec = {
     prompt: 'Video vertical promocional sobre clases de inglés online para adultos',
     duration: 15, format: '9:16', audience: 'adultos', platform: 'TikTok',
@@ -222,7 +222,12 @@ test('pipeline real: MP4 con imagen visible, audio y subtítulos del prompt', { 
   assert.equal(meta.width, 1080);
   assert.equal(meta.height, 1920);
   assert.ok(meta.duration > 5, `duración ${meta.duration}`);
-  assert.equal(meta.audio.length, 1, 'debe llevar la pista de voz');
+  if (out.spec.narracion === 'none') {
+    assert.equal(meta.audio.length, 0, 'sin motor TTS no debe inventarse una pista de voz');
+    assert.ok(out.notes.some(n => /Sin voz/.test(n)), 'debe explicar por qué el video no tiene voz');
+  } else {
+    assert.equal(meta.audio.length, 1, 'con TTS disponible debe llevar la pista de voz');
+  }
 
   // IMAGEN VISIBLE: se mide el brillo medio de un frame. Un video en negro
   // pasaría todas las comprobaciones anteriores y seguiría siendo inservible.

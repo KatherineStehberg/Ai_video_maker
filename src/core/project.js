@@ -3,6 +3,7 @@ import path from 'node:path';
 import { PATHS, ensureDir, rel } from '../lib/paths.js';
 import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js';
 import { ASPECTS } from '../config.js';
+import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
 
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
@@ -23,7 +24,7 @@ export function makeScene(partial = {}) {
   return {
     id: partial.id || newId('sc'),
     text,
-    duration: clamp(Number(partial.duration) || estimateDuration(text), 0.5, 300),
+    duration: clamp(Number(partial.duration) || estimateDuration(text), SCENE_DURATION_LIMITS.min, SCENE_DURATION_LIMITS.max),
     visualPrompt: partial.visualPrompt ?? '',
     assetPath: partial.assetPath ?? null,      // imagen o clip de video (relativo al ROOT)
     assetKind: partial.assetKind ?? 'auto',    // auto | image | video | color
@@ -118,6 +119,9 @@ export function validateProject(p) {
     const n = i + 1;
     if (!s.id) errors.push(`Escena ${n}: falta id`);
     if (!(Number(s.duration) > 0)) errors.push(`Escena ${n}: duracion invalida`);
+    if (Number(s.duration) > SCENE_DURATION_LIMITS.max) {
+      errors.push(`Escena ${n}: supera el máximo de ${SCENE_DURATION_LIMITS.max} segundos`);
+    }
     if (!s.text?.trim() && !s.assetPath) {
       warnings.push(`Escena ${n}: sin texto ni imagen, se rendera como fondo plano`);
     }

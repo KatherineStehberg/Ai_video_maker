@@ -1,6 +1,8 @@
 import { splitSentences } from '../lib/util.js';
 import { keywordsFrom } from '../core/script-generator.js';
-import { MAX_ESCENAS, TOLERANCIA_OBJETIVO } from './limits.js';
+import {
+  MAX_ESCENAS, TOLERANCIA_OBJETIVO, SCENE_TEXT_MAX, SCENE_DURATION_LIMITS,
+} from './limits.js';
 
 /*
  * Este módulo NO importa de `script.js` a propósito: `script.js` sí importa de
@@ -167,6 +169,35 @@ export function agruparOraciones(oraciones, { palabrasObjetivo, palabrasMax }) {
 }
 
 /**
+ * Split an abnormally long sentence only at punctuation that already exists.
+ * If one clause is still too large, reject it instead of silently clamping its
+ * duration later in the project model.
+ */
+export function normalizarOracionesLargas(oraciones, { palabrasMax, wpm = WPM_POR_DEFECTO } = {}) {
+  const maxPorDuracion = Math.max(1, Math.floor((SCENE_DURATION_LIMITS.max * wpm) / 60));
+  const limitePalabras = Math.min(palabrasMax || maxPorDuracion, maxPorDuracion);
+  const salida = [];
+
+  for (const oracion of oraciones) {
+    const cabe = contarPalabras(oracion) <= limitePalabras && oracion.length <= SCENE_TEXT_MAX;
+    if (cabe) { salida.push(oracion); continue; }
+
+    const clausulas = String(oracion).match(/[^,;:—–]+(?:[,;:—–]+|$)/g)?.map(s => s.trim()).filter(Boolean) || [];
+    if (clausulas.length < 2 || clausulas.some(c => contarPalabras(c) > limitePalabras || c.length > SCENE_TEXT_MAX)) {
+      const palabras = contarPalabras(oracion);
+      const segundos = segundosDePalabras(palabras, wpm);
+      throw new Error(
+        `Una oración tiene ${oracion.length} caracteres, ${palabras} palabras y duraría aproximadamente ` +
+        `${segundos.toFixed(1)} s. El máximo por escena es ${SCENE_TEXT_MAX} caracteres y ` +
+        `${SCENE_DURATION_LIMITS.max} s. Añade puntuación para dividirla en escenas; no se ha recortado nada.`,
+      );
+    }
+    salida.push(...clausulas);
+  }
+  return salida;
+}
+
+/**
  * Convierte un guion completo en escenas.
  *
  * @param {string} texto        el guion tal cual lo escribió la usuaria
@@ -195,7 +226,8 @@ export function segmentarGuion(texto, {
     let primera = true;
     for (const parrafo of bloque.parrafos) {
       // El párrafo cierra escena: nunca se mezclan dos párrafos en una escena.
-      for (const grupo of agruparOraciones(splitSentences(parrafo), { palabrasObjetivo, palabrasMax })) {
+      const oraciones = normalizarOracionesLargas(splitSentences(parrafo), { palabrasMax, wpm });
+      for (const grupo of agruparOraciones(oraciones, { palabrasObjetivo, palabrasMax })) {
         crudas.push({
           texto: grupo.join(' '),
           seccion: bloque.titulo,
