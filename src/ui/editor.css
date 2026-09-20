@@ -17,49 +17,109 @@
    ========================================================================== */
 
 :root {
-  /* ---------------------- 1. COLORES (edita aquí) ------------------------ */
-  --azul: #12395f;                /* azul marino: color principal de marca    */
-  --azul-oscuro: #0c2844;         /* hover del principal                      */
-  --azul-medio: #2d5f92;          /* acentos secundarios                      */
-  --azul-claro: #e8f0f8;          /* fondos suaves de acento                  */
-  --accion: #1565d8;              /* acción principal (botones clave)         */
-  --accion-oscura: #0f4dab;
-  --turquesa: #0e8f8f;            /* estados correctos / recursos             */
-  --verde: #10805a;               /* completado, aprobado                     */
-  --ambar: #a1620a;               /* advertencias                             */
-  --ambar-fondo: #fdf6ea;
-  --rojo: #9c2a2a;                /* SOLO errores                             */
-  --rojo-fondo: #fcf2f2;
+  /* ---------------------- 1. COLORES (edita aquí) ------------------------
+     Tema OSCURO de estudio: el lienzo manda y la interfaz se aparta. Un video
+     se juzga por su imagen, y sobre un fondo claro el ojo compara el video con
+     el blanco de la página en vez de con el negro de la sala.
 
-  --tinta: #10233a;               /* texto principal                          */
-  --tinta-suave: #5a6b7d;         /* texto secundario                         */
-  --borde: #dbe3ec;
-  --panel: #ffffff;               /* paneles y tarjetas                       */
-  --fondo: #eef2f7;               /* fondo general gris azulado               */
-  --fondo-hueco: #f5f8fb;         /* zonas inertes, pistas, campos            */
+     Para volver al tema claro: <html data-tema="claro"> (ver más abajo).
+     ------------------------------------------------------------------- */
+  --marca: #8b6cff;               /* violeta: identidad y acción principal    */
+  --marca-fuerte: #a68dff;        /* hover / foco                             */
+  --marca-tenue: rgba(139,108,255,.14);  /* fondos suaves de acento           */
+  --marca-borde: rgba(139,108,255,.38);
+  --degradado-marca: linear-gradient(135deg, #8b6cff, #5b8dff);
+
+  --ok: #34d399;                  /* completado, aprobado                     */
+  --ok-tenue: rgba(52,211,153,.13);
+  --recurso: #22d3ee;             /* recursos y procedencia                   */
+  --aviso: #fbbf24;               /* advertencias                             */
+  --aviso-tenue: rgba(251,191,36,.12);
+  --error: #f87171;               /* SOLO errores                             */
+  --error-tenue: rgba(248,113,113,.12);
+
+  --texto: #e9ecf5;               /* texto principal                          */
+  --texto-suave: #98a2bd;         /* texto secundario                         */
+  --linea: #262b3d;               /* bordes                                   */
+  --linea-fuerte: #333a52;
+  --superficie: #161a28;          /* paneles y tarjetas                       */
+  --superficie-alta: #1d2233;     /* tarjetas sobre tarjetas, hover           */
+  --lienzo: #0d0f18;              /* fondo general                            */
+  --hueco: #11141f;               /* zonas inertes, pistas, campos            */
+
+  /* Alias de los nombres anteriores. El resto de la hoja los sigue usando;
+     así el cambio de tema es un solo bloque y no una búsqueda global. */
+  --azul: var(--texto);
+  --azul-oscuro: var(--marca-fuerte);
+  --azul-medio: var(--marca);
+  --azul-claro: var(--marca-tenue);
+  --accion: var(--marca);
+  --accion-oscura: var(--marca-fuerte);
+  --turquesa: var(--recurso);
+  --verde: var(--ok);
+  --ambar: var(--aviso);
+  --ambar-fondo: var(--aviso-tenue);
+  --rojo: var(--error);
+  --rojo-fondo: var(--error-tenue);
+  --tinta: var(--texto);
+  --tinta-suave: var(--texto-suave);
+  --borde: var(--linea);
+  --panel: var(--superficie);
+  --fondo: var(--lienzo);
+  --fondo-hueco: var(--hueco);
 
   /* ---------------------- 2. TIPOGRAFÍA --------------------------------- */
-  --fuente: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --fuente: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --txt: 15px;
   --txt-sm: .85rem;
   --txt-xs: .76rem;
-  --titulo: 1.25rem;
-  --titulo-sec: 1rem;
+  --titulo: 1.4rem;
+  --titulo-sec: 1.05rem;
 
   /* ------------- 3. ESPACIOS, BORDES Y SOMBRAS -------------------------- */
   --e1: .35rem;  --e2: .6rem;  --e3: 1rem;  --e4: 1.5rem;
-  --radio: 12px;                  /* esquinas de tarjetas                     */
-  --radio-btn: 9px;
-  --sombra: 0 1px 2px rgba(16,35,58,.05), 0 6px 18px rgba(16,35,58,.06);
-  --sombra-flotante: 0 8px 32px rgba(16,35,58,.14);
+  --radio: 16px;                  /* esquinas de tarjetas                     */
+  --radio-btn: 11px;
+  --radio-mini: 8px;
+  /* En oscuro una sombra no se ve: la elevación la da un borde superior claro. */
+  --sombra: 0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.35);
+  --sombra-flotante: 0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px rgba(0,0,0,.5);
+  --brillo-marca: 0 0 0 1px var(--marca-borde), 0 8px 28px rgba(139,108,255,.28);
 
   /* ---------------------- 4. DIMENSIONES -------------------------------- */
-  --nav-ancho: 216px;             /* barra lateral de navegación              */
-  --panel-ancho: 320px;           /* panel derecho de configuración           */
-  --cabecera-alto: 56px;
+  --nav-ancho: 232px;             /* barra lateral de navegación              */
+  --panel-ancho: 336px;           /* panel derecho de configuración           */
+  --cabecera-alto: 60px;
   --player-alto: 46vh;            /* ALTURA DEL REPRODUCTOR                   */
   --timeline-alto: 168px;
 
+  color-scheme: dark;
+}
+
+/* Tema claro, por si se prefiere para trabajar con luz directa. */
+:root[data-tema="claro"] {
+  --texto: #10233a;
+  --texto-suave: #5a6b7d;
+  --linea: #dbe3ec;
+  --linea-fuerte: #c3cfdd;
+  --superficie: #ffffff;
+  --superficie-alta: #f5f8fb;
+  --lienzo: #eef2f7;
+  --hueco: #f5f8fb;
+  --marca: #6d3ff5;
+  --marca-fuerte: #5227d6;
+  --marca-tenue: rgba(109,63,245,.09);
+  --marca-borde: rgba(109,63,245,.3);
+  --ok: #10805a;
+  --ok-tenue: #e6f5ef;
+  --recurso: #0e8f8f;
+  --aviso: #a1620a;
+  --aviso-tenue: #fdf6ea;
+  --error: #9c2a2a;
+  --error-tenue: #fcf2f2;
+  --azul: var(--marca-fuerte);
+  --sombra: 0 1px 2px rgba(16,35,58,.05), 0 6px 18px rgba(16,35,58,.06);
+  --sombra-flotante: 0 8px 32px rgba(16,35,58,.14);
   color-scheme: light;
 }
 
@@ -82,7 +142,7 @@ a { color: var(--accion); }
 code { background: var(--fondo-hueco); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
 .ayuda { font-size: var(--txt-sm); color: var(--tinta-suave); }
 .mini { font-size: var(--txt-xs); color: var(--tinta-suave); }
-:focus-visible { outline: 3px solid rgba(21,101,216,.5); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--marca-fuerte); outline-offset: 2px; border-radius: 4px; }
 
 /* ====================== ESTRUCTURA DE LA APLICACIÓN ======================= */
 .app {
@@ -96,109 +156,162 @@ code { background: var(--fondo-hueco); padding: .1em .35em; border-radius: 4px; 
 
 /* ------------------------- BARRA LATERAL [MARCA] ------------------------- */
 .nav {
-  background: var(--azul); color: #fff; display: flex; flex-direction: column;
+  background: var(--superficie); color: var(--texto);
+  border-right: 1px solid var(--linea);
+  display: flex; flex-direction: column;
   padding: var(--e3) var(--e2); gap: var(--e3); overflow-y: auto;
 }
 .marca { display: flex; align-items: center; gap: var(--e2); padding: 0 var(--e2); }
 /* LOGOTIPO: sustituye este cuadro por un <img> si tienes uno. */
 .marca-icono {
-  width: 26px; height: 26px; border-radius: 7px; flex: none;
-  background: linear-gradient(135deg, var(--accion), var(--turquesa));
-  display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700;
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
+  background: var(--degradado-marca);
+  box-shadow: 0 4px 14px rgba(139,108,255,.35);
+  display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 700;
 }
 .marca-nombre { font-weight: 600; font-size: .95rem; line-height: 1.1; }
 .marca-nombre small { display: block; font-weight: 400; font-size: var(--txt-xs); opacity: .7; }
 
 .nav-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
+  position: relative;
   display: flex; align-items: center; gap: var(--e2); width: 100%;
-  padding: .55rem var(--e2); border: 0; border-radius: var(--radio-btn);
-  background: transparent; color: #cdddec; font: inherit; font-size: var(--txt-sm);
-  text-align: left; cursor: pointer;
+  padding: .6rem var(--e2); border: 0; border-radius: var(--radio-btn);
+  background: transparent; color: var(--texto-suave); font: inherit; font-size: var(--txt-sm);
+  text-align: left; cursor: pointer; transition: background .15s, color .15s;
 }
-.nav-item:hover:not(:disabled) { background: rgba(255,255,255,.1); color: #fff; }
-.nav-item[aria-current="page"] { background: rgba(255,255,255,.16); color: #fff; font-weight: 600; }
+.nav-item:hover:not(:disabled) { background: var(--superficie-alta); color: var(--texto); }
+.nav-item[aria-current="page"] {
+  background: var(--marca-tenue); color: var(--texto); font-weight: 600;
+}
+/* Barra de acento a la izquierda: marca la sección sin depender del color. */
+.nav-item[aria-current="page"]::before {
+  content: ""; position: absolute; left: -6px; top: 50%;
+  width: 3px; height: 18px; transform: translateY(-50%);
+  border-radius: 0 3px 3px 0; background: var(--marca);
+}
 .nav-item:disabled { opacity: .45; cursor: not-allowed; }
 .nav-icono { width: 18px; text-align: center; flex: none; }
 .nav-badge {
   margin-left: auto; font-size: .62rem; text-transform: uppercase; letter-spacing: .04em;
-  background: rgba(255,255,255,.18); padding: .1rem .35rem; border-radius: 4px;
+  background: var(--marca-tenue); color: var(--marca-fuerte);
+  padding: .12rem .4rem; border-radius: 5px; font-weight: 600;
 }
-.nav-pie { margin-top: auto; font-size: var(--txt-xs); color: #9db6cd; padding: 0 var(--e2); }
+.nav-pie { margin-top: auto; font-size: var(--txt-xs); color: var(--texto-suave); padding: 0 var(--e2); }
 
 /* ---------------------------- COLUMNA CENTRAL ---------------------------- */
 .centro { display: flex; flex-direction: column; min-width: 0; height: 100vh; }
 
 .cabecera {
   display: flex; align-items: center; gap: var(--e3); flex-wrap: wrap;
-  min-height: var(--cabecera-alto); padding: var(--e2) var(--e3);
-  background: var(--panel); border-bottom: 1px solid var(--borde);
+  min-height: var(--cabecera-alto); padding: var(--e2) var(--e4);
+  background: color-mix(in srgb, var(--superficie) 80%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--linea);
+  position: sticky; top: 0; z-index: 20;
 }
 .cabecera-titulo { font-weight: 600; color: var(--azul); min-width: 0; overflow-wrap: anywhere; }
 .cabecera-acciones { margin-left: auto; display: flex; gap: var(--e2); align-items: center; flex-wrap: wrap; }
 
-.lienzo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--e3); }
+.lienzo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--e4); }
 .lienzo > * { max-width: 1180px; margin-inline: auto; }
 
 /* ------------------------- PANEL DERECHO --------------------------------- */
 .panel-config {
-  background: var(--panel); border-left: 1px solid var(--borde);
+  background: var(--superficie); border-left: 1px solid var(--linea);
   overflow-y: auto; padding: var(--e3); height: 100vh;
 }
 .panel-vacio { display: grid; place-items: center; height: 60%; text-align: center; padding: var(--e3); }
 
 /* ============================== TARJETAS ================================= */
 .tarjeta {
-  background: var(--panel); border: 1px solid var(--borde);
-  border-radius: var(--radio); padding: var(--e3); box-shadow: var(--sombra);
+  background: var(--superficie); border: 1px solid var(--linea);
+  border-radius: var(--radio); padding: var(--e4); box-shadow: var(--sombra);
   margin-bottom: var(--e3);
 }
+.tarjeta h2 { font-size: var(--titulo-sec); letter-spacing: -.01em; }
 .tarjeta-cab { display: flex; align-items: baseline; justify-content: space-between; gap: var(--e2); flex-wrap: wrap; margin-bottom: var(--e2); }
 
 /* ============================== BOTONES ==================================
-   .btn base · .btn-principal (azul marino) · .btn-accion (azul eléctrico)
+   .btn base · .btn-principal (violeta de marca) · .btn-accion (degradado)
    .btn-ok (verde, aprobar) · .btn-sutil (sin borde) · .btn-mini
    ========================================================================= */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
   padding: .55rem 1rem; min-height: 40px;
   border: 1px solid var(--borde); border-radius: var(--radio-btn);
-  background: var(--panel); color: var(--azul);
+  background: var(--superficie-alta); color: var(--texto);
   font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
-  transition: background .15s, border-color .15s, transform .05s;
+  transition: background .15s, border-color .15s, transform .05s, box-shadow .15s;
 }
-.btn:hover:not(:disabled) { background: var(--azul-claro); border-color: var(--azul-medio); }
+.btn:hover:not(:disabled) { background: var(--marca-tenue); border-color: var(--marca-borde); color: var(--texto); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
 .btn-bloque { width: 100%; }
-.btn-grande { min-height: 46px; font-size: 1rem; }
-.btn-principal { background: var(--azul); border-color: var(--azul); color: #fff; }
-.btn-principal:hover:not(:disabled) { background: var(--azul-oscuro); border-color: var(--azul-oscuro); }
-.btn-accion { background: var(--accion); border-color: var(--accion); color: #fff; }
-.btn-accion:hover:not(:disabled) { background: var(--accion-oscura); border-color: var(--accion-oscura); }
-.btn-ok { background: var(--verde); border-color: var(--verde); color: #fff; }
-.btn-ok:hover:not(:disabled) { background: #0c6647; border-color: #0c6647; }
-.btn-sutil { border-color: transparent; background: transparent; }
-.btn-sutil:hover:not(:disabled) { background: var(--azul-claro); }
-.btn-mini { min-height: 30px; padding: .25rem .6rem; font-size: var(--txt-xs); }
+.btn-grande { min-height: 50px; font-size: 1rem; border-radius: 13px; }
+
+/* Acción principal: el degradado marca sin ambigüedad dónde se avanza. */
+.btn-principal, .btn-accion {
+  background: var(--degradado-marca); border-color: transparent; color: #fff;
+  box-shadow: 0 6px 20px rgba(139,108,255,.3);
+}
+.btn-principal:hover:not(:disabled), .btn-accion:hover:not(:disabled) {
+  background: var(--degradado-marca); border-color: transparent; color: #fff;
+  filter: brightness(1.1); box-shadow: 0 8px 26px rgba(139,108,255,.45);
+}
+.btn-principal:disabled, .btn-accion:disabled { box-shadow: none; }
+
+.btn-ok { background: var(--ok); border-color: var(--ok); color: #05261a; }
+.btn-ok:hover:not(:disabled) { background: #4ade9f; border-color: #4ade9f; color: #05261a; filter: none; }
+.btn-sutil { border-color: transparent; background: transparent; color: var(--texto-suave); }
+.btn-sutil:hover:not(:disabled) { background: var(--superficie-alta); color: var(--texto); border-color: transparent; }
+.btn-mini { min-height: 32px; padding: .28rem .65rem; font-size: var(--txt-xs); border-radius: var(--radio-mini); }
 
 /* ============================ FORMULARIOS ================================ */
 label { display: block; margin: var(--e2) 0; font-size: var(--txt-sm); color: var(--tinta-suave); font-weight: 500; }
 select, input[type=text], input[type=number], input[type=range], textarea {
   display: block; width: 100%; margin-top: var(--e1); padding: .5rem .6rem;
-  border: 1px solid var(--borde); border-radius: var(--radio-btn);
-  background: var(--panel); font: inherit; color: var(--tinta);
+  border: 1px solid var(--linea-fuerte); border-radius: var(--radio-btn);
+  background: var(--hueco); font: inherit; color: var(--texto);
+  transition: border-color .15s, box-shadow .15s;
 }
-textarea { resize: vertical; }
+select:focus, input[type=text]:focus, input[type=number]:focus, textarea:focus {
+  outline: none; border-color: var(--marca); box-shadow: 0 0 0 3px var(--marca-tenue);
+}
+::placeholder { color: var(--texto-suave); opacity: .7; }
+textarea { resize: vertical; line-height: 1.55; }
 input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accion); margin: 0; flex: none; }
 .casilla { display: flex; align-items: center; gap: var(--e2); color: var(--tinta); }
-.rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e2); }
+.rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--e2) var(--e3); }
+/* Una etiqueta que ocupa dos líneas no debe desalinear su campo respecto a los
+   de al lado: la etiqueta crece hacia arriba y los campos quedan a la misma altura. */
+.rejilla-2 > label { display: flex; flex-direction: column; justify-content: flex-end; margin: var(--e1) 0; }
+
+/* ----------------------------- DESPLEGABLES ----------------------------- */
+details {
+  border: 1px solid var(--linea); border-radius: var(--radio-btn);
+  background: var(--hueco); padding: var(--e2) var(--e3); margin: var(--e2) 0;
+}
+details[open] { border-color: var(--marca-borde); background: var(--superficie-alta); }
+summary {
+  cursor: pointer; font-size: var(--txt-sm); font-weight: 600; color: var(--texto);
+  list-style: none; display: flex; align-items: center; gap: var(--e2);
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: "+"; width: 20px; height: 20px; flex: none; border-radius: 6px;
+  background: var(--marca-tenue); color: var(--marca-fuerte);
+  display: grid; place-items: center; font-weight: 700; line-height: 1;
+}
+details[open] > summary::before { content: "−"; }
+summary:hover { color: var(--marca-fuerte); }
 
 .zona-archivo {
-  display: block; border: 2px dashed #b6c7da; border-radius: var(--radio); padding: var(--e3);
-  text-align: center; cursor: pointer; background: var(--fondo-hueco); color: var(--azul); font-weight: 600;
+  display: block; border: 2px dashed var(--linea-fuerte); border-radius: var(--radio); padding: var(--e4);
+  text-align: center; cursor: pointer; background: var(--hueco); color: var(--texto); font-weight: 600;
+  transition: border-color .15s, background .15s;
 }
-.zona-archivo:hover { border-color: var(--accion); background: var(--azul-claro); }
+.zona-archivo:hover { border-color: var(--marca); background: var(--marca-tenue); }
 .zona-archivo input { display: block; width: 100%; margin-top: var(--e2); font-weight: 400; }
 
 .ficha { display: grid; grid-template-columns: auto 1fr; gap: .2rem var(--e2); margin: var(--e2) 0 0; font-size: var(--txt-sm); }
@@ -206,41 +319,68 @@ input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accion); m
 .ficha dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
 /* ============================ PASOS DEL FLUJO ============================ */
-.pasos { display: flex; flex-wrap: wrap; gap: var(--e1); list-style: none; margin: 0 0 var(--e3); padding: 0; }
-.paso {
-  display: flex; align-items: center; gap: .4rem; font-size: var(--txt-xs);
-  padding: .3rem .65rem; border-radius: 999px; border: 1px solid var(--borde);
-  background: var(--panel); color: var(--tinta-suave); cursor: pointer;
+/* Raíl de progreso: un hilo une los pasos para que se lea como un recorrido
+   y no como siete botones sueltos. */
+.pasos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--e1);
+  list-style: none; margin: 0 0 var(--e4); padding: var(--e2);
+  background: var(--superficie); border: 1px solid var(--linea);
+  border-radius: 999px; box-shadow: var(--sombra);
 }
-.paso-num { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--fondo-hueco); font-size: .66rem; font-weight: 700; flex: none; }
-.paso[data-estado="activo"] { background: var(--accion); border-color: var(--accion); color: #fff; font-weight: 600; }
-.paso[data-estado="activo"] .paso-num { background: rgba(255,255,255,.28); color: #fff; }
-.paso[data-estado="hecho"] { background: var(--verde); border-color: var(--verde); color: #fff; }
-.paso[data-estado="hecho"] .paso-num { background: rgba(255,255,255,.28); color: #fff; }
-.paso:disabled { opacity: .5; cursor: not-allowed; }
+.pasos > li { display: flex; align-items: center; }
+/* El hilo va ENTRE pasos, así que lo dibuja cada li salvo el primero. */
+.pasos > li + li::before {
+  content: ""; width: 14px; height: 2px; flex: none;
+  background: var(--linea-fuerte); border-radius: 2px;
+}
+.paso {
+  display: flex; align-items: center; gap: .45rem; font-size: var(--txt-xs);
+  padding: .4rem .8rem; border-radius: 999px; border: 1px solid transparent;
+  background: transparent; color: var(--texto-suave); cursor: pointer;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+/* Sólo los pasos pendientes reaccionan al ratón. Un `.paso:hover` genérico
+   tiene más especificidad que `.paso[data-estado="activo"]` y le borraba el
+   degradado: el paso en curso se veía igual que uno cualquiera. */
+.paso[data-estado="pendiente"]:hover:not(:disabled) { background: var(--superficie-alta); color: var(--texto); }
+.paso-num {
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--hueco); color: var(--texto-suave);
+  font-size: .66rem; font-weight: 700; flex: none;
+}
+.paso[data-estado="activo"] {
+  background: var(--degradado-marca); border-color: transparent; color: #fff; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(139,108,255,.4);
+}
+.paso[data-estado="activo"] .paso-num { background: rgba(255,255,255,.3); color: #fff; }
+.paso[data-estado="hecho"] { background: var(--ok-tenue); border-color: transparent; color: var(--ok); font-weight: 600; }
+.paso[data-estado="hecho"] .paso-num { background: var(--ok); color: #05261a; }
+/* Un paso hecho muestra un tic en vez de su número: informa de un vistazo. */
+.paso[data-estado="hecho"] .paso-num { font-size: 0; }
+.paso[data-estado="hecho"] .paso-num::after { content: "✓"; font-size: .7rem; }
+.paso:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ======================= ESTADOS, AVISOS Y PROGRESO ====================== */
 .barra { display: flex; align-items: center; gap: var(--e3); flex-wrap: wrap; }
 .barra progress { min-width: 180px; }
 .barra .mini { flex: 1 1 260px; }
-progress { flex: 1; width: 100%; height: 8px; border-radius: 999px; overflow: hidden; border: 0; background: #dde6ef; }
-progress::-webkit-progress-bar { background: #dde6ef; }
-progress::-webkit-progress-value { background: var(--accion); transition: width .25s; }
-progress::-moz-progress-bar { background: var(--accion); }
+progress { flex: 1; width: 100%; height: 8px; border-radius: 999px; overflow: hidden; border: 0; background: var(--hueco); }
+progress::-webkit-progress-bar { background: var(--hueco); border-radius: 999px; }
+progress::-webkit-progress-value { background: var(--degradado-marca); border-radius: 999px; transition: width .25s; }
+progress::-moz-progress-bar { background: var(--marca); border-radius: 999px; }
 .pill {
   font-size: var(--txt-xs); font-weight: 700; padding: .22rem .6rem; border-radius: 999px;
-  background: var(--fondo-hueco); color: var(--azul); white-space: nowrap; border: 1px solid var(--borde);
+  background: var(--superficie-alta); color: var(--texto); white-space: nowrap; border: 1px solid var(--linea);
 }
-.pill[data-tono="ok"] { background: #e6f5ef; color: var(--verde); border-color: #bfe3d4; }
-.pill[data-tono="trabajo"] { background: var(--azul-claro); color: var(--accion); border-color: #c5dbf3; }
-.pill[data-tono="aviso"] { background: var(--ambar-fondo); color: var(--ambar); border-color: #eedcc0; }
-.pill[data-tono="error"] { background: var(--rojo-fondo); color: var(--rojo); border-color: #e9cccc; }
+.pill[data-tono="ok"] { background: var(--ok-tenue); color: var(--ok); border-color: transparent; }
+.pill[data-tono="trabajo"] { background: var(--marca-tenue); color: var(--marca-fuerte); border-color: transparent; }
+.pill[data-tono="aviso"] { background: var(--aviso-tenue); color: var(--aviso); border-color: transparent; }
+.pill[data-tono="error"] { background: var(--error-tenue); color: var(--error); border-color: transparent; }
 
 .aviso { border-radius: var(--radio); padding: var(--e2) var(--e3); font-size: var(--txt-sm); margin-bottom: var(--e3); }
-.aviso-error { background: var(--rojo-fondo); border: 1px solid #e9cccc; color: var(--rojo); font-weight: 500; }
-.aviso-atencion { background: var(--ambar-fondo); border: 1px solid #eedcc0; color: #79490a; }
-.aviso-info { background: var(--azul-claro); border: 1px solid #c5dbf3; color: var(--azul); }
+.aviso-error { background: var(--error-tenue); border: 1px solid var(--error); color: var(--error); font-weight: 500; }
+.aviso-atencion { background: var(--aviso-tenue); border: 1px solid var(--marca-borde); border-color: rgba(251,191,36,.35); color: var(--aviso); }
+.aviso-info { background: var(--marca-tenue); border: 1px solid var(--marca-borde); color: var(--texto); }
 .aviso h3 { color: inherit; margin-bottom: var(--e1); }
 .aviso ul { margin: 0; padding-left: 1.1rem; }
 .aviso li { margin: .25rem 0; }
@@ -253,58 +393,101 @@ progress::-moz-progress-bar { background: var(--accion); }
 .acciones-inicio { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: var(--e3); margin-bottom: var(--e4); }
 .accion-grande {
   display: flex; flex-direction: column; align-items: flex-start; gap: var(--e1);
-  padding: var(--e4) var(--e3); text-align: left; cursor: pointer;
-  border: 2px solid var(--borde); border-radius: var(--radio); background: var(--panel);
-  font: inherit; color: var(--tinta); box-shadow: var(--sombra);
+  padding: var(--e4); text-align: left; cursor: pointer; gap: var(--e2);
+  border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie);
+  font: inherit; color: var(--texto); box-shadow: var(--sombra);
+  transition: border-color .15s, transform .1s, box-shadow .15s;
 }
-.accion-grande:hover { border-color: var(--accion); background: var(--azul-claro); }
-.accion-icono { font-size: 1.7rem; }
-.accion-titulo { font-size: 1.05rem; font-weight: 700; color: var(--azul); }
+.accion-grande:hover { border-color: var(--marca); transform: translateY(-3px); box-shadow: var(--brillo-marca); }
+.accion-icono {
+  font-size: 1.4rem; width: 46px; height: 46px; border-radius: 13px;
+  display: grid; place-items: center; background: var(--marca-tenue);
+}
+.accion-titulo { font-size: 1.1rem; font-weight: 700; color: var(--texto); letter-spacing: -.01em; }
 
 .proyectos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--e3); }
 .proyecto {
-  border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel);
+  border: 1px solid var(--linea); border-radius: var(--radio); background: var(--superficie);
   box-shadow: var(--sombra); overflow: hidden; display: flex; flex-direction: column;
+  transition: border-color .15s, transform .1s;
 }
+.proyecto:hover { border-color: var(--marca-borde); transform: translateY(-2px); }
 .proyecto-mini {
-  height: 108px; background: linear-gradient(135deg, var(--azul-medio), var(--turquesa));
+  height: 120px; background: var(--degradado-marca);
   display: grid; place-items: center; color: #fff; font-size: var(--txt-xs);
   font-weight: 600; text-align: center; padding: var(--e2);
 }
 .proyecto-cuerpo { padding: var(--e2) var(--e3) var(--e3); display: flex; flex-direction: column; gap: var(--e1); flex: 1; }
-.proyecto-titulo { font-weight: 600; color: var(--azul); font-size: var(--txt-sm); overflow-wrap: anywhere; }
+.proyecto-titulo { font-weight: 600; color: var(--texto); font-size: var(--txt-sm); overflow-wrap: anywhere; }
 .proyecto-datos { font-size: var(--txt-xs); color: var(--tinta-suave); }
 .proyecto-cuerpo .pill { align-self: flex-start; }   /* no estirar a todo el ancho */
 .proyecto-acciones { display: flex; gap: var(--e1); margin-top: auto; padding-top: var(--e2); flex-wrap: wrap; }
 
-/* =========================== ESCENAS (GUION) ============================= */
-.escenas { display: flex; flex-direction: column; gap: var(--e2); }
-.escena {
-  display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: var(--e2);
-  padding: var(--e2); border: 1px solid var(--borde); border-radius: var(--radio); background: var(--panel);
+/* =========================== ESCENAS (GUION) =============================
+   STORYBOARD: una rejilla de fichas con miniatura grande, en vez de una lista
+   de filas. Un guion de 105 escenas se revisa mirando, no leyendo: la
+   miniatura y el número tienen que verse antes que los campos.
+
+   Para volver a la lista de una columna: .escenas { grid-template-columns: 1fr }
+   ======================================================================= */
+.escenas {
+  display: grid; gap: var(--e3);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
-.escena[data-incluida="no"] { opacity: .5; background: var(--fondo-hueco); }
+.escena {
+  display: flex; flex-direction: column; gap: var(--e2);
+  padding: var(--e2); border: 1px solid var(--linea); border-radius: var(--radio);
+  background: var(--superficie); box-shadow: var(--sombra);
+  transition: border-color .15s, box-shadow .15s, transform .1s;
+}
+.escena:hover { border-color: var(--marca-borde); transform: translateY(-2px); }
+.escena:focus-within { border-color: var(--marca); box-shadow: var(--brillo-marca); }
+/* Excluida: se atenúa pero SIGUE siendo legible y editable; no se esconde. */
+.escena[data-incluida="no"] { opacity: .45; background: var(--hueco); }
+.escena[data-incluida="no"]:hover { opacity: .75; }
+
 .escena-mini {
-  height: 74px; border-radius: 8px; background: var(--fondo-hueco); border: 1px solid var(--borde);
+  /* 16:9, pero con techo: en una sola columna ancha la miniatura crecería
+     hasta empujar los campos fuera de la pantalla. */
+  aspect-ratio: 16 / 9; height: auto; max-height: 190px;
+  border-radius: var(--radio-mini); border: 1px solid var(--linea);
+  background: var(--degradado-marca);
   display: grid; place-items: center; overflow: hidden; position: relative;
 }
 .escena-mini img { width: 100%; height: 100%; object-fit: cover; }
+.escena-mini .mini { color: rgba(255,255,255,.85); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .escena-num {
-  position: absolute; top: 3px; left: 3px; background: var(--azul); color: #fff;
-  width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center;
-  font-size: .66rem; font-weight: 700;
+  position: absolute; top: 6px; left: 6px;
+  background: rgba(0,0,0,.65); color: #fff; backdrop-filter: blur(4px);
+  min-width: 24px; height: 24px; padding: 0 .35rem; border-radius: 999px;
+  display: grid; place-items: center; font-size: .72rem; font-weight: 700;
 }
-.escena-campos { display: grid; gap: var(--e1); min-width: 0; }
+.escena-campos { display: grid; gap: var(--e2); min-width: 0; }
 .escena-campos label { margin: 0; font-size: var(--txt-xs); }
-.escena-campos textarea, .escena-campos input { margin-top: 2px; padding: .35rem .5rem; font-size: var(--txt-sm); }
-.escena-fila { display: grid; grid-template-columns: 1fr 1fr 86px; gap: var(--e2); align-items: end; }
+.escena-campos textarea, .escena-campos input { margin-top: 3px; padding: .4rem .55rem; font-size: var(--txt-sm); }
+/* Tres campos en una ficha estrecha: título y segundos comparten la primera
+   fila; la instrucción visual, que es la más larga, ocupa la segunda entera.
+   El orden en el DOM es título, visual, segundos (ver draft.js). */
+.escena-fila { display: grid; grid-template-columns: 1fr 88px; gap: var(--e2); align-items: end; }
+.escena-fila > label:nth-child(1) { grid-column: 1; grid-row: 1; }
+.escena-fila > label:nth-child(3) { grid-column: 2; grid-row: 1; }
+.escena-fila > label:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
 .escena-botones { display: flex; gap: .25rem; flex-wrap: wrap; align-items: center; }
-.escena-rol { font-size: var(--txt-xs); color: var(--tinta-suave); text-transform: uppercase; letter-spacing: .05em; }
-.escena-fuente { font-size: var(--txt-xs); color: var(--turquesa); overflow-wrap: anywhere; }
+/* `justify-self` y no `align-self`: el contenedor es un grid, así que sin esto
+   el chip se estiraría a todo el ancho de la columna. */
+.escena-rol {
+  justify-self: start; font-size: .64rem; color: var(--marca-fuerte);
+  text-transform: uppercase; letter-spacing: .09em; font-weight: 700;
+  background: var(--marca-tenue); padding: .15rem .5rem; border-radius: 999px;
+}
+.escena-fuente { font-size: var(--txt-xs); color: var(--recurso); overflow-wrap: anywhere; }
 
 /* ============================ REPRODUCTOR ================================ */
-.escenario { background: #0a1724; border-radius: var(--radio); overflow: hidden; display: grid; place-items: center; }
-video { width: 100%; height: var(--player-alto); background: #0a1724; display: block; object-fit: contain; }
+.escenario {
+  background: #000; border: 1px solid var(--linea); border-radius: var(--radio);
+  overflow: hidden; display: grid; place-items: center; box-shadow: var(--sombra);
+}
+video { width: 100%; height: var(--player-alto); background: #000; display: block; object-fit: contain; }
 .videos-par { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--e3); }
 .videos-par video { height: calc(var(--player-alto) * .8); }
 
@@ -322,10 +505,10 @@ video { width: 100%; height: var(--player-alto); background: #0a1724; display: b
 .timeline-lineas { display: flex; flex-direction: column; gap: var(--e1); margin-top: var(--e2); }
 
 /* ============================== TIMELINE ================================= */
-.timeline { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); padding: var(--e2) var(--e3); }
+.timeline { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); padding: var(--e3); }
 .pista-fila { display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: var(--e2); margin-bottom: var(--e1); }
 .pista-nombre { font-size: var(--txt-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-suave); }
-.pista { position: relative; height: 40px; background: var(--fondo-hueco); border: 1px solid var(--borde); border-radius: 7px; overflow: hidden; }
+.pista { position: relative; height: 40px; background: var(--hueco); border: 1px solid var(--linea); border-radius: var(--radio-mini); overflow: hidden; }
 .pista-fina { height: 22px; }
 .pista-vacia { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-size: var(--txt-xs); color: var(--tinta-suave); }
 
