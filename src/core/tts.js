@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { resolveProvider } from '../providers/tts/index.js';
 import { probeDuration, ffmpegRun } from '../lib/ffmpeg.js';
@@ -6,6 +7,77 @@ import { workDir, rel, abs } from '../lib/paths.js';
 import { logger } from '../lib/logger.js';
 
 const log = logger('tts-core');
+
+/**
+ * Number of sequential scene tracks grouped into one cached WAV.  Keeping the
+ * group small avoids the old `amix` graph opening every narration in a long
+ * course at the same time.
+ */
+export const NARRATION_BLOCK_SIZE = 16;
+
+const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
+function concatLine(file) {
+  return `file '${String(file).split(path.sep).join('/').split("'").join("'\\''")}'`;
+}
+
+async function atomicFfmpeg(args, target) {
+  const temporary = `${target}.partial.wav`;
+  try { fs.unlinkSync(temporary); } catch { /* no partial file */ }
+  await ffmpegRun([...args, temporary]);
+  try { fs.unlinkSync(target); } catch { /* first version */ }
+  fs.renameSync(temporary, target);
+}
+
+async function makeTimelineSegment(scene, index, dir) {
+  const duration = Math.max(0.05, Number(scene.duration) || 0.05);
+  const source = scene.narrationPath && fs.existsSync(abs(scene.narrationPath))
+    ? abs(scene.narrationPath)
+    : null;
+  const key = hash({
+    version: 2,
+    sceneId: scene.id,
+    index,
+    duration,
+    narrationKey: scene.narrationKey || null,
+    source: source ? [fs.statSync(source).size, fs.statSync(source).mtimeMs] : null,
+  });
+  const target = path.join(dir, `${String(index).padStart(4, '0')}_${scene.id}.wav`);
+  const stamp = `${target}.sha256`;
+  if (fs.existsSync(target) && fs.existsSync(stamp) && fs.readFileSync(stamp, 'utf8') === key) return target;
+
+  if (source) {
+    await atomicFfmpeg([
+      '-i', source,
+      '-af', `aresample=48000,apad=pad_dur=${duration.toFixed(3)}`,
+      '-t', duration.toFixed(3), '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le',
+    ], target);
+  } else {
+    await atomicFfmpeg([
+      '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo',
+      '-t', duration.toFixed(3), '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le',
+    ], target);
+  }
+  fs.writeFileSync(stamp, key, 'utf8');
+  return target;
+}
+
+async function concatWavFiles(files, target, key) {
+  const stamp = `${target}.sha256`;
+  if (fs.existsSync(target) && fs.existsSync(stamp) && fs.readFileSync(stamp, 'utf8') === key) return target;
+  const list = `${target}.concat.txt`;
+  fs.writeFileSync(list, files.map(concatLine).join('\n'), 'utf8');
+  try {
+    await atomicFfmpeg([
+      '-f', 'concat', '-safe', '0', '-i', list,
+      '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le',
+    ], target);
+    fs.writeFileSync(stamp, key, 'utf8');
+  } finally {
+    try { fs.unlinkSync(list); } catch { /* diagnostic file is not required */ }
+  }
+  return target;
+}
 
 /**
  * Genera la narracion de cada escena.
@@ -43,9 +115,10 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
 
     const rawFile = path.join(dir, `${scene.id}.raw.wav`);
     const outFile = path.join(dir, `${scene.id}.wav`);
+    const narrationKey = createHash('sha256').update(JSON.stringify({text,engine:engine.id,voice:project.voice})).digest('hex');
 
     // Reutiliza audio ya generado si el texto no cambio (ahorra minutos de CPU).
-    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationText === text) {
+    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey) {
       narrations.push(scene.narrationPath);
       durations.push(await probeDuration(abs(scene.narrationPath)));
       continue;
@@ -72,6 +145,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       narrations.push(rel(outFile));
       durations.push(d);
       scene.narrationText = text; // marca de cache
+      scene.narrationKey = narrationKey;
     } catch (e) {
       log.error(`Escena ${i + 1} sin narracion:`, e.message);
       errors.push({ sceneId: scene.id, error: e.message });
@@ -95,35 +169,31 @@ export async function buildNarrationTrack(project) {
   const withAudio = scenes.filter((s) => s.narrationPath && fs.existsSync(abs(s.narrationPath)));
   if (!withAudio.length) return null;
 
-  const inputs = [];
-  const filters = [];
-  let idx = 0;
-  let offsetMs = 0;
+  const segmentDir = path.join(dir, 'narration-segments');
+  const blockDir = path.join(dir, 'narration-blocks');
+  fs.mkdirSync(segmentDir, { recursive: true });
+  fs.mkdirSync(blockDir, { recursive: true });
 
-  for (const s of scenes) {
-    const durMs = Math.round((s.duration || 0) * 1000);
-    if (s.narrationPath && fs.existsSync(abs(s.narrationPath))) {
-      inputs.push('-i', abs(s.narrationPath));
-      // adelay posiciona la pista en su instante del timeline.
-      filters.push(`[${idx}:a]aresample=48000,adelay=${offsetMs}|${offsetMs}[a${idx}]`);
-      idx++;
-    }
-    offsetMs += durMs;
+  // Each scene becomes one exact-length sequential WAV.  FFmpeg therefore
+  // opens one narration at a time instead of all course scenes simultaneously.
+  const segments = [];
+  for (let i = 0; i < scenes.length; i++) {
+    segments.push(await makeTimelineSegment(scenes[i], i, segmentDir));
   }
 
-  const totalSec = (offsetMs / 1000).toFixed(3);
-  const mixInputs = Array.from({ length: idx }, (_, i) => `[a${i}]`).join('');
-  // amix con normalize=0 para que el volumen no baje al aumentar las entradas.
-  const graph = `${filters.join(';')};${mixInputs}amix=inputs=${idx}:normalize=0:dropout_transition=0[mix]`;
+  // Concatenate small cached blocks, then concatenate the blocks.  A failure
+  // leaves earlier valid blocks available to the next explicit resume.
+  const blocks = [];
+  for (let start = 0; start < segments.length; start += NARRATION_BLOCK_SIZE) {
+    const files = segments.slice(start, start + NARRATION_BLOCK_SIZE);
+    const blockIndex = Math.floor(start / NARRATION_BLOCK_SIZE);
+    const block = path.join(blockDir, `block_${String(blockIndex).padStart(3, '0')}.wav`);
+    const blockKey = hash({ version: 2, files: files.map(f => [f, fs.statSync(f).size, fs.statSync(f).mtimeMs]) });
+    blocks.push(await concatWavFiles(files, block, blockKey));
+  }
 
-  await ffmpegRun([
-    ...inputs,
-    '-filter_complex', graph,
-    '-map', '[mix]',
-    '-t', totalSec,
-    '-ar', '48000', '-ac', '2',
-    out,
-  ]);
+  const finalKey = hash({ version: 2, blocks: blocks.map(f => [f, fs.statSync(f).size, fs.statSync(f).mtimeMs]) });
+  await concatWavFiles(blocks, out, finalKey);
 
   return rel(out);
 }

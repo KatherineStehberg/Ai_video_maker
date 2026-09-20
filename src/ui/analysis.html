@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Análisis de video · AI Video Maker</title><link rel="stylesheet" href="/analysis.css"></head>
+<body><main><a href="/editor.html">Ir al editor</a> · <a href="/">Volver a creación desde guiones</a><h1>Analizar video con música</h1>
+<p>Encuentra cambios visuales y onsets de audio, revisa posibles cortes y exporta sus timestamps. El original se conserva; no se renderizan cortes.</p>
+<form id="form"><label>Video local <input id="file" type="file" accept="video/*" required></label>
+<p id="config">Consultando configuración…</p>
+<label><input id="gemini" type="checkbox" disabled> Añadir interpretación audiovisual de Gemini</label>
+<div id="disclosure" hidden><p>Se enviarán copias segmentadas del video y su audio a <strong>Google Gemini API, un servicio externo</strong>. Puede generar cargos en tu cuenta. No se enviará la clave desde el navegador. El muestreo no garantiza observar todos los frames, incluso en material de 30 FPS.</p>
+<label><input id="consent" type="checkbox"> Confirmo el envío de este video y audio a Google Gemini y el posible consumo de API.</label></div>
+<p><button id="submit">Cargar y analizar</button></p></form>
+<progress id="progress" max="100" value="0"></progress><p id="status" role="status" aria-live="polite">Selecciona un video (máximo 2 GiB).</p>
+<section id="result" hidden><h2>Previsualización</h2><video id="preview" controls preload="metadata"></video><p id="metadata"></p><p id="notes"></p><pre id="interpretation"></pre>
+<p><a id="json">Descargar análisis JSON</a> · <a id="csv">Descargar cortes CSV</a></p>
+<h2>Ritmo y sincronía</h2><p id="tempo"></p><p id="sync"></p>
+<h2>Rampas de velocidad sugeridas</h2><p id="rampnote"></p>
+<div class="table"><table><thead><tr><th>Segmento (s)</th><th>Frames</th><th>Duración actual → objetivo</th><th>Factor</th><th>Motivo</th></tr></thead><tbody id="ramps"></tbody></table></div>
+<h2>Cortes propuestos</h2><p>Haz clic en un timestamp para revisar ese momento. Confianza «sin calibrar»: no se asignan probabilidades sin validación. Los onsets no son necesariamente beats. El frame se deriva del FPS promedio: con «~» es aproximado (VFR o modo desconocido).</p>
+<div class="table"><table><thead><tr><th>Tiempo (s)</th><th>Frame</th><th>Fuente</th><th>Motivo</th><th>Evidencia</th><th>Confianza</th></tr></thead><tbody id="cuts"></tbody></table></div></section>
+</main><script type="module" src="/analysis.js"></script></body></html>

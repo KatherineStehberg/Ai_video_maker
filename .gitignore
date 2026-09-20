@@ -1,4 +1,9 @@
 # Secrets
+data/analyses/
+data/jobs/
+data/studio-imports/
+data/video-edits/
+data/video-generation/
 .env
 .env.local
 *.key

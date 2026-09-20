@@ -3,6 +3,7 @@ import path from 'node:path';
 import { PATHS, ensureDir, rel } from '../lib/paths.js';
 import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js';
 import { ASPECTS } from '../config.js';
+import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
 
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
@@ -23,11 +24,15 @@ export function makeScene(partial = {}) {
   return {
     id: partial.id || newId('sc'),
     text,
-    duration: clamp(Number(partial.duration) || estimateDuration(text), 0.5, 300),
+    duration: clamp(Number(partial.duration) || estimateDuration(text), SCENE_DURATION_LIMITS.min, SCENE_DURATION_LIMITS.max),
     visualPrompt: partial.visualPrompt ?? '',
     assetPath: partial.assetPath ?? null,      // imagen o clip de video (relativo al ROOT)
     assetKind: partial.assetKind ?? 'auto',    // auto | image | video | color
     narrationPath: partial.narrationPath ?? null,
+    narrationText: partial.narrationText ?? null,
+    narrationKey: partial.narrationKey ?? null,
+    durationLocked: partial.durationLocked ?? false,
+    provenance: partial.provenance ?? { kind: 'unverified', authorized: false, originalReference: null },
     transition: TRANSITIONS.includes(partial.transition) ? partial.transition : 'fade',
     caption: partial.caption ?? null,          // null => se usa `text`
     kenBurns: partial.kenBurns ?? 'auto',      // auto | in | out | none
@@ -57,6 +62,7 @@ export function makeProject(partial = {}) {
     language: partial.language || 'es',
     brief: partial.brief || '',
     script: partial.script || '',
+    studio: partial.studio ?? null,
     scenes: (partial.scenes || []).map(makeScene),
     voice: {
       provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | none
@@ -78,6 +84,7 @@ export function makeProject(partial = {}) {
       fontSize: partial.captions?.fontSize ?? null,  // null => calculado por aspecto
       maxCharsPerLine: partial.captions?.maxCharsPerLine ?? 38,
       provider: partial.captions?.provider ?? 'auto',
+      file: partial.captions?.file ?? null,
     },
     assets: {
       intro: partial.assets?.intro ?? null,
@@ -112,6 +119,9 @@ export function validateProject(p) {
     const n = i + 1;
     if (!s.id) errors.push(`Escena ${n}: falta id`);
     if (!(Number(s.duration) > 0)) errors.push(`Escena ${n}: duracion invalida`);
+    if (Number(s.duration) > SCENE_DURATION_LIMITS.max) {
+      errors.push(`Escena ${n}: supera el máximo de ${SCENE_DURATION_LIMITS.max} segundos`);
+    }
     if (!s.text?.trim() && !s.assetPath) {
       warnings.push(`Escena ${n}: sin texto ni imagen, se rendera como fondo plano`);
     }
@@ -143,6 +153,30 @@ export function projectFile(id) {
   return path.join(PATHS.projects, `${id}.json`);
 }
 
+/** Espera sincrona breve, sin dependencias ni busy-wait de CPU. */
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * En Windows, renameSync falla de forma transitoria con EPERM/EBUSY/EACCES
+ * cuando un antivirus o el indexador aun mantiene abierto el .tmp recien
+ * escrito. El contenido ya esta en disco: solo hay que reintentar el cambio de
+ * nombre. Se reintenta con espera creciente (~900 ms en total) y se propaga
+ * cualquier otro error sin enmascararlo.
+ */
+export function renameWithRetry(tmp, file, { attempts = 8, rename = fs.renameSync, sleep = sleepSync } = {}) {
+  const transient = new Set(['EPERM', 'EBUSY', 'EACCES']);
+  for (let i = 0; ; i++) {
+    try {
+      return rename(tmp, file);
+    } catch (e) {
+      if (i >= attempts || !transient.has(e.code)) throw e;
+      sleep(25 * (i + 1));
+    }
+  }
+}
+
 export function saveProject(p) {
   ensureDir(PATHS.projects);
   p.updatedAt = nowISO();
@@ -150,7 +184,7 @@ export function saveProject(p) {
   // Escritura atomica: evita dejar un JSON corrupto si el proceso muere a mitad.
   const tmp = `${file}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(p, null, 2), 'utf8');
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
   return file;
 }
 

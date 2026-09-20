@@ -97,7 +97,7 @@ export async function synthesize(text, outFile, { voice = '', rate = 0, volume =
     'Add-Type -AssemblyName System.Speech',
     '$ErrorActionPreference = "Stop"',
     '$s = New-Object System.Speech.Synthesis.SpeechSynthesizer',
-    voice ? `try { $s.SelectVoice(${psLiteral(voice)}) } catch { }` : '',
+    voice ? `$s.SelectVoice(${psLiteral(voice)})` : '',
     `$s.Rate = ${Math.max(-10, Math.min(10, Math.round(Number(rate) || 0)))}`,
     `$s.Volume = ${Math.max(0, Math.min(100, Math.round(Number(volume) || 100)))}`,
     `$txt = [System.IO.File]::ReadAllText(${psLiteral(tmpTxt)}, [System.Text.Encoding]::UTF8)`,

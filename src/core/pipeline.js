@@ -25,6 +25,19 @@ const log = logger('pipeline');
 
 export const STEPS = ['script', 'scenes', 'assets', 'narration', 'subtitles', 'render', 'metadata'];
 
+/**
+ * Traduce el paso que informa el renderer al paso que publica el pipeline.
+ *
+ * Se conservan `scene`, `concat`, `audio` y `encode` porque describen lo que
+ * está pasando de verdad y alimentan el contador de escenas de la interfaz.
+ *
+ * `done` es la excepción: el renderer lo emite al terminar CADA formato, y
+ * `STEP_TO_STATUS` de core/jobs.js lo traduce a COMPLETED. Dejarlo pasar
+ * marcaría el trabajo como terminado tras el primer formato, con los demás
+ * formatos y los metadatos todavía pendientes.
+ */
+export const pasoDeRender = paso => (paso === 'done' ? 'render' : (paso || 'render'));
+
 export async function runPipeline(project, {
   steps = STEPS,
   onProgress = () => {},
@@ -84,8 +97,10 @@ export async function runPipeline(project, {
       saveProject(project);
       emit('assets', 25, 'Resolviendo visuales');
       const res = await ensureSceneAssets(project, brand, {
+        // `index` y `total` viajan hasta arriba: son el progreso REAL que
+        // muestra la interfaz («escena 34 de 105»), no un porcentaje inventado.
+        onProgress: (p) => emit('assets', 25 + Math.round((p.index / p.total) * 10), `Visual ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
         force: force.assets,
-        onProgress: (p) => emit('assets', 25 + Math.round((p.index / p.total) * 10), `Visual ${p.index + 1}/${p.total}`),
       });
       report.steps.assets = { resolved: res.filter((r) => r.path).length, total: res.length };
       const missing = missingAssets(project);
@@ -103,9 +118,12 @@ export async function runPipeline(project, {
       emit('narration', 38, 'Generando narracion');
       const res = await narrateProject(project, {
         force: force.narration,
-        onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`),
+        onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
       });
       report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0 };
+      if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {
+        throw new Error('La narración solicitada no se pudo completar. Configura la voz o elige explícitamente sin narración.');
+      }
 
       if (res.provider === 'none') {
         report.warnings.push('Sin motor TTS disponible: el video se renderiza en silencio.');
@@ -162,7 +180,9 @@ export async function runPipeline(project, {
         const res = await renderProject(project, brand, {
           aspectRatio: fmt,
           subtitlesPath: subs,
-          onProgress: (p) => emit('render', base + Math.round((p.pct / 100) * span), p.message || `Render ${fmt}`, { format: fmt }),
+          onProgress: (p) => emit(pasoDeRender(p.step),
+            base + Math.round((p.pct / 100) * span), p.message || `Render ${fmt}`,
+            { format: fmt, index: p.index, total: p.total }),
         });
         outputs[fmt] = res.file;
         logToProject(project, `Render ${fmt} -> ${res.file} (${(res.bytes / 1e6).toFixed(1)} MB)`);
@@ -183,7 +203,7 @@ export async function runPipeline(project, {
       saveProject(project);
     }
 
-    project.status = STATUS.COMPLETED;
+    project.status = want.has('render') ? STATUS.COMPLETED : STATUS.DRAFT;
     project.error = null;
     saveProject(project);
     emit('done', 100, 'Completado');

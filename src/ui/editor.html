@@ -1,0 +1,369 @@
+<!doctype html>
+<!-- ============================================================================
+     AI VIDEO MAKER · ESTUDIO
+     ----------------------------------------------------------------------------
+     Diseño propio. No reproduce marca, textos, colores ni componentes de ningún
+     producto de terceros.
+
+     MAPA (busca los comentarios en MAYÚSCULAS):
+       [MARCA]      nombre del producto y logotipo
+       [NAV]        barra lateral de navegación
+       [CABECERA]   proyecto, estado y acciones
+       [INICIO]     pantalla inicial: dos acciones + proyectos recientes
+       [CREAR]      flujo de 7 pasos
+       [SUBIR]      editar un video que ya existe
+       [PROXIMO]    secciones aún no implementadas
+       [PANEL]      panel derecho contextual
+     Estilos: editor.css   ·   Lógica: editor/main.js (API en editor/api.js)
+     ========================================================================= -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- NOMBRE DEL PRODUCTO (pestaña) -->
+<title>AI Video Maker · Estudio</title>
+<!-- LOGOTIPO de la pestaña -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2312395f'/%3E%3Cpath d='M13 10l9 6-9 6z' fill='%231565d8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+
+<div class="app" id="app" data-panel="no">
+
+  <!-- ================================ [NAV] =============================== -->
+  <nav class="nav" aria-label="Secciones">
+    <!-- [MARCA]: cambia el texto y el icono aquí -->
+    <div class="marca">
+      <span class="marca-icono" aria-hidden="true">▶</span>
+      <span class="marca-nombre">AI Video Maker<small>Estudio de creación</small></span>
+    </div>
+
+    <ul class="nav-lista" id="nav">
+      <li><button class="nav-item" data-seccion="inicio" aria-current="page"><span class="nav-icono">⌂</span> Inicio</button></li>
+      <li><button class="nav-item" data-seccion="crear"><span class="nav-icono">✦</span> Crear video</button></li>
+      <li><button class="nav-item" data-seccion="proyectos"><span class="nav-icono">▤</span> Mis proyectos</button></li>
+      <li><button class="nav-item" data-seccion="plantillas"><span class="nav-icono">◈</span> Plantillas</button></li>
+      <li><button class="nav-item" data-seccion="recursos"><span class="nav-icono">◫</span> Recursos</button></li>
+      <li><button class="nav-item" data-seccion="exportaciones"><span class="nav-icono">↓</span> Exportaciones</button></li>
+      <li><button class="nav-item" data-seccion="ajustes"><span class="nav-icono">⚙</span> Configuración</button></li>
+    </ul>
+
+    <p class="nav-pie">Todo se procesa en este equipo.<br><a href="/analysis.html">Análisis avanzado</a></p>
+  </nav>
+
+  <!-- ============================== COLUMNA CENTRAL ======================== -->
+  <div class="centro">
+
+    <!-- ============================ [CABECERA] ============================ -->
+    <header class="cabecera">
+      <span class="cabecera-titulo" id="titulo-proyecto">Sin proyecto abierto</span>
+      <span class="pill" id="estado-pill" data-tono="neutro">Listo</span>
+      <div class="cabecera-acciones">
+        <button class="btn btn-mini" id="btn-nuevo">Nuevo video</button>
+        <button class="btn btn-mini btn-sutil" id="btn-inicio">Inicio</button>
+      </div>
+    </header>
+
+    <main class="lienzo" id="lienzo">
+
+      <!-- ----------------------------- [INICIO] ------------------------- -->
+      <section data-pantalla="inicio">
+        <h1>¿Qué quieres hacer hoy?</h1>
+        <p class="ayuda">Crea un video desde una idea, o toma uno que ya tengas y móntalo.</p>
+
+        <div class="acciones-inicio">
+          <button class="accion-grande" id="ir-crear">
+            <span class="accion-icono" aria-hidden="true">✦</span>
+            <span class="accion-titulo">Crear video con IA</span>
+            <span class="ayuda">Describe tu idea. Se escribe el guion, se buscan imágenes, se narra y se monta.</span>
+          </button>
+          <button class="accion-grande" id="ir-subir">
+            <span class="accion-icono" aria-hidden="true">▣</span>
+            <span class="accion-titulo">Editar un video existente</span>
+            <span class="ayuda">Sube un MP4 tuyo: detecta cortes y ritmo, y propone el montaje.</span>
+          </button>
+        </div>
+
+        <div class="tarjeta-cab"><h2>Proyectos recientes</h2><span class="mini" id="proyectos-total"></span></div>
+        <div class="proyectos" id="proyectos-lista"></div>
+      </section>
+
+      <!-- ------------------------------ [CREAR] -------------------------- -->
+      <section data-pantalla="crear" hidden>
+        <!-- Los 7 pasos del proceso. Se marcan solos desde main.js -->
+        <ol class="pasos" id="pasos">
+          <li><button class="paso" data-paso="idea"><span class="paso-num">1</span> Idea</button></li>
+          <li><button class="paso" data-paso="guion"><span class="paso-num">2</span> Guion</button></li>
+          <li><button class="paso" data-paso="escenas"><span class="paso-num">3</span> Escenas</button></li>
+          <li><button class="paso" data-paso="voz"><span class="paso-num">4</span> Voz y recursos</button></li>
+          <li><button class="paso" data-paso="preview"><span class="paso-num">5</span> Vista previa</button></li>
+          <li><button class="paso" data-paso="editor"><span class="paso-num">6</span> Editar</button></li>
+          <li><button class="paso" data-paso="exportar"><span class="paso-num">7</span> Exportar</button></li>
+        </ol>
+
+        <div class="barra tarjeta" style="margin-bottom:var(--e3)">
+          <progress id="progress" max="100" value="0"></progress>
+          <span class="mini" id="status" role="status" aria-live="polite">Describe tu idea para empezar.</span>
+          <!-- Progreso REAL: escenas terminadas sobre el total, no una animación. -->
+          <span class="mini" id="progreso-escenas" hidden></span>
+          <button class="btn btn-mini" id="btn-reanudar" hidden>Reanudar este proyecto</button>
+        </div>
+
+        <p class="aviso aviso-error" id="error" role="alert" hidden></p>
+        <div class="aviso aviso-atencion" id="warnings" hidden></div>
+
+        <!-- PASO 1 · IDEA -->
+        <div class="tarjeta" data-paso-panel="idea">
+          <h2>Tu idea</h2>
+          <label>¿Qué video quieres crear?
+            <textarea id="prompt" rows="4"
+              placeholder="Ej: Un reel vertical para promocionar clases particulares de inglés online para adultos, con horarios flexibles y práctica de conversación."></textarea>
+          </label>
+
+          <!--
+            Guion propio: el MISMO flujo sirve para un reel de 15 segundos y
+            para una clase de 12 minutos. No hay dos botones ni dos modos; lo
+            único que cambia es si pegas un guion o sólo la idea.
+          -->
+          <details id="guion-propio-wrap">
+            <summary>Ya tengo el guion escrito (pégalo aquí)</summary>
+            <label>Guion completo
+              <textarea id="guion-propio" rows="8"
+                placeholder="Pega aquí el guion tal cual. Puedes usar títulos (# Módulo 1) para marcar secciones.&#10;No se recorta ni se reescribe: se trocea en escenas respetando cada frase."></textarea>
+            </label>
+            <p class="ayuda" id="guion-propio-estado">La duración se calcula a partir del guion.</p>
+          </details>
+          <div class="rejilla-2">
+            <label>Tipo de video
+              <select id="gen-tipo">
+                <option value="reel">Reel promocional</option>
+                <option value="educativo">Video educativo</option>
+                <option value="curso">Curso o lección</option>
+                <option value="explicativo">Explicativo</option>
+                <option value="historia">Historia</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </label>
+            <label>Plataforma
+              <select id="gen-platform">
+                <option value="">Sin especificar</option>
+                <option>Instagram</option><option>TikTok</option><option>YouTube</option>
+                <option>LinkedIn</option><option>Curso/LMS</option><option>Otro</option>
+              </select>
+            </label>
+            <label>Formato
+              <select id="gen-format">
+                <option value="9:16">9:16 · Vertical</option>
+                <option value="16:9">16:9 · Horizontal</option>
+                <option value="1:1">1:1 · Cuadrado</option>
+              </select>
+            </label>
+            <label>Duración
+              <select id="gen-duration"></select>
+            </label>
+            <label id="wrap-duracion-custom" hidden>Segundos
+              <input type="number" id="gen-duration-custom" min="3" max="7200" step="5" value="45">
+            </label>
+            <label>Palabras por minuto (narración)
+              <input type="number" id="gen-wpm" min="40" max="400" step="5" value="115"
+                title="Velocidad de la voz. Es lo que convierte palabras en segundos.">
+            </label>
+            <label>Idioma
+              <select id="gen-idioma"><option value="es">Español</option><option value="en">Inglés</option></select>
+            </label>
+            <label>Estilo visual <select id="gen-style"></select></label>
+            <label>Tono <input type="text" id="gen-tono" maxlength="120" placeholder="Ej: cercano y profesional"></label>
+            <label>Público <input type="text" id="gen-audience" maxlength="300" placeholder="Ej: adultos que trabajan"></label>
+            <label>Marca <select id="gen-marca"></select></label>
+          </div>
+          <button class="btn btn-principal btn-grande btn-bloque" id="btn-draft">Crear borrador</button>
+          <p class="ayuda" id="gen-provider-hint">Comprobando…</p>
+        </div>
+
+        <!-- PASO 2 · GUION -->
+        <div class="tarjeta" data-paso-panel="guion" hidden>
+          <div class="tarjeta-cab">
+            <h2>Guion propuesto</h2>
+            <span class="pill" id="draft-source"></span>
+          </div>
+          <p class="ayuda" id="draft-summary"></p>
+          <dl class="ficha" id="draft-facts"></dl>
+          <div class="aviso aviso-info" id="draft-cost"></div>
+          <p class="aviso aviso-atencion" id="draft-voice-warning" hidden></p>
+          <label>Texto completo <span class="mini" id="guion-contador"></span>
+            <textarea id="guion-texto" rows="9"></textarea>
+          </label>
+          <div class="escena-botones">
+            <button class="btn btn-mini" id="btn-redraft">Rehacer borrador</button>
+            <button class="btn btn-mini" id="btn-restaurar">Restaurar</button>
+            <button class="btn btn-mini btn-ok" id="btn-aprobar-guion">Aprobar guion</button>
+          </div>
+        </div>
+
+        <!-- PASO 3 · ESCENAS -->
+        <div class="tarjeta" data-paso-panel="escenas" hidden>
+          <div class="tarjeta-cab">
+            <h2>Escenas</h2>
+            <span class="mini">Edita, reordena, duplica o excluye. Los cambios piden aprobar de nuevo.</span>
+          </div>
+          <div class="escenas" id="draft-scenes"></div>
+          <div class="escena-botones" style="margin-top:var(--e3)">
+            <button class="btn btn-mini" id="btn-add-escena">+ Añadir escena</button>
+            <span class="mini" id="escenas-resumen"></span>
+          </div>
+        </div>
+
+        <!-- PASO 4 · VOZ Y RECURSOS -->
+        <div class="tarjeta" data-paso-panel="voz" hidden>
+          <h2>Voz y recursos</h2>
+          <dl class="ficha" id="voz-ficha"></dl>
+          <p class="aviso aviso-atencion" id="voz-aviso" hidden></p>
+          <div class="rejilla-2">
+            <label>Volumen de narración <input type="range" id="vol-voz" min="0" max="100" value="100"></label>
+            <label>Volumen de música <input type="range" id="vol-musica" min="0" max="60" value="12"></label>
+            <label class="casilla"><input type="checkbox" id="subs-on" checked> Subtítulos quemados</label>
+          </div>
+          <details>
+            <summary>Fuente de las imágenes</summary>
+            <p class="ayuda" id="fuente-imagenes"></p>
+            <div class="recursos" id="recursos-lista"></div>
+          </details>
+          <button class="btn btn-accion btn-grande btn-bloque" id="btn-generate" disabled>Crear video</button>
+        </div>
+
+        <!-- PASO 5 · VISTA PREVIA -->
+        <div class="tarjeta" data-paso-panel="preview" hidden>
+          <h2>Vista previa</h2>
+          <p class="ayuda" id="source-empty">Se verá aquí en cuanto se monte el video.</p>
+          <div class="escenario"><video id="source-player" controls preload="metadata" hidden></video></div>
+          <div class="resumen" id="resumen" style="margin-top:var(--e3)"></div>
+        </div>
+
+        <!-- PASO 6 · EDITAR -->
+        <div data-paso-panel="editor" hidden>
+          <div class="tarjeta">
+            <h2>Editor</h2>
+            <p class="ayuda">Haz clic en una escena para abrirla en el panel de la derecha.</p>
+            <div id="timeline"></div>
+            <ul class="leyenda">
+              <li><i class="muestra" style="background:var(--ambar)"></i> Corte</li>
+              <li><i class="muestra" style="background:var(--azul)"></i> Beat</li>
+              <li><i class="muestra" style="background:var(--turquesa);border-radius:50%"></i> Sonido</li>
+              <li><i class="muestra" style="background:var(--azul-medio)"></i> Velocidad normal</li>
+              <li><i class="muestra" style="background:var(--accion)"></i> Más rápido</li>
+              <li><i class="muestra" style="background:var(--turquesa)"></i> Más lento</li>
+            </ul>
+          </div>
+          <div class="tarjeta">
+            <div class="tarjeta-cab"><h2>Trozos del montaje</h2><span class="mini">Desmarca lo que no quieras.</span></div>
+            <div class="escenas" id="segments-list"></div>
+            <div class="escena-botones" style="margin-top:var(--e3)">
+              <button class="btn btn-mini btn-principal" id="btn-apply-segments" disabled>Aplicar cambios</button>
+              <button class="btn btn-mini" id="btn-reset-segments" disabled>Deshacer</button>
+              <span class="mini" id="segments-note"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO 7 · EXPORTAR -->
+        <div class="tarjeta" data-paso-panel="exportar" hidden>
+          <h2>Antes de exportar</h2>
+          <div class="resumen" id="export-resumen"></div>
+          <p class="ayuda" id="approval-hint" style="margin-top:var(--e3)"></p>
+          <div class="escena-botones">
+            <button class="btn btn-ok btn-grande" id="btn-approve" disabled>Aprobar versión</button>
+            <button class="btn btn-accion btn-grande" id="btn-export" disabled>Exportar MP4</button>
+          </div>
+          <p class="mini" id="export-blocked"></p>
+          <h3 style="margin-top:var(--e3)">Descargas</h3>
+          <div class="descargas" id="downloads"></div>
+          <p class="ayuda" id="export-empty">El video final se verá aquí tras exportar.</p>
+          <div class="escenario"><video id="export-player" controls preload="metadata" hidden></video></div>
+
+          <!-- Detalle técnico plegado: fuera de la vista de quien no lo necesita -->
+          <details>
+            <summary>Detalle técnico</summary>
+            <p class="ayuda" id="tempo-summary">—</p>
+            <p class="ayuda" id="sync-summary">—</p>
+            <dl class="ficha" id="file-facts"></dl>
+            <div class="tabla-scroll">
+              <table>
+                <thead><tr><th>Tiempo</th><th>Frame</th><th>Origen</th><th>Motivo</th></tr></thead>
+                <tbody id="cuts-body"></tbody>
+              </table>
+            </div>
+            <p class="mini"><span id="cuts-count">0</span> cortes · <span id="ramps-count">0</span> cambios de velocidad</p>
+            <div class="tabla-scroll">
+              <table>
+                <thead><tr><th>Trozo</th><th>Frames</th><th>Duración</th><th>Factor</th><th>Motivo</th></tr></thead>
+                <tbody id="ramps-body"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- ------------------------------ [SUBIR] -------------------------- -->
+      <section data-pantalla="subir" hidden>
+        <h1>Editar un video existente</h1>
+        <div class="tarjeta">
+          <label class="zona-archivo" for="file">
+            <span id="file-label">Elige un video MP4</span>
+            <input type="file" id="file" accept="video/*,.mp4,.mov,.m4v,.mkv,.webm">
+          </label>
+          <dl class="ficha" id="file-facts-subir"></dl>
+          <button class="btn btn-principal btn-grande btn-bloque" id="btn-analyze" disabled>Analizar video</button>
+          <p class="ayuda" id="config-hint">Comprobando…</p>
+        </div>
+        <div class="tarjeta">
+          <h2>Cómo quieres el montaje</h2>
+          <div class="rejilla-2">
+            <label>Formato
+              <select id="format">
+                <option value="9:16">9:16 · Vertical</option>
+                <option value="16:9">16:9 · Horizontal</option>
+                <option value="1:1">1:1 · Cuadrado</option>
+              </select>
+            </label>
+            <label>Ritmo
+              <select id="sync-mode">
+                <option value="beats">Ajustar los cortes a la música</option>
+                <option value="cuts">Mantener el video tal cual</option>
+              </select>
+            </label>
+            <label>Encuadre
+              <select id="fit">
+                <option value="pad">Mostrarlo entero, con bordes</option>
+                <option value="crop">Llenar la pantalla, recortando</option>
+              </select>
+            </label>
+            <label>Duración deseada (opcional)
+              <input type="number" id="target-duration" min="0.1" step="0.1" placeholder="Dejar vacío">
+            </label>
+            <label class="casilla"><input type="checkbox" id="ramps" checked> Permitir cambios de velocidad</label>
+          </div>
+          <button class="btn btn-grande btn-bloque" id="btn-propose" disabled>Crear propuesta</button>
+        </div>
+      </section>
+
+      <!-- ---------------------------- [PROXIMO] -------------------------- -->
+      <section data-pantalla="proximamente" hidden>
+        <div class="vacio">
+          <span class="vacio-icono" aria-hidden="true">◷</span>
+          <h1 id="prox-titulo">Próximamente</h1>
+          <p class="ayuda" id="prox-texto"></p>
+          <button class="btn" id="prox-volver" style="margin-top:var(--e3)">Volver al inicio</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ================================ [PANEL] ============================= -->
+  <aside class="panel-config" id="panel-config" aria-label="Configuración de la escena">
+    <div id="panel-contenido"></div>
+  </aside>
+</div>
+
+<script type="module" src="/editor/main.js"></script>
+</body>
+</html>
