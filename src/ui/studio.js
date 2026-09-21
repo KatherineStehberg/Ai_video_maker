@@ -22,7 +22,12 @@ async function init(){config=await api('config');for(const id of ['brand','edit-
   }
   $('voice-note').textContent=config.voices.length?'La voz se genera en el backend. El idioma del proyecto decide la voz por defecto; las marcas [en]/[es] cambian de voz dentro de una escena.':'No hay voz local disponible. Configura SAPI/Piper; elegir sin narración produce un video silencioso o sólo con música.';
   montarSubs(config.captionStyle);
-  $('projects').replaceChildren(...config.projects.map(p=>{const b=document.createElement('button');b.textContent=p.title+' · '+p.status;b.onclick=()=>open(p.id).catch(e=>msg(e.message));return b;}));refreshImports();}
+  $('projects').replaceChildren(...config.projects.map(p=>{
+    const fila=document.createElement('div');fila.className='proyecto-fila';
+    const b=document.createElement('button');b.textContent=p.title+' · '+p.status;b.onclick=()=>open(p.id).catch(e=>msg(e.message));
+    // El editor visual se abre sobre el mismo proyecto, en su pantalla.
+    const ed=document.createElement('a');ed.className='secondary';ed.textContent='Editor visual';ed.href='/project-editor.html?id='+encodeURIComponent(p.id);
+    fila.append(b,ed);return fila;}));refreshImports();}
 function refreshImports(){listOptions($('music'),[['','Sin música'],...config.imports.filter(a=>a.kind==='music').map(a=>[a.path,a.name])]);$('resources').replaceChildren(...config.imports.map(a=>{const li=document.createElement('li');li.textContent=`${a.name} · ${a.kind} · ${a.originalReference}`;return li;}));}
 let estiloSubs={preset:'redes-sociales'},presetsSubs=[];
 const BASE_SUBS={'9:16':64,'16:9':48,'1:1':58,'4:5':61};

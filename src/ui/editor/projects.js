@@ -90,7 +90,17 @@ export function renderProjects(container, proyectos, { onAbrir, onVer } = {}) {
     if (p.error) cuerpo.append(el('div', 'mini', p.error.slice(0, 120)));
 
     const acciones = el('div', 'proyecto-acciones');
-    const abrir = el('button', 'btn btn-mini btn-principal', 'Continuar');
+
+    // EDITAR abre el editor visual sobre el proyecto guardado. Sólo aparece si
+    // el proyecto llegó a existir en disco: sin escenas no hay nada que editar.
+    if (p.projectId) {
+      const editar = el('a', 'btn btn-mini btn-principal', 'Editar');
+      editar.href = `/project-editor.html?id=${encodeURIComponent(p.projectId)}`;
+      editar.title = 'Abrir el editor visual: escenas, textos, subtítulos y audio';
+      acciones.append(editar);
+    }
+
+    const abrir = el('button', `btn btn-mini${p.projectId ? '' : ' btn-principal'}`, 'Continuar');
     abrir.addEventListener('click', () => onAbrir?.(p));
     acciones.append(abrir);
 

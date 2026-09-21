@@ -31,6 +31,12 @@ export function makeScene(partial = {}) {
     visualPrompt: partial.visualPrompt ?? '',
     assetPath: partial.assetPath ?? null,      // imagen o clip de video (relativo al ROOT)
     assetKind: partial.assetKind ?? 'auto',    // auto | image | video | color
+    // De donde salio el visual (pexels, placeholder, manual…). Se guarda porque
+    // es lo que distingue una imagen del tema de un fondo de marca de relleno,
+    // y el editor necesita poder decirlo. Sin esto se perdia en cada recarga.
+    assetProvider: partial.assetProvider ?? null,
+    // Escena apagada: conserva todo pero no entra en el montaje.
+    excluida: partial.excluida ?? false,
     narrationPath: partial.narrationPath ?? null,
     narrationText: partial.narrationText ?? null,
     narrationKey: partial.narrationKey ?? null,
@@ -73,6 +79,9 @@ export function makeProject(partial = {}) {
     brief: partial.brief || '',
     script: partial.script || '',
     studio: partial.studio ?? null,
+    // Estado del editor visual: revision guardada, revision exportada y
+    // trabajo en curso. Sin esto no sobrevive a recargar. Ver project-editor/.
+    editor: partial.editor ?? null,
     scenes: (partial.scenes || []).map(makeScene),
     voice: {
       provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | none
@@ -82,6 +91,11 @@ export function makeProject(partial = {}) {
       enabled: partial.voice?.enabled ?? true,
       // Voz por idioma para guiones con marcas [en]/[es]. Vacio => se elige
       // la voz por defecto del idioma entre las instaladas.
+      // `volume` es el volumen de SINTESIS (SAPI) y solo cambia al
+      // regenerar la voz. `gain` es la ganancia de MEZCLA: se aplica al
+      // montar el audio, asi que el control de volumen del editor surte
+      // efecto sin volver a sintetizar nada.
+      gain: partial.voice?.gain ?? 1,
       en: partial.voice?.en ?? '',
       es: partial.voice?.es ?? '',
     },
@@ -165,8 +179,20 @@ export function validateProject(p) {
   return { ok: errors.length === 0, errors, warnings };
 }
 
+/**
+ * Escenas que REALMENTE entran en el montaje.
+ *
+ * Una escena excluida se conserva entera en el proyecto (su texto, su voz y
+ * su imagen siguen ahi) pero no se renderiza, no se subtitula y no suena. El
+ * montaje, los subtitulos y la pista de voz tienen que mirar TODOS por aqui, o
+ * se desincronizan entre si.
+ */
+export function activeScenes(p) {
+  return (p?.scenes || []).filter((s) => !s.excluida);
+}
+
 export function totalDuration(p) {
-  return (p.scenes || []).reduce((a, s) => a + (Number(s.duration) || 0), 0);
+  return activeScenes(p).reduce((a, s) => a + (Number(s.duration) || 0), 0);
 }
 
 export function projectFile(id) {

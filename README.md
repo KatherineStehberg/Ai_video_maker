@@ -172,6 +172,45 @@ npm.cmd install --no-save --package-lock=false --prefix .tmp/browser-tools playw
 node scripts/browser-smoke.mjs
 ```
 
+### Editor visual
+
+Para editar un video ya montado, escena a escena:
+
+```
+http://127.0.0.1:4321/project-editor.html?id=<idProyecto>
+```
+
+Se llega desde el botón **Editar** de cualquier proyecto en «Proyectos
+recientes», o desde la lista del Estudio. La pantalla de inicio no cambia.
+
+| Zona | Qué hay |
+|---|---|
+| Barra superior | volver, nombre editable, estado de guardado, deshacer/rehacer, formato (9:16, 16:9, 1:1, 4:5), zonas seguras, Exportar MP4 |
+| Herramientas | Escenas · Guion · Texto · Recursos · Transiciones · Audio · Subtítulos · Marca |
+| Centro | vista previa con imagen, rótulo, subtítulo y zonas seguras, más reproducción |
+| Abajo | línea de tiempo con pistas de texto destacado, subtítulos, narración, visual, música y cortes |
+
+Cabe en una pantalla de 1366×768 sin scroll de página.
+
+**Lo que guarda de verdad**: narración, título, duración, prompt visual,
+incluir/excluir escena, los cinco campos del texto destacado, estilo global de
+subtítulos, transición, movimiento de imagen, volumen de narración y de música,
+recurso de cada escena, nombre, formato y marca del proyecto.
+
+**Lo que está deshabilitado y etiquetado «Próximamente»**: publicar en redes,
+arrastrar clips en la línea de tiempo, dividir, duplicar y reordenar escenas, y
+la pista de efectos de sonido. No se simula ninguna de ellas.
+
+**Dónde se guarda**: `data/projects/<id>.json`, con escritura atómica. El
+editor pasa por `src/project-editor/storage.js`, una interfaz de cinco métodos
+pensada para poder sustituir el almacenamiento local más adelante. Supabase
+**no** está conectado.
+
+```powershell
+node scripts/editor-visual-smoke.mjs    # navegador real a 1366x768 (Node 20+)
+node scripts/editor-export-smoke.mjs    # editar, guardar, exportar y medir el MP4
+```
+
 ### Subtítulos y texto destacado
 
 Son **dos cosas distintas** y conviene no confundirlas:

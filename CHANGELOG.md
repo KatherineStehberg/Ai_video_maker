@@ -5,6 +5,59 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Editor visual de proyectos (2026-09-21)
+
+Pantalla nueva para editar un video escena a escena, sin tocar JSON. Se abre
+sólo desde «Editar» en un proyecto guardado: **la pantalla de inicio no cambia**.
+
+`/project-editor.html?id=<idProyecto>`
+
+- **Distribución**: barra superior, ocho herramientas en columna, panel
+  contextual, vista previa central con controles de reproducción y línea de
+  tiempo multipista fija abajo. Cabe entera en 1366×768 sin scroll de página.
+- **Herramientas**: Escenas, Guion, Texto destacado, Recursos, Transiciones,
+  Audio, Subtítulos y Marca. Cada una abre su propio panel; nunca se muestran
+  todos los formularios a la vez.
+- **Línea de tiempo** con pistas de texto destacado, subtítulos, narración,
+  visual, música y cortes. Cada pista aparece sólo si tiene contenido real.
+  Regla, cabezal, zoom, scroll y selección de clips. **No hay arrastre**:
+  mover un clip todavía no se puede guardar, así que no se ofrece.
+- **Forma de onda real** (`src/project-editor/waveform.js`): FFmpeg decodifica
+  el audio a PCM y se reduce a picos. Media hora de narración da 600 picos en
+  ~5 s. Sin archivo de audio se dibuja un bloque rayado y se dice que no hay
+  onda; nunca se inventa una.
+- **Vista previa** que compone imagen, rótulo, subtítulo y zonas seguras con la
+  métrica del backend. Se etiqueta como «aproximada»; cuando existe un MP4 al
+  día se puede ver el definitivo.
+- **Guardado explícito** con estado «Guardado» / «Cambios sin guardar», aviso
+  antes de cerrar, deshacer y rehacer, y control de revisión que rechaza
+  guardar si el proyecto cambió en otra pestaña. Editar invalida la aprobación
+  del guion y marca el MP4 anterior como no vigente.
+- **API nueva** `/api/project-editor/*`, en su propio espacio de nombres. Los
+  endpoints de `/api/studio`, `/api/analysis`, `/api/video-edits` y
+  `/api/video-generation` siguen intactos.
+- **Capa de almacenamiento** (`src/project-editor/storage.js`): interfaz de
+  cinco métodos sobre los JSON de `data/projects/`. Sustituirla por Supabase
+  más adelante no obliga a tocar el editor. **No se ha conectado Supabase.**
+
+#### Corregido de paso
+
+- **`excluida` no hacía nada.** El campo existía pero el render, los subtítulos
+  y la pista de voz seguían incluyendo la escena. Ahora `activeScenes()` es el
+  único criterio y lo respetan los tres.
+- **El volumen de la narración no se aplicaba.** El montaje fijaba `volume=1.0`.
+  Se añade `voice.gain`, que es ganancia de mezcla: cambia el volumen sin tener
+  que regenerar la voz.
+- **`assetProvider` se perdía al recargar.** `makeScene()` no lo conservaba, así
+  que tras reabrir no se podía distinguir una imagen del tema de un fondo de
+  marca de relleno.
+
+#### No incluido, y declarado como tal en la interfaz
+
+Publicar en redes, arrastrar clips, dividir, duplicar y reordenar escenas, pista
+de efectos de sonido y transiciones de deslizamiento o barrido (el render sólo
+distingue «sin transición» y «fundido»).
+
 ### Corregido y añadido — Subtítulos y texto destacado (2026-09-21)
 
 Dos cosas que se confundían entre sí quedan separadas: el **subtítulo**, que

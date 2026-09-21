@@ -284,8 +284,20 @@
 
         <!-- PASO 6 · EDITAR -->
         <div data-paso-panel="editor" hidden>
+          <!-- EDITOR VISUAL: escenas, textos, subtítulos, audio y línea de
+               tiempo. Se abre en su propia pantalla; esta de aquí abajo sigue
+               siendo el ajuste de ritmo sobre el video ya montado. -->
           <div class="tarjeta">
-            <h2>Editor</h2>
+            <div class="tarjeta-cab">
+              <h2>Editor visual</h2>
+              <span class="mini">Escenas, textos, subtítulos, recursos y audio</span>
+            </div>
+            <p class="ayuda">Edita el video escena a escena con vista previa y línea de tiempo.</p>
+            <a class="btn btn-principal btn-grande btn-bloque" id="ir-editor-visual" href="#">Abrir el editor visual</a>
+            <p class="mini" id="editor-visual-nota"></p>
+          </div>
+          <div class="tarjeta">
+            <h2>Ritmo y cortes</h2>
             <p class="ayuda">Haz clic en una escena para abrirla en el panel de la derecha.</p>
             <div id="timeline"></div>
             <ul class="leyenda">

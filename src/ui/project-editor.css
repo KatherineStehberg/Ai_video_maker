@@ -1,0 +1,361 @@
+/* ===========================================================================
+   AI VIDEO MAKER · EDITOR VISUAL
+   ---------------------------------------------------------------------------
+   Tema CLARO, distinto del resto del estudio a propósito: aquí manda la imagen
+   del video, y un fondo oscuro compite con ella.
+
+   REJILLA. Todo el editor cabe en una pantalla de 1366×768 sin scroll de
+   página: sólo el panel contextual y la línea de tiempo tienen scroll propio.
+
+       ┌──────────────── barra superior (48) ────────────────┐
+       │ herr │  panel   │        escenario                  │
+       │ (76) │  (300)   │        (resto)                    │
+       ├──────┴──────────┴───────────────────────────────────┤
+       │              línea de tiempo (196)                  │
+       └─────────────────────────────────────────────────────┘
+
+   Las medidas están en variables: si el panel se queda corto, se cambia
+   --panel y no hay que tocar nada más.
+   =========================================================================== */
+
+:root {
+  --top: 48px;
+  --herr: 76px;
+  --panel: 300px;
+  --tl: 196px;
+
+  --fondo: #f4f6f9;
+  --papel: #ffffff;
+  --papel-2: #eef1f6;
+  --linea: #dbe1ea;
+  --linea-fuerte: #c3ccd9;
+
+  --tinta: #1b2230;
+  --tinta-suave: #5b6675;
+  --tinta-tenue: #8b95a4;
+
+  --marca: #155e9c;
+  --marca-fuerte: #0f4676;
+  --marca-tenue: #e3eefa;
+
+  --ok: #1a7f52;
+  --aviso: #9a6206;
+  --aviso-fondo: #fdf3e0;
+  --error: #b3261e;
+  --error-fondo: #fdeceb;
+
+  --e1: .25rem;
+  --e2: .5rem;
+  --e3: .875rem;
+  --radio: 8px;
+
+  --txt-xs: .72rem;
+  --txt-sm: .8rem;
+  --txt-md: .875rem;
+
+  /* Colores por pista, para distinguirlas de un vistazo. */
+  --p-texto: #8b5cf6;
+  --p-subs: #0ea5e9;
+  --p-voz: #10b981;
+  --p-visual: #f59e0b;
+  --p-musica: #ec4899;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: var(--fondo); color: var(--tinta);
+  font: 400 var(--txt-md)/1.45 system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+.ed {
+  display: grid; height: 100vh;
+  grid-template-columns: var(--herr) var(--panel) 1fr;
+  grid-template-rows: var(--top) 1fr var(--tl);
+  grid-template-areas:
+    "top   top    top"
+    "herr  panel  escenario"
+    "tl    tl     tl";
+}
+
+/* ------------------------------------------------------------ BOTONES */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--e1);
+  padding: .34rem .7rem; border: 1px solid var(--linea-fuerte); border-radius: 6px;
+  background: var(--papel); color: var(--tinta); cursor: pointer; white-space: nowrap;
+  font-size: var(--txt-sm); text-decoration: none;
+}
+.btn:hover:not(:disabled) { background: var(--papel-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-principal { background: var(--marca); border-color: var(--marca); color: #fff; font-weight: 600; }
+.btn-principal:hover:not(:disabled) { background: var(--marca-fuerte); }
+.btn-sutil { border-color: transparent; background: transparent; color: var(--tinta-suave); }
+.btn-sutil:hover { background: var(--papel-2); color: var(--tinta); }
+.btn-icono { padding: .3rem .45rem; min-width: 30px; }
+.btn-mini { padding: .2rem .45rem; font-size: var(--txt-xs); }
+.btn-bloque { width: 100%; }
+.btn-peligro { border-color: #e6b3b0; color: var(--error); }
+
+/* Una función que todavía no existe se deshabilita Y se etiqueta. Nunca se
+   simula el resultado. */
+.proximamente { position: relative; }
+.proximamente::after {
+  content: "Próximamente"; margin-left: var(--e2);
+  font-size: .6rem; text-transform: uppercase; letter-spacing: .05em;
+  background: var(--papel-2); color: var(--tinta-tenue);
+  padding: .1rem .3rem; border-radius: 3px;
+}
+
+.mini { font-size: var(--txt-xs); color: var(--tinta-suave); }
+.ayuda { font-size: var(--txt-xs); color: var(--tinta-suave); margin: var(--e1) 0 0; }
+
+.pill {
+  font-size: var(--txt-xs); padding: .12rem .45rem; border-radius: 999px;
+  background: var(--papel-2); color: var(--tinta-suave); white-space: nowrap;
+}
+.pill[data-tono="ok"]     { background: #e4f4ec; color: var(--ok); }
+.pill[data-tono="aviso"]  { background: var(--aviso-fondo); color: var(--aviso); }
+.pill[data-tono="error"]  { background: var(--error-fondo); color: var(--error); }
+
+.aviso { padding: var(--e2) var(--e3); border-radius: var(--radio); font-size: var(--txt-sm); margin: 0 0 var(--e2); }
+.aviso-error { background: var(--error-fondo); color: var(--error); }
+.aviso-atencion { background: var(--aviso-fondo); color: var(--aviso); }
+
+/* ---------------------------------------------------------- [SUPERIOR] */
+.ed-top {
+  grid-area: top; display: flex; align-items: center; gap: var(--e2);
+  padding: 0 var(--e3); background: var(--papel); border-bottom: 1px solid var(--linea);
+}
+.ed-nombre { display: flex; align-items: center; gap: var(--e2); flex: 1; min-width: 0; }
+.ed-nombre input {
+  border: 1px solid transparent; background: transparent; border-radius: 6px;
+  padding: .25rem .4rem; font-weight: 600; font-size: var(--txt-md);
+  width: min(320px, 100%); min-width: 0;
+}
+.ed-nombre input:hover { border-color: var(--linea); }
+.ed-nombre input:focus { border-color: var(--marca); background: var(--papel); outline: none; }
+
+.estado { font-size: var(--txt-xs); padding: .12rem .5rem; border-radius: 999px; white-space: nowrap; }
+.estado[data-tono="guardado"] { background: #e4f4ec; color: var(--ok); }
+.estado[data-tono="sucio"]    { background: var(--aviso-fondo); color: var(--aviso); }
+.estado[data-tono="guardando"]{ background: var(--marca-tenue); color: var(--marca-fuerte); }
+
+.ed-top-acciones { display: flex; align-items: center; gap: var(--e2); }
+
+.segmentado { display: flex; border: 1px solid var(--linea-fuerte); border-radius: 6px; overflow: hidden; }
+.segmentado button {
+  border: 0; background: var(--papel); padding: .3rem .5rem;
+  font-size: var(--txt-xs); cursor: pointer; border-right: 1px solid var(--linea);
+}
+.segmentado button:last-child { border-right: 0; }
+.segmentado button[aria-pressed="true"] { background: var(--marca); color: #fff; font-weight: 600; }
+
+.conmutador { display: flex; align-items: center; gap: var(--e1); font-size: var(--txt-xs); color: var(--tinta-suave); cursor: pointer; }
+
+/* ------------------------------------------------------------ [HERRAM] */
+.ed-herramientas {
+  grid-area: herr; background: var(--papel); border-right: 1px solid var(--linea);
+  display: flex; flex-direction: column; padding: var(--e2) var(--e1); gap: 2px; overflow-y: auto;
+}
+.herr {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 0; background: transparent; border-radius: 6px; cursor: pointer;
+  padding: .4rem .2rem; font-size: .62rem; color: var(--tinta-suave);
+}
+.herr:hover { background: var(--papel-2); color: var(--tinta); }
+.herr[aria-current="true"] { background: var(--marca-tenue); color: var(--marca-fuerte); font-weight: 600; }
+.herr-ico { font-size: 1.05rem; line-height: 1; }
+
+/* ------------------------------------------------------------- [PANEL] */
+.ed-panel {
+  grid-area: panel; background: var(--papel); border-right: 1px solid var(--linea);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.panel-cab {
+  display: flex; align-items: baseline; gap: var(--e2);
+  padding: var(--e2) var(--e3); border-bottom: 1px solid var(--linea); flex: none;
+}
+.panel-cab h2 { margin: 0; font-size: var(--txt-md); }
+/* El scroll vive AQUÍ y no en la página: la barra superior y la línea de
+   tiempo tienen que quedarse quietas. */
+/* `min-width: 0` en los hijos: por defecto un item de grid no encoge por
+   debajo de su contenido y los campos se salian del panel. */
+.panel-cuerpo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--e3); display: grid; gap: var(--e3); align-content: start; }
+.panel-cuerpo > * { min-width: 0; max-width: 100%; }
+
+.campo { display: grid; gap: 3px; min-width: 0; }
+.campo > * { min-width: 0; max-width: 100%; }
+.campo > span { font-size: var(--txt-xs); color: var(--tinta-suave); }
+.campo input[type="text"], .campo input[type="number"], .campo select, .campo textarea {
+  width: 100%; padding: .33rem .5rem; border: 1px solid var(--linea-fuerte);
+  border-radius: 6px; background: var(--papel); font-size: var(--txt-sm);
+}
+.campo textarea { resize: vertical; min-height: 60px; }
+.campo input[type="color"] { width: 100%; height: 30px; padding: 2px; border: 1px solid var(--linea-fuerte); border-radius: 6px; background: var(--papel); }
+.campo input[type="range"] { width: 100%; }
+.rejilla-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e2); }
+.fila { display: flex; gap: var(--e2); align-items: center; flex-wrap: wrap; }
+.casilla { display: flex; align-items: center; gap: var(--e2); font-size: var(--txt-sm); cursor: pointer; }
+
+.bloque { border: 1px solid var(--linea); border-radius: var(--radio); padding: var(--e2); display: grid; gap: var(--e2); min-width: 0; }
+.bloque > * { min-width: 0; max-width: 100%; }
+.bloque input[type="file"] { font-size: .68rem; }
+.rejilla-2 > * { min-width: 0; }
+.escena-item, .escena-datos { min-width: 0; }
+.bloque > h3 { margin: 0; font-size: var(--txt-sm); }
+
+.vacio { text-align: center; color: var(--tinta-tenue); font-size: var(--txt-sm); padding: var(--e3) 0; }
+
+/* ---- lista de escenas ---- */
+.escena-item {
+  display: grid; grid-template-columns: 56px 1fr; gap: var(--e2);
+  border: 1px solid var(--linea); border-radius: var(--radio); padding: var(--e2);
+  cursor: pointer; background: var(--papel); text-align: left; width: 100%;
+}
+.escena-item:hover { border-color: var(--linea-fuerte); background: var(--papel-2); }
+.escena-item[aria-current="true"] { border-color: var(--marca); box-shadow: 0 0 0 2px var(--marca-tenue); }
+.escena-item[data-excluida="si"] { opacity: .5; }
+.escena-mini {
+  position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden;
+  background: var(--papel-2); display: grid; place-items: center;
+}
+.escena-mini img { width: 100%; height: 100%; object-fit: cover; }
+.escena-mini .num {
+  position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,.65); color: #fff;
+  font-size: .6rem; padding: 0 .25rem; border-radius: 3px;
+}
+.escena-datos { min-width: 0; display: grid; gap: 2px; }
+.escena-tiempo { font-size: .65rem; color: var(--tinta-tenue); font-variant-numeric: tabular-nums; }
+.escena-texto {
+  font-size: var(--txt-xs); color: var(--tinta); overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.marcas { display: flex; gap: 3px; flex-wrap: wrap; }
+.marca-ind {
+  font-size: .58rem; padding: .05rem .3rem; border-radius: 3px;
+  background: var(--papel-2); color: var(--tinta-suave); border: 1px solid var(--linea);
+}
+.marca-ind[data-tipo="voz"]    { background: #e6f7f0; color: var(--ok); border-color: #b9e6d2; }
+.marca-ind[data-tipo="subs"]   { background: #e5f4fd; color: #0369a1; border-color: #b6e0f7; }
+.marca-ind[data-tipo="texto"]  { background: #f1e9fe; color: #6d28d9; border-color: #ddcbfb; }
+.marca-ind[data-tipo="falta"]  { background: var(--error-fondo); color: var(--error); border-color: #f2c4c1; }
+.marca-ind[data-tipo="fallback"] { background: var(--aviso-fondo); color: var(--aviso); border-color: #f0dcb6; }
+
+/* --------------------------------------------------------- [ESCENARIO] */
+.ed-escenario {
+  grid-area: escenario; display: flex; flex-direction: column; min-height: 0;
+  padding: var(--e2) var(--e3); gap: var(--e2);
+}
+.lienzo { flex: 1; display: grid; place-items: center; min-height: 0; }
+
+/* El marco lleva la proporción del formato. `max-height:100%` es lo que
+   impide que un 9:16 desborde la pantalla en 768 px de alto. */
+.marco {
+  position: relative; background: #0d1117; border-radius: var(--radio); overflow: hidden;
+  max-height: 100%; max-width: 100%; box-shadow: 0 2px 14px rgba(15,25,40,.16);
+}
+/* El tamaño exacto lo calcula preview.js con el tamaño real del contenedor:
+   con CSS, fijar `width:100%` deja la altura a merced de `max-height` y la
+   proporción se rompe (un 16:9 salía a 2.04). `aspect-ratio` se deja como
+   respaldo por si el script no llega a medir. */
+.marco[data-formato="9:16"] { aspect-ratio: 9 / 16; }
+.marco[data-formato="16:9"] { aspect-ratio: 16 / 9; }
+.marco[data-formato="1:1"]  { aspect-ratio: 1 / 1; }
+.marco[data-formato="4:5"]  { aspect-ratio: 4 / 5; }
+.marco-fondo, .marco-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* `display:grid` en la clase gana al `[hidden]{display:none}` del navegador:
+   sin esta regla el mensaje «sin imagen» se quedaba encima de la foto. */
+.marco-vacio { position: absolute; inset: 0; display: grid; place-items: center; color: #8b95a4; font-size: var(--txt-sm); padding: 0 12%; text-align: center; }
+.marco-vacio[hidden] { display: none; }
+
+/* Zonas seguras: el margen que TikTok e Instagram tapan con su interfaz. */
+.zona { position: absolute; left: 0; right: 0; pointer-events: none;
+  background: repeating-linear-gradient(45deg, rgba(255,60,60,.13) 0 6px, transparent 6px 12px);
+  border-color: rgba(255,80,80,.5); }
+.zona-arriba { top: 0; border-bottom: 1px dashed rgba(255,80,80,.6); }
+.zona-abajo  { bottom: 0; border-top: 1px dashed rgba(255,80,80,.6); }
+
+/* Rótulo y subtítulo se colocan en PORCENTAJE del marco, con las mismas
+   proporciones que calcula el backend, para que la vista previa se parezca al
+   render. No es el render: es una aproximación, y así se etiqueta. */
+.rotulo {
+  position: absolute; left: 7.5%; right: 7.5%; text-align: center;
+  font-weight: 700; line-height: 1.16; word-break: break-word; white-space: pre-line;
+}
+.subtitulo {
+  position: absolute; left: 0; right: 0; text-align: center;
+  line-height: 1.2; white-space: pre-line; padding: 0 2%;
+}
+
+.reproductor { display: flex; align-items: center; gap: var(--e2); flex: none; }
+.reproductor .barra, .reproductor input[type="range"] { flex: 1; min-width: 0; }
+.btn-play { font-size: .9rem; min-width: 34px; }
+.tiempo { font-size: var(--txt-xs); color: var(--tinta-suave); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------------------------------------------------------- [TIMELINE] */
+.ed-timeline {
+  grid-area: tl; background: var(--papel); border-top: 1px solid var(--linea);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.tl-cab { display: flex; align-items: center; gap: var(--e2); padding: var(--e1) var(--e3); border-bottom: 1px solid var(--linea); flex: none; }
+.tl-titulo { font-size: var(--txt-sm); font-weight: 600; }
+.tl-zoom { margin-left: auto; display: flex; align-items: center; gap: var(--e1); }
+.tl-cuerpo { flex: 1; display: grid; grid-template-columns: 132px 1fr; min-height: 0; }
+
+.tl-nombres { border-right: 1px solid var(--linea); overflow: hidden; padding-top: 22px; }
+.tl-nombre {
+  height: 26px; display: flex; align-items: center; gap: var(--e1);
+  padding: 0 var(--e2); font-size: .66rem; color: var(--tinta-suave);
+  border-bottom: 1px solid var(--linea);
+}
+.tl-color { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.tl-nombre .cuenta { margin-left: auto; font-size: .58rem; color: var(--tinta-tenue); }
+
+.tl-scroll { overflow-x: auto; overflow-y: hidden; position: relative; }
+.tl-lienzo { position: relative; height: 100%; min-width: 100%; }
+
+.tl-regla { height: 22px; position: relative; border-bottom: 1px solid var(--linea); background: var(--papel-2); }
+.tl-marca { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--linea-fuerte); padding-left: 3px; font-size: .58rem; color: var(--tinta-tenue); }
+
+.tl-pista { height: 26px; position: relative; border-bottom: 1px solid var(--linea); }
+.tl-pista:nth-child(odd) { background: #fafbfd; }
+.tl-clip {
+  position: absolute; top: 3px; bottom: 3px; border-radius: 4px; overflow: hidden;
+  border: 1px solid rgba(0,0,0,.14); cursor: pointer;
+  font-size: .58rem; color: #fff; padding: 0 3px; line-height: 20px; white-space: nowrap;
+}
+.tl-clip[aria-current="true"] { outline: 2px solid var(--marca); outline-offset: -1px; z-index: 2; }
+.tl-clip[data-excluida="si"] { opacity: .35; }
+.tl-clip img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .75; }
+.tl-clip span { position: relative; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+/* Bloque de audio sin forma de onda: se declara como tal, no se finge. */
+.tl-pista[data-pista="cortes"] .tl-clip { border-radius: 0; border: 0; padding: 0; }
+.tl-clip[data-onda="no"] { background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.22) 0 2px, transparent 2px 6px); }
+.tl-onda { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.tl-cabezal { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--error); pointer-events: none; z-index: 3; }
+.tl-cabezal::before {
+  content: ""; position: absolute; top: 0; left: -4px;
+  border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--error);
+}
+
+.cargando { position: fixed; inset: 0; display: grid; place-items: center; background: var(--fondo); color: var(--tinta-suave); z-index: 20; }
+.cargando[hidden] { display: none; }
+
+/* --------------------------------------------------------- PANTALLAS
+   En 1366×768 cabe todo. Por debajo de 1200 se estrecha el panel; por debajo
+   de 1000 se apila, que es el caso de un portátil pequeño o una ventana a
+   media pantalla. */
+@media (max-width: 1200px) {
+  :root { --panel: 260px; --herr: 66px; }
+}
+@media (max-height: 700px) {
+  :root { --tl: 168px; }
+}
+@media (max-width: 1000px) {
+  .ed { grid-template-columns: var(--herr) 1fr; grid-template-areas: "top top" "herr escenario" "panel panel" "tl tl"; grid-template-rows: var(--top) 1fr 220px var(--tl); }
+  .ed-panel { border-right: 0; border-top: 1px solid var(--linea); }
+}

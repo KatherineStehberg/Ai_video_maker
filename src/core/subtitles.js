@@ -6,6 +6,7 @@ import { srtTime, wrapText } from '../lib/util.js';
 import { stripLangTags } from './lang.js';
 import { captionMetrics, normalizeCaptionStyle } from './captions-style.js';
 import { ASPECTS, CONFIG } from '../config.js';
+import { activeScenes } from './project.js';
 import { logger } from '../lib/logger.js';
 
 const log = logger('subs');
@@ -91,7 +92,9 @@ export function buildCues(project, { width = null, height = null } = {}) {
 
   const cues = [];
   let t = 0;
-  for (const s of project?.scenes || []) {
+  // Solo las escenas incluidas: una escena excluida no se narra, asi que
+  // tampoco puede tener subtitulo ni ocupar tiempo en la linea.
+  for (const s of activeScenes(project)) {
     // Las marcas [en]/[es] son de produccion: se narran como cambio de voz,
     // nunca se leen en pantalla.
     //
@@ -119,7 +122,7 @@ export const CUE_MINIMO_COMODO = 0.5;
  * entera sin cues.
  */
 export function verifyCaptionCoverage(project, { width = null, height = null } = {}) {
-  const escenas = project?.scenes || [];
+  const escenas = activeScenes(project);
   const problemas = [];
   const rapidos = [];
   let narrados = 0;
@@ -132,7 +135,7 @@ export function verifyCaptionCoverage(project, { width = null, height = null } =
     const texto = propio || stripLangTags(s.text ?? '');
     if (texto && dur > 0) {
       narrados += dur;
-      const cues = buildCues({ ...project, scenes: [s] }, { width, height });
+      const cues = buildCues({ ...project, scenes: [{ ...s, excluida: false }] }, { width, height });
       const cubre = cues.reduce((a, c) => a + Math.max(0, c.end - c.start), 0);
       cubiertos += cubre;
       if (!cues.length || cubre <= 0.01) {

@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- ============================================================================
+     AI VIDEO MAKER · EDITOR VISUAL
+     ----------------------------------------------------------------------------
+     Diseño propio. La distribución (barra superior, herramientas verticales,
+     panel contextual, preview central, línea de tiempo inferior) es la de un
+     editor de video al uso; no se reproduce marca, logotipo, textos ni código
+     de ningún producto de terceros.
+
+     Se abre SOLO con un proyecto: /project-editor.html?id=vid_xxxxx
+     La pantalla de inicio sigue siendo /editor.html y no cambia.
+
+     MAPA:
+       [SUPERIOR]  volver, nombre, estado, formato, zonas seguras, exportar
+       [HERRAM]    columna de herramientas
+       [PANEL]     panel contextual de la herramienta activa
+       [ESCENARIO] preview + controles de reproducción
+       [TIMELINE]  pistas, regla y cabezal
+
+     Estilos: project-editor.css   ·   Lógica: project-editor/main.js
+     ========================================================================= -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor · AI Video Maker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23155e9c'/%3E%3Cpath d='M12 9l10 7-10 7z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/project-editor.css">
+</head>
+<body>
+
+<div class="ed" id="ed">
+
+  <!-- ============================== [SUPERIOR] ============================= -->
+  <header class="ed-top">
+    <a class="btn btn-sutil" id="volver" href="/editor.html">‹ Proyectos</a>
+
+    <div class="ed-nombre">
+      <input id="titulo" aria-label="Nombre del proyecto" maxlength="120" spellcheck="false">
+      <span class="estado" id="estado-guardado" data-tono="guardado">Guardado</span>
+    </div>
+
+    <div class="ed-top-acciones">
+      <!-- Deshacer/rehacer actúan sobre las ediciones aún sin guardar. -->
+      <button class="btn btn-icono" id="deshacer" title="Deshacer (Ctrl+Z)" aria-label="Deshacer" disabled>↶</button>
+      <button class="btn btn-icono" id="rehacer" title="Rehacer (Ctrl+Mayús+Z)" aria-label="Rehacer" disabled>↷</button>
+
+      <div class="segmentado" id="formatos" role="group" aria-label="Formato de salida"></div>
+
+      <label class="conmutador" title="Dibuja los márgenes que tapan los controles de TikTok e Instagram">
+        <input type="checkbox" id="zonas-seguras"> Zonas seguras
+      </label>
+
+      <button class="btn" id="guardar">Guardar cambios</button>
+      <button class="btn btn-principal" id="exportar">Exportar MP4</button>
+    </div>
+  </header>
+
+  <!-- ============================== [HERRAM] =============================== -->
+  <nav class="ed-herramientas" id="herramientas" aria-label="Herramientas">
+    <button class="herr" data-herr="escenas"      aria-current="true"><span class="herr-ico">▤</span><span>Escenas</span></button>
+    <button class="herr" data-herr="guion"><span class="herr-ico">¶</span><span>Guion</span></button>
+    <button class="herr" data-herr="texto"><span class="herr-ico">T</span><span>Texto</span></button>
+    <button class="herr" data-herr="recursos"><span class="herr-ico">▣</span><span>Recursos</span></button>
+    <button class="herr" data-herr="transiciones"><span class="herr-ico">⇄</span><span>Transiciones</span></button>
+    <button class="herr" data-herr="audio"><span class="herr-ico">♪</span><span>Audio</span></button>
+    <button class="herr" data-herr="subtitulos"><span class="herr-ico">≡</span><span>Subtítulos</span></button>
+    <button class="herr" data-herr="marca"><span class="herr-ico">⚙</span><span>Marca</span></button>
+  </nav>
+
+  <!-- =============================== [PANEL] ============================== -->
+  <aside class="ed-panel" id="panel" aria-live="polite">
+    <div class="panel-cab"><h2 id="panel-titulo">Escenas</h2><span class="mini" id="panel-pista"></span></div>
+    <div class="panel-cuerpo" id="panel-cuerpo"></div>
+  </aside>
+
+  <!-- ============================= [ESCENARIO] ============================= -->
+  <main class="ed-escenario">
+    <p class="aviso aviso-error" id="error" role="alert" hidden></p>
+
+    <div class="lienzo" id="lienzo">
+      <!-- El marco fija la proporción del formato; todo lo de dentro se
+           posiciona en porcentaje para que coincida con el render. -->
+      <div class="marco" id="marco" data-formato="9:16">
+        <img class="marco-fondo" id="marco-img" alt="" hidden>
+        <video class="marco-video" id="marco-video" hidden preload="metadata"></video>
+        <div class="marco-vacio" id="marco-vacio">Sin imagen en esta escena</div>
+        <div class="zona zona-arriba" id="zona-arriba" hidden></div>
+        <div class="zona zona-abajo" id="zona-abajo" hidden></div>
+        <div class="rotulo" id="rotulo" hidden></div>
+        <div class="subtitulo" id="subtitulo" hidden></div>
+      </div>
+    </div>
+
+    <div class="reproductor">
+      <button class="btn btn-icono btn-play" id="play" aria-label="Reproducir">▶</button>
+      <span class="tiempo" id="tiempo">0:00 / 0:00</span>
+      <input type="range" id="barra" min="0" max="1000" value="0" step="1" aria-label="Posición">
+      <span class="pill" id="fuente-preview" data-tono="aviso">Vista previa aproximada</span>
+      <button class="btn btn-mini" id="ver-mp4" hidden>Ver MP4 exportado</button>
+    </div>
+  </main>
+
+  <!-- ============================= [TIMELINE] ============================== -->
+  <section class="ed-timeline" id="timeline" aria-label="Línea de tiempo">
+    <div class="tl-cab">
+      <span class="tl-titulo">Línea de tiempo</span>
+      <span class="mini" id="tl-info"></span>
+      <div class="tl-zoom">
+        <button class="btn btn-icono btn-mini" id="zoom-menos" aria-label="Alejar">−</button>
+        <span class="mini" id="zoom-nivel">1×</span>
+        <button class="btn btn-icono btn-mini" id="zoom-mas" aria-label="Acercar">+</button>
+      </div>
+    </div>
+    <div class="tl-cuerpo">
+      <div class="tl-nombres" id="tl-nombres"></div>
+      <div class="tl-scroll" id="tl-scroll">
+        <div class="tl-lienzo" id="tl-lienzo">
+          <div class="tl-regla" id="tl-regla"></div>
+          <div class="tl-pistas" id="tl-pistas"></div>
+          <div class="tl-cabezal" id="tl-cabezal"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cargando" id="cargando">Cargando el proyecto…</div>
+</div>
+
+<script type="module" src="/project-editor/main.js"></script>
+</body>
+</html>

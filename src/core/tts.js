@@ -6,6 +6,7 @@ import { probeDuration, ffmpegRun } from '../lib/ffmpeg.js';
 import { workDir, rel, abs } from '../lib/paths.js';
 import { logger } from '../lib/logger.js';
 import { narrationPlan, resolveVoices } from './lang.js';
+import { activeScenes } from './project.js';
 
 const log = logger('tts-core');
 
@@ -190,7 +191,9 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
 export async function buildNarrationTrack(project) {
   const dir = workDir(project.id);
   const out = path.join(dir, 'narration.wav');
-  const scenes = project.scenes || [];
+  // Solo las escenas incluidas: la pista de voz tiene que durar lo mismo que
+  // el video montado, y una escena excluida no esta en el montaje.
+  const scenes = activeScenes(project);
   const withAudio = scenes.filter((s) => s.narrationPath && fs.existsSync(abs(s.narrationPath)));
   if (!withAudio.length) return null;
 

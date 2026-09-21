@@ -141,6 +141,26 @@ for (const boton of $('pasos').querySelectorAll('.paso')) {
 
 // ========================================================= PINTADO
 
+/**
+ * Enlace al editor visual. Sólo se activa cuando hay un proyecto en disco:
+ * un enlace que lleva a una pantalla vacía es peor que un enlace apagado.
+ */
+function pintarEnlaceEditor() {
+  const enlace = $('ir-editor-visual');
+  if (!enlace) return;
+  const projectId = state.generation?.projectId || state.generation?.spec?.projectId || null;
+  if (projectId) {
+    enlace.href = `/project-editor.html?id=${encodeURIComponent(projectId)}`;
+    enlace.classList.remove('btn-sutil');
+    enlace.removeAttribute('aria-disabled');
+    $('editor-visual-nota').textContent = 'Se abre en esta misma pestaña. Los cambios se guardan en el proyecto.';
+  } else {
+    enlace.href = '#';
+    enlace.setAttribute('aria-disabled', 'true');
+    $('editor-visual-nota').textContent = 'Disponible en cuanto el video se haya montado.';
+  }
+}
+
 function render() {
   const etiqueta = STATE_LABELS[state.state] || state.state;
   $('estado-pill').textContent = etiqueta;
@@ -161,6 +181,7 @@ function render() {
 
   $('btn-draft').disabled = state.busy;
   $('btn-generate').disabled = state.busy || !borrador;
+  pintarEnlaceEditor();
   $('btn-analyze').disabled = !canAnalyze(state);
   $('btn-propose').disabled = !canPropose(state);
   $('btn-approve').disabled = !canApprove(state);

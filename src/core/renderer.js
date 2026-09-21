@@ -6,6 +6,7 @@ import { PATHS, ensureDir, workDir, rel, abs } from '../lib/paths.js';
 import { ASPECTS, RENDER_PROFILES, CONFIG } from '../config.js';
 import { brandLogoPath, brandFontPath } from './brands.js';
 import { assetKind } from './asset-manager.js';
+import { activeScenes } from './project.js';
 import { writeAssForFormat } from './subtitles.js';
 import { slugify, clamp } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
@@ -296,7 +297,10 @@ async function buildAudioTrack(project, workingDir, totalSeconds) {
 
   if (hasNarration) {
     inputs.push('-i', narration);
-    filters.push(`[${i}:a]aresample=48000,volume=1.0[voz]`);
+    // Ganancia de mezcla de la narracion. Antes era 1.0 fijo, asi que el
+    // control de volumen de la voz no tenia ningun efecto en el montaje.
+    const gananciaVoz = clamp(Number(project.voice?.gain ?? 1), 0, 2);
+    filters.push(`[${i}:a]aresample=48000,volume=${gananciaVoz.toFixed(3)}[voz]`);
     labels.push('[voz]');
     i++;
   }
@@ -410,7 +414,10 @@ export async function renderProject(project, brand, {
     fontsDir: ensureFontDir(brand),
   };
 
-  const totalSeconds = project.scenes.reduce((a, s) => a + (Number(s.duration) || 0), 0);
+  // Solo las escenas incluidas entran en el montaje. Una escena excluida
+  // conserva su texto, su voz y su imagen, pero no se renderiza.
+  const escenas = activeScenes(project);
+  const totalSeconds = escenas.reduce((a, s) => a + (Number(s.duration) || 0), 0);
   if (!(totalSeconds > 0)) throw new Error('El proyecto no tiene duracion');
 
   // --- 1. Clips por escena ---
@@ -421,15 +428,15 @@ export async function renderProject(project, brand, {
     clips.push(await normalizeBumper(abs(introAbs), ctx, 'intro'));
   }
 
-  for (let i = 0; i < project.scenes.length; i++) {
+  for (let i = 0; i < escenas.length; i++) {
     onProgress?.({
       step: 'scene',
       index: i,
-      total: project.scenes.length,
-      pct: 5 + Math.round((i / project.scenes.length) * 55),
-      message: `Escena ${i + 1}/${project.scenes.length} (${aspect})`,
+      total: escenas.length,
+      pct: 5 + Math.round((i / escenas.length) * 55),
+      message: `Escena ${i + 1}/${escenas.length} (${aspect})`,
     });
-    clips.push(await renderSceneClip(project.scenes[i], i, ctx));
+    clips.push(await renderSceneClip(escenas[i], i, ctx));
   }
 
   const outroAbs = project.assets?.outro || brand?.outro;

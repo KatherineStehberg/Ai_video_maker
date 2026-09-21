@@ -46,3 +46,14 @@
 /* Presets de subtítulos */
 .subs-presets { display: flex; gap: .3rem; flex-wrap: wrap; margin: .35rem 0; }
 .subs-presets button[aria-pressed="true"] { outline: 2px solid currentColor; }
+
+/* Lista de proyectos: título a la izquierda, acceso al editor visual a la
+   derecha. El botón abre el proyecto en esta pantalla; el enlace, en el editor. */
+.proyecto-fila { display: flex; gap: .35rem; align-items: stretch; }
+.proyecto-fila > button { flex: 1; text-align: left; }
+.proyecto-fila > a {
+  display: inline-flex; align-items: center; padding: 0 .5rem;
+  font-size: .72rem; text-decoration: none; border-radius: 6px;
+  border: 1px solid #d8dee9; color: inherit; white-space: nowrap;
+}
+.proyecto-fila > a:hover { background: #eef1f6; }
