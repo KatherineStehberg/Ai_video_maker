@@ -465,13 +465,10 @@ progress::-moz-progress-bar { background: var(--marca); border-radius: 999px; }
 .escena-campos { display: grid; gap: var(--e2); min-width: 0; }
 .escena-campos label { margin: 0; font-size: var(--txt-xs); }
 .escena-campos textarea, .escena-campos input { margin-top: 3px; padding: .4rem .55rem; font-size: var(--txt-sm); }
-/* Tres campos en una ficha estrecha: título y segundos comparten la primera
-   fila; la instrucción visual, que es la más larga, ocupa la segunda entera.
-   El orden en el DOM es título, visual, segundos (ver draft.js). */
+/* Dos campos: la instrucción visual (larga) y los segundos (estrecho). El
+   texto destacado ya no vive aquí: tiene su propio bloque plegable, porque no
+   es un campo más sino una decisión por escena. */
 .escena-fila { display: grid; grid-template-columns: 1fr 88px; gap: var(--e2); align-items: end; }
-.escena-fila > label:nth-child(1) { grid-column: 1; grid-row: 1; }
-.escena-fila > label:nth-child(3) { grid-column: 2; grid-row: 1; }
-.escena-fila > label:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
 .escena-botones { display: flex; gap: .25rem; flex-wrap: wrap; align-items: center; }
 /* `justify-self` y no `align-self`: el contenedor es un grid, así que sin esto
    el chip se estiraría a todo el ancho de la columna. */
@@ -585,3 +582,87 @@ td { font-variant-numeric: tabular-nums; }
   .escena-fila { grid-template-columns: 1fr; }
   .lienzo { padding: var(--e2); }
 }
+
+/* ---------------------------------------------------------------------------
+   TEXTO DESTACADO POR ESCENA
+   ---------------------------------------------------------------------------
+   Plegable a propósito: la mayoría de las escenas NO llevan rótulo, así que
+   cerrado es el estado normal y la tarjeta no crece sin motivo.
+   Marcado: ver draft.js -> bloqueDestacado().
+--------------------------------------------------------------------------- */
+.escena-destacado {
+  border: 1px solid var(--linea); border-radius: 8px;
+  background: rgba(255,255,255,.02); padding: .45rem .55rem;
+}
+.escena-destacado > summary {
+  display: flex; align-items: center; gap: .45rem; cursor: pointer;
+  font-size: var(--txt-xs); color: var(--tinta); list-style: none;
+}
+.escena-destacado > summary::-webkit-details-marker { display: none; }
+.escena-destacado > summary input { margin: 0; flex: none; }
+.escena-destacado-estado { color: var(--tinta-suave); margin-left: auto; }
+/* `display:grid` en la clase gana al `[hidden]{display:none}` del navegador,
+   asi que ocultar el panel con la propiedad `hidden` no surtia efecto. */
+.escena-destacado-panel { display: grid; gap: var(--e2); margin-top: .55rem; }
+.escena-destacado-panel[hidden] { display: none; }
+.escena-destacado-rejilla {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--e2);
+}
+.escena-destacado-rejilla select,
+.escena-destacado-rejilla input { width: 100%; }
+.escena-destacado-rejilla input[type="color"] { height: 30px; padding: 2px; }
+.escena-destacado-aviso:empty { display: none; }
+.escena-destacado-aviso { color: var(--ambar, #d2a106); }
+
+/* VISTA PREVIA. Caja con la proporción del encuadre; el rótulo se coloca donde
+   caería y la franja inferior recuerda que los subtítulos siguen ahí, para que
+   se vea de un vistazo que no chocan. */
+.escena-previa {
+  position: relative; aspect-ratio: 16 / 9; width: 100%;
+  border-radius: 6px; overflow: hidden;
+  background: linear-gradient(135deg, #2b3350, #161c2e);
+  border: 1px solid var(--linea);
+}
+.escena-previa-rotulo {
+  position: absolute; left: 7.5%; right: 7.5%; text-align: center;
+  font-weight: 700; line-height: 1.15; word-break: break-word;
+  transition: top .15s ease;
+}
+.escena-previa-rotulo[data-vacio="si"] { opacity: .45; font-style: italic; }
+.escena-previa-subtitulo {
+  position: absolute; left: 15%; right: 15%; bottom: 8%; text-align: center;
+  font-size: .5rem; color: rgba(255,255,255,.75);
+  background: rgba(0,0,0,.55); border-radius: 3px; padding: 1px 0;
+}
+/* Posición del rótulo: los mismos cinco valores que acepta el backend. */
+.escena-previa[data-pos="top"]          .escena-previa-rotulo { top: 8%; }
+.escena-previa[data-pos="upper-third"]  .escena-previa-rotulo { top: 16%; }
+.escena-previa[data-pos="center"]       .escena-previa-rotulo { top: 44%; }
+.escena-previa[data-pos="lower-third"]  .escena-previa-rotulo { top: 58%; }
+.escena-previa[data-pos="bottom"]       .escena-previa-rotulo { top: 62%; }
+/* Tamaños relativos al alto de la previa, no en píxeles: así la proporción
+   entre rótulo y subtítulo se parece a la del video de verdad. */
+.escena-previa[data-size="small"]  .escena-previa-rotulo { font-size: .62rem; }
+.escena-previa[data-size="medium"] .escena-previa-rotulo { font-size: .8rem; }
+.escena-previa[data-size="large"]  .escena-previa-rotulo { font-size: 1rem; }
+.escena-previa[data-size="xlarge"] .escena-previa-rotulo { font-size: 1.3rem; }
+.escena-previa[data-bg="box"] .escena-previa-rotulo {
+  background: rgba(0,0,0,.45); border-radius: 4px; padding: .12em .3em;
+}
+.escena-previa[data-bg="outline"] .escena-previa-rotulo {
+  text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 2px #000;
+}
+
+/* ---------------------------------------------------------------------------
+   SUBTITULOS: CONTROLES GLOBALES
+--------------------------------------------------------------------------- */
+.subs-controles { display: grid; gap: var(--e2); }
+.subs-controles[hidden] { display: none; }
+.subs-presets { display: flex; gap: .3rem; flex-wrap: wrap; }
+.subs-presets .btn[aria-pressed="true"] {
+  border-color: var(--marca); background: var(--marca-tenue); color: #fff;
+}
+.subs-rejilla {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--e2);
+}
+.subs-rejilla input[type="color"] { height: 30px; padding: 2px; }

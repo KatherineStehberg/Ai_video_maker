@@ -87,7 +87,12 @@ try {
   // 4. Editar una escena y regenerar otra (paso «Escenas»).
   await page.locator('.paso[data-paso="escenas"]').click();
   await page.waitForFunction(() => !document.querySelector('[data-paso-panel="escenas"]').hidden);
-  await page.locator('.escena-titulo').first().fill('Aprende inglés online');
+  // El texto destacado vive en su propio bloque, apagado por defecto en la
+  // mayoría de las escenas: hay que activarlo antes de poder escribirlo.
+  const primeraEscena = page.locator('.escena').first();
+  const activarRotulo = primeraEscena.locator('.escena-destacado-on');
+  if (!(await activarRotulo.isChecked())) await activarRotulo.check();
+  await primeraEscena.locator('.escena-titulo').fill('Aprende inglés online');
   await page.locator('.escena-text').first().fill('Aprende inglés online a tu ritmo, con clases pensadas para adultos.');
   await page.locator('.escena').nth(1).locator('button', { hasText: 'Regenerar' }).first().click();
   await page.waitForFunction(() => document.getElementById('status').textContent.includes('regenerada'), null, { timeout: 60000 });

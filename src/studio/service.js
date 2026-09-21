@@ -3,6 +3,8 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { makeProject, makeScene, loadProject, saveProject, listProjects } from '../core/project.js';
 import { planScenes } from '../core/scene-planner.js';
+import { proponerTextosDestacados, normalizeOnScreenStyle, POSICIONES_DESTACADO, ANIMACIONES_DESTACADO } from '../core/on-screen-text.js';
+import { normalizeCaptionStyle, captionStyleOptions } from '../core/captions-style.js';
 import { narrateProject } from '../core/tts.js';
 import { runPipeline } from '../core/pipeline.js';
 import { renderProject } from '../core/renderer.js';
@@ -36,7 +38,14 @@ export function createStudio(input){
   const template=getTemplate(input.template);
   const p=makeProject({title:input.title || 'Mi video',brand:input.brand || 'personal',template:template.id,script:String(input.script),aspectRatio:input.aspectRatio || '9:16',language:normalizeLanguage(input.language),voice:{provider:'none',enabled:false},captions:{...template.captions,enabled:true,burnIn:true},
     studio:{version:1,style:'clean',revision:1,approvedScriptHash:null,references:[],commissionId:input.commissionId || null,job:null,resultRevision:null,networkPolicy:'local-only'}});
-  p.scenes=planScenes(p).map((s,i)=>({...s,kenBurns:'none',transition:'none',onScreenTitle:`${i+1}. ${p.title}`,provenance:{kind:'generated-graphic',authorized:true,originalReference:'local:procedural-brand-background',generator:'FFmpeg',notSoftwareEvidence:true}}));
+  // El rotulo NO va en todas las escenas. Antes se escribia «1. Titulo»,
+  // «2. Titulo»… encima de cada imagen, que es exactamente lo que los
+  // subtitulos ya hacen y ademas tapa la foto. Ahora se PROPONE solo donde
+  // aporta (portada, secciones, cifras y cierre) y la usuaria decide.
+  p.scenes=proponerTextosDestacados(
+    planScenes(p).map(s=>({...s,kenBurns:'none',transition:'none',provenance:{kind:'generated-graphic',authorized:true,originalReference:'local:procedural-brand-background',generator:'FFmpeg',notSoftwareEvidence:true}})),
+    {titulo:p.title}
+  );
   saveProject(p);return p;
 }
 function importedAsset(assetPath){
@@ -58,7 +67,20 @@ export function updateStudio(id,input){
     const previous=new Map(p.scenes.map(s=>[s.id,s]));const seen=new Set();
     p.scenes=input.scenes.map(s=>{
       if(!previous.has(s.id)||seen.has(s.id))throw new Error('Escena inválida o duplicada');seen.add(s.id);
-      const old=previous.get(s.id),n=makeScene({...old,text:String(s.text ?? old.text).slice(0,4000),duration:s.duration ?? old.duration,onScreenTitle:String(s.onScreenTitle ?? old.onScreenTitle).slice(0,100),caption:s.caption ?? null,kenBurns:p.studio.style==='dynamic'?'in':'none',transition:p.studio.style==='minimal'?'none':'fade'});
+      const old=previous.get(s.id);
+      // Texto destacado: los cinco campos viajan desde la tarjeta de escena.
+      // Tocar el texto a mano marca `onScreenTextManual`, para que una
+      // propuesta automatica posterior no lo pise.
+      const tituloNuevo=s.onScreenTitle===undefined?old.onScreenTitle:String(s.onScreenTitle).slice(0,100);
+      const manual=old.onScreenTextManual || (s.onScreenTitle!==undefined && tituloNuevo!==old.onScreenTitle);
+      const n=makeScene({...old,text:String(s.text ?? old.text).slice(0,4000),duration:s.duration ?? old.duration,
+        onScreenTitle:tituloNuevo,
+        showOnScreenText:s.showOnScreenText===undefined?old.showOnScreenText:Boolean(s.showOnScreenText),
+        onScreenPosition:POSICIONES_DESTACADO.includes(s.onScreenPosition)?s.onScreenPosition:old.onScreenPosition,
+        onScreenAnimation:ANIMACIONES_DESTACADO.includes(s.onScreenAnimation)?s.onScreenAnimation:old.onScreenAnimation,
+        onScreenStyle:normalizeOnScreenStyle(s.onScreenStyle,old.onScreenStyle),
+        onScreenTextManual:manual,
+        caption:s.caption ?? null,kenBurns:p.studio.style==='dynamic'?'in':'none',transition:p.studio.style==='minimal'?'none':'fade'});
       if(s.assetPath){const manifest=importedAsset(s.assetPath);if(!['own','capture','generated-image'].includes(manifest.kind))throw new Error('Recurso no visual');n.assetPath=s.assetPath;n.provenance=manifest;}
       else {n.assetPath=null;n.provenance={kind:'generated-graphic',authorized:true,originalReference:'local:procedural-brand-background',generator:'FFmpeg',notSoftwareEvidence:true};}
       return n;
@@ -71,6 +93,9 @@ export function updateStudio(id,input){
     p.music={...p.music,path:musicPath,enabled:!!musicPath,volume:Math.max(0,Math.min(1,Number(input.music.volume ?? .12))),provenance};
   }
   if(input.captions!==undefined)p.captions={...p.captions,enabled:!!input.captions,burnIn:!!input.captions};
+  // Estilo global de subtitulos: preset, tipografia, color, fondo, opacidad,
+  // contorno, posicion y alineacion. Se guarda con el proyecto.
+  if(input.captionStyle!==undefined)p.captions={...p.captions,style:normalizeCaptionStyle(input.captionStyle,p.captions.style)};
   if(input.approveScript===true)p.studio.approvedScriptHash=scriptHash(p);
   if(p.studio.approvedScriptHash!==scriptHash(p))p.studio.approvedScriptHash=null;
   p.studio.revision++;p.status='draft';saveProject(p);return p;
@@ -83,7 +108,7 @@ export function importTarget(name,kind,originalReference,authorized){
   fs.mkdirSync(importsDir,{recursive:true});const file=path.join(importsDir,randomUUID()+ext);
   return {file,manifest:{path:rel(file),name:path.basename(name),kind,authorized:true,originalReference:reference(originalReference)||`local:${path.basename(name)}`,access:'local-import',importedAt:new Date().toISOString()}};
 }
-export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,voices:await listAllVoices(),languages:LANGUAGES,defaultVoices:DEFAULT_VOICES,providers:{mode:'local-only',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
+export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,captionStyle:captionStyleOptions(),onScreen:{positions:POSICIONES_DESTACADO,animations:ANIMACIONES_DESTACADO},voices:await listAllVoices(),languages:LANGUAGES,defaultVoices:DEFAULT_VOICES,providers:{mode:'local-only',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
 async function background(p,task){
   try{await task();p.studio.job.status='complete';p.studio.job.progress=100;}
   catch(e){p.studio.job.status='failed';p.studio.job.error=e.message;p.status='failed';}

@@ -5,6 +5,76 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Corregido y añadido — Subtítulos y texto destacado (2026-09-21)
+
+Dos cosas que se confundían entre sí quedan separadas: el **subtítulo**, que
+lleva toda la narración en todas las escenas, y el **texto destacado**, que es
+un rótulo corto en unas pocas.
+
+#### Subtitulado completo
+
+- **Corregido: el final de una escena podía quedarse sin subtítulo.**
+  `cuesForScene()` forzaba un mínimo de 0,7 s por cue; en una escena corta con
+  mucho texto esos mínimos sumaban más que la escena y los últimos cues se
+  recortaban contra el final hasta durar cero. Ahora el reparto se calcula sobre
+  el peso **acumulado**, así que los cues son contiguos, ninguno dura cero y el
+  último cierra exactamente al final de la escena.
+- `verifyCaptionCoverage()`: comprueba **escena por escena** que nada narrado se
+  queda sin subtítulo, y devuelve la cobertura real.
+- Un `caption` vacío o en blanco ya no silencia el subtítulo: manda la
+  narración. Para quitar los subtítulos hay que apagarlos en el proyecto.
+- **Corregido: la casilla «Subtítulos quemados» del editor no hacía nada.**
+  `leerFormulario()` nunca la leía, así que el video salía subtitulado aunque se
+  desactivara. Ahora viaja en la petición.
+
+#### Subtítulos más grandes y configurables
+
+- `src/core/captions-style.js` (nuevo): toda la geometría y el estilo en un solo
+  sitio. Tamaño por formato interpolando entre dos anclas medidas:
+  **9:16 → 64 px**, **16:9 → 48 px**, **1:1 → 58 px**, **4:5 → 61 px**.
+  Antes salía `alto / 34`: 32 px en 16:9, menos de la mitad de lo legible.
+- **Zonas seguras** por formato (18 % inferior en 9:16): el subtítulo ya no cae
+  bajo los controles de TikTok ni de Instagram. Ancho máximo 85 %, dos líneas
+  como mucho, corte por palabras.
+- **Controles globales**: tamaño, tipografía, color, fondo, opacidad, contorno,
+  posición y alineación, en el Estudio y en el editor.
+- **Presets**: Redes sociales, Curso, Limpio y Alto contraste. Son
+  multiplicadores, así que siguen adaptándose a cada formato.
+- El `.ass` se genera con `PlayRes` = tamaño real del video y traduce posición y
+  alineación a los valores de ASS; con fondo de caja usa `BorderStyle 3`.
+
+#### Texto destacado sobre algunas imágenes
+
+- `src/core/on-screen-text.js` (nuevo) y cinco campos por escena:
+  `showOnScreenText`, `onScreenTitle`, `onScreenPosition`, `onScreenStyle` y
+  `onScreenAnimation`. Los proyectos guardados antes de esto se reabren igual
+  que se veían.
+- **Corregido: el rótulo salía en TODAS las escenas.** El Estudio escribía
+  «1. Título», «2. Título»… sobre cada imagen, y el generador titulaba cada
+  escena con su propia narración, duplicando el guion sobre el video. Ahora se
+  **propone** sólo en portada, aperturas de sección, datos con cifras y cierre,
+  con un tope del 35 % de las escenas y nunca dos seguidas.
+- **Corregido: trozos de diálogo se colaban como rótulos.** Un guion narrativo
+  producía rótulos como «-Por ejemplo», «Me dijo» o «-Isan, entiendo que tenías
+  el don de ver enfermedades, pero». `esRotuloValido()` descarta diálogos,
+  verbos de habla, frases cortadas a mitad y cualquier título que haya habido
+  que recortar: un titular de verdad ya es corto.
+- Máximo 8 palabras, y el rótulo nunca copia la narración.
+- El rótulo se coloca **fuera de la banda de subtítulos**: los dos conviven en
+  la misma escena sin pisarse, en los cuatro formatos.
+- Animaciones de entrada: `fade`, `slide-up`, `pop` y `none`.
+- En cada tarjeta de escena: **«Agregar texto destacado sobre la imagen»**, con
+  texto, posición, tamaño, color, fondo, animación y **vista previa**.
+  Desactivarlo deja la escena con imagen, voz y subtítulos, y **no borra** el
+  texto escrito.
+
+#### Pruebas
+
+- `tests/captions.test.js` (nuevo, 32 pruebas): tamaños por formato, zonas
+  seguras, subtitulado completo, escenas con y sin rótulo, convivencia sin
+  solape y persistencia al guardar y reabrir.
+- `scripts/captions-smoke.mjs` (nuevo): navegador real, las dos interfaces.
+
 ### Añadido — Videos largos por el mismo flujo (2026-09-20)
 
 Un reel de 15 segundos y una clase de 12 minutos usan ahora **la misma pantalla,

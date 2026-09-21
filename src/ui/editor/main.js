@@ -38,6 +38,13 @@ let seccion = 'inicio';
 let paso = 'idea';
 let escenaSel = null;            // trozo seleccionado en la timeline
 let config = { durationOptions: [], styles: [] };
+/**
+ * Estilo global de los subtítulos. Vive aquí y no en el DOM porque tiene que
+ * sobrevivir a cambiar de paso, y porque el preset decide varios controles a
+ * la vez.
+ */
+let estiloSubs = { preset: 'redes-sociales' };
+let presetsSubs = [];
 
 const messages = createMessages({ statusEl: $('status'), stateEl: $('estado-pill'), errorEl: $('error'), warningsEl: $('warnings') });
 const sourcePlayer = createPlayer($('source-player'), { emptyEl: $('source-empty') });
@@ -421,6 +428,103 @@ $('btn-reset-segments').addEventListener('click', () => {
 
 // ================================================= IDEA Y GUION
 
+/** Lee los controles globales de subtítulos tal y como están en pantalla. */
+function leerEstiloSubs() {
+  return {
+    preset: estiloSubs.preset,
+    fontFamily: $('subs-font').value,
+    fontScale: Number($('subs-scale').value),
+    color: $('subs-color').value,
+    background: $('subs-bg').value,
+    backgroundColor: $('subs-bgcolor').value,
+    backgroundOpacity: Number($('subs-bgopacity').value),
+    outlineScale: Number($('subs-outline').value),
+    position: $('subs-pos').value,
+    alignment: $('subs-align').value,
+  };
+}
+
+/** Vuelca un estilo en los controles. Se usa al aplicar un preset. */
+function pintarEstiloSubs(estilo) {
+  estiloSubs = { ...estiloSubs, ...estilo };
+  const poner = (id, valor) => { if (valor !== undefined && valor !== null) $(id).value = String(valor); };
+  poner('subs-font', estilo.fontFamily);
+  poner('subs-scale', estilo.fontScale);
+  poner('subs-color', estilo.color);
+  poner('subs-bg', estilo.background);
+  poner('subs-bgcolor', estilo.backgroundColor);
+  poner('subs-bgopacity', estilo.backgroundOpacity);
+  poner('subs-outline', estilo.outlineScale);
+  poner('subs-pos', estilo.position);
+  poner('subs-align', estilo.alignment);
+  refrescarSubs();
+}
+
+/**
+ * Aviso en vivo: qué tamaño de letra saldrá en el formato elegido.
+ *
+ * El cálculo real vive en el backend (core/captions-style.js). Aquí se repite
+ * la parte mínima para dar una cifra sin ir y volver por la red en cada
+ * pulsación; si los dos se separasen, manda el backend.
+*/
+const BASE_SUBS = { '9:16': 64, '16:9': 48, '1:1': 58, '4:5': 61 };
+
+function refrescarSubs() {
+  const encendido = $('subs-on').checked;
+  $('subs-detalle').hidden = !encendido;
+  $('subs-resumen').textContent = encendido
+    ? 'Se subtitula el video entero, de principio a fin, con la narración exacta.'
+    : 'Sin subtítulos: no aparecerá ningún texto de narración en el video.';
+  if (!encendido) { $('subs-medida').textContent = ''; return; }
+
+  const formato = $('gen-format').value;
+  const base = BASE_SUBS[formato] ?? 64;
+  const px = Math.round(base * Number($('subs-scale').value || 1));
+  $('subs-medida').textContent =
+    `En ${formato} la letra medirá unos ${px} px, en dos líneas como máximo, ` +
+    'dentro de la zona segura (sin quedar bajo los controles de TikTok o Instagram).';
+
+  const activo = presetsSubs.find(p => p.id === estiloSubs.preset);
+  $('subs-preset-desc').textContent = activo?.description || '';
+  for (const b of $('subs-presets').querySelectorAll('button')) {
+    b.setAttribute('aria-pressed', String(b.dataset.preset === estiloSubs.preset));
+  }
+}
+
+/** Dibuja los botones de preset y engancha los controles. Se llama una vez. */
+function montarSubs(opciones) {
+  presetsSubs = opciones?.presets || [];
+  $('subs-presets').replaceChildren(...presetsSubs.map(p => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-mini';
+    b.textContent = p.label;
+    b.dataset.preset = p.id;
+    b.title = p.description;
+    b.addEventListener('click', () => {
+      // Cambiar de preset REEMPLAZA los controles: es lo que se espera de un
+      // preset. Retocar después sigue funcionando y no se pierde.
+      estiloSubs = { preset: p.id };
+      pintarEstiloSubs(p.style || {});
+    });
+    return b;
+  }));
+
+  const fuentes = opciones?.fonts || [{ id: 'Arial', label: 'Arial' }];
+  $('subs-font').replaceChildren(...fuentes.map(f => {
+    const o = document.createElement('option');
+    o.value = f.id; o.textContent = f.label;
+    return o;
+  }));
+
+  for (const id of ['subs-on', 'subs-font', 'subs-scale', 'subs-color', 'subs-bg',
+    'subs-bgcolor', 'subs-bgopacity', 'subs-outline', 'subs-pos', 'subs-align']) {
+    $(id).addEventListener('change', refrescarSubs);
+  }
+  $('gen-format').addEventListener('change', refrescarSubs);
+  refrescarSubs();
+}
+
 function leerFormulario() {
   const dur = $('gen-duration').value;
   const wpm = Number($('gen-wpm')?.value);
@@ -436,6 +540,10 @@ function leerFormulario() {
     audience: $('gen-audience').value.trim() || null,
     platform: $('gen-platform').value.trim() || null,
     music: $('gen-tono').value.trim() || null,
+    // SUBTITULOS. Este campo faltaba: la casilla existia en la pantalla pero
+    // nunca viajaba al backend, asi que desactivarla no hacia nada y el video
+    // salia subtitulado igual. Ahora manda lo que diga la casilla.
+    subtitles: { enabled: $('subs-on').checked, burnIn: $('subs-on').checked, style: leerEstiloSubs() },
   };
 }
 
@@ -757,6 +865,9 @@ try {
   // quien quiera pedir una duración concreta, corta o larga, en la misma lista.
   $('gen-duration').value = 'auto';
   if (config.narration?.wpm && $('gen-wpm')) $('gen-wpm').value = String(config.narration.wpm);
+  // Subtítulos: presets y tipografías salen del backend, para que la lista
+  // de aquí no se desincronice de la que de verdad se aplica al render.
+  montarSubs(config.captionStyle);
   const activo = config.providers.find(p => p.id === config.defaultProvider);
   $('gen-provider-hint').textContent = activo?.mock
     ? 'Se creará un video de PRUEBA, sin IA, para que puedas recorrer el flujo.'

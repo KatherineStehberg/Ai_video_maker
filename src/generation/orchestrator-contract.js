@@ -3,6 +3,7 @@ import {
   PROMPT_MAX, SCRIPT_MAX_CHARS, DURATION_LIMITS,
   mensajeGuionLargo, mensajePromptLargo,
 } from './limits.js';
+import { normalizeCaptionStyle } from '../core/captions-style.js';
 
 /**
  * CONTRATO DE ENTRADA para el Orquestador KSL.
@@ -150,12 +151,15 @@ export function normalizeMusic(music) {
 
 /** Subtítulos: activos por defecto, porque un video educativo los necesita. */
 export function normalizeSubtitles(subtitles) {
-  if (subtitles === undefined || subtitles === null) return { enabled: true, burnIn: true, language: 'es' };
-  if (typeof subtitles === 'boolean') return { enabled: subtitles, burnIn: subtitles, language: 'es' };
+  if (subtitles === undefined || subtitles === null) return { enabled: true, burnIn: true, language: 'es', style: normalizeCaptionStyle({}) };
+  if (typeof subtitles === 'boolean') return { enabled: subtitles, burnIn: subtitles, language: 'es', style: normalizeCaptionStyle({}) };
   return {
     enabled: subtitles.enabled !== false,
     burnIn: subtitles.burnIn !== false,
     language: texto(subtitles.language, 12, 'subtitles.language') || 'es',
+    // Estilo global: preset, tamano, tipografia, color, fondo, opacidad,
+    // contorno, posicion y alineacion. Ver core/captions-style.js.
+    style: normalizeCaptionStyle(subtitles.style || {}),
   };
 }
 

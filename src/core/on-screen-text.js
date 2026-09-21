@@ -44,6 +44,64 @@ export const ROLES_DESTACABLES = new Set(['hook', 'intro', 'section', 'cta', 'ou
 /** Cifras, porcentajes y cantidades: un dato concreto se recuerda mejor escrito. */
 const CIFRA = /(\d+([.,]\d+)?\s*(%|por ciento|euros?|d[oó]lares?|pesos?|minutos?|horas?|d[ií]as?|semanas?|meses?|a[nñ]os?|veces))|(\b\d{2,}\b)/i;
 
+/**
+ * Palabras de funcion con las que NINGUN titular termina.
+ *
+ * Si un rotulo acaba en «pero», «que» o «de», no es un titulo: es una frase
+ * cortada por la mitad. Es exactamente lo que producia el detector de titulos
+ * con un guion narrativo («-Isan, entiendo que tenias el don de ver
+ * enfermedades, pero»).
+ */
+const COLA_INCOMPLETA = /\b(y|o|u|e|ni|pero|sino|aunque|porque|pues|que|qui[eé]n|cual|como|cuando|donde|si|de|del|al|a|ante|bajo|con|contra|desde|en|entre|hacia|hasta|para|por|seg[uú]n|sin|sobre|tras|el|la|los|las|un|una|unos|unas|mi|tu|su|lo|le)$/i;
+
+/** Verbos de habla: marcan narracion o acotacion, nunca un titular. */
+const VERBO_DE_HABLA = /\b(dij[eo]|dijeron|dice|digo|cont[oó]|contest[oó]|respondi[oó]|pregunt[oó]|explic[oó]|a[ñn]adi[oó]|coment[oó]|exclam[oó]|susurr[oó]|grit[oó]|carraspe[oó]|replic[oó]|murmur[oó])\b/i;
+
+/**
+ * ¿Esto parece un trozo de narracion en vez de un titular?
+ *
+ * Un titulo de seccion es un buen texto destacado. Una muletilla de dialogo
+ * («-Por ejemplo», «Me dijo», «-Te explico») no lo es, aunque el detector de
+ * titulos la haya marcado como tal por ser corta y no acabar en punto.
+ *
+ * NO se filtra por numero de palabras: una sola palabra puede ser un rotulo
+ * perfectamente valido (el nombre de un concepto, una palabra clave).
+ */
+export function pareceNarracion(texto) {
+  const t = stripLangTags(texto).trim();
+  if (!t) return true;
+  // Raya o guion de dialogo al principio: es una intervencion, no un titulo.
+  if (/^[-—–]/.test(t)) return true;
+  if (VERBO_DE_HABLA.test(t)) return true;
+  if (COLA_INCOMPLETA.test(t.replace(/[.,;:]+$/, ''))) return true;
+  return false;
+}
+
+/**
+ * ¿Sirve este texto como rotulo para esta narracion?
+ *
+ * Reune las tres condiciones en un solo sitio para que el segmentador, el
+ * proponedor y la reparacion de proyectos viejos apliquen el MISMO criterio:
+ *
+ *   1. No puede estar vacio.
+ *   2. No puede ser un trozo de narracion (dialogo, verbo de habla, frase
+ *      cortada por la mitad).
+ *   3. No puede venir de RECORTAR una frase larga. Un titulo de verdad ya es
+ *      corto; si hubo que podarlo, era narracion disfrazada.
+ *   4. No puede duplicar la narracion de la escena.
+ */
+export function esRotuloValido(titulo, narracion = '') {
+  const crudo = stripLangTags(titulo).replace(/\s+/g, ' ').trim();
+  if (!crudo) return false;
+  if (pareceNarracion(crudo)) return false;
+  // Contando sin la marca de lista, para no penalizar un «# Modulo 2».
+  const palabras = crudo.replace(/^[#*•\s]+/, '').split(' ').filter(Boolean).length;
+  if (palabras > PALABRAS_DESTACADO.max) return false;
+  const corto = acortarDestacado(crudo);
+  if (!corto || pareceNarracion(corto)) return false;
+  return !duplicaNarracion(corto, narracion);
+}
+
 export function defaultOnScreenStyle() {
   return {
     size: 'large',
@@ -84,7 +142,10 @@ export function normalizeOnScreenStyle(input, previous = null) {
  */
 export function acortarDestacado(texto, max = PALABRAS_DESTACADO.max) {
   const limpio = stripLangTags(texto).replace(/\s+/g, ' ').trim()
-    .replace(/^[#\-*•\s]+/, '')
+    // Se quitan marcas de lista y almohadillas, pero NO la raya de dialogo:
+    // es justo la senal que delata que esto era una intervencion y no un
+    // titulo. `pareceNarracion` la necesita para poder rechazarlo.
+    .replace(/^[#*•\s]+/, '')
     .replace(/[.,;:]+$/, '');
   if (!limpio) return '';
   const palabras = limpio.split(' ');
@@ -298,7 +359,7 @@ export function proponerTextosDestacados(escenas, { tema = '', titulo = '', resp
       || (e.seccion && i !== 0 ? e.seccion : '')
       || (i === 0 ? (titulo || tema || e.text) : e.text),
     );
-    if (!propuesto || duplicaNarracion(propuesto, e.text)) {
+    if (!esRotuloValido(propuesto, e.text)) {
       return { ...e, showOnScreenText: false };
     }
     return {

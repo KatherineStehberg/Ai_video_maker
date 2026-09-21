@@ -131,7 +131,14 @@ export function elegirTemplate(spec) {
 /** Convierte las escenas del borrador en escenas del proyecto. */
 const aEscenasProyecto = (escenas, template) => escenas.map((e, i) => makeScene({
   text: e.text,
+  // Los cinco campos del rotulo se copian tal cual: el borrador ya decidio
+  // en que escenas hay texto destacado y en cuales no.
   onScreenTitle: e.onScreenTitle || '',
+  showOnScreenText: e.showOnScreenText,
+  onScreenPosition: e.onScreenPosition,
+  onScreenStyle: e.onScreenStyle,
+  onScreenAnimation: e.onScreenAnimation,
+  onScreenTextManual: e.onScreenTextManual,
   visualPrompt: e.visualPrompt || '',
   duration: e.duration,
   kenBurns: e.kenBurns || 'auto',
@@ -162,7 +169,7 @@ export const pipelineProvider = {
     //    si no, se redacta ahora (LLM si hay, plantilla local si no).
     onProgress(5, 'Preparando el guion', { estado: 'preparando-guion' });
     const borrador = previo
-      ? { escenas: previo.scenes.map(s => ({ role: 'point', text: s.text, onScreenTitle: s.onScreenTitle, visualPrompt: s.visualPrompt, duration: s.duration })),
+      ? { escenas: previo.scenes.map(s => ({ role: 'point', text: s.text, onScreenTitle: s.onScreenTitle, showOnScreenText: s.showOnScreenText, onScreenPosition: s.onScreenPosition, onScreenStyle: s.onScreenStyle, onScreenAnimation: s.onScreenAnimation, onScreenTextManual: s.onScreenTextManual, visualPrompt: s.visualPrompt, duration: s.duration })),
         source: spec.scriptSource || 'reanudado', tema: previo.title, templateId }
       : Array.isArray(spec.escenas) && spec.escenas.length
         ? { escenas: spec.escenas, source: spec.scriptSource || 'editado', templateId }
@@ -203,7 +210,9 @@ export const pipelineProvider = {
       music: musica?.path
         ? { enabled: musica.enabled !== false, path: musica.path, volume: musica.volume ?? 0.12 }
         : { enabled: Boolean(spec.musicPath), path: spec.musicPath || null, volume: 0.12 },
-      captions: { enabled: subtitulos.enabled !== false, burnIn: subtitulos.burnIn !== false },
+      captions: { enabled: subtitulos.enabled !== false, burnIn: subtitulos.burnIn !== false,
+        // El estilo global viaja con la peticion; si no viene, manda el preset.
+        style: subtitulos.style || {} },
       // Logo del proyecto: si no se indica, se usa el de la marca. Nunca hay
       // un logo concreto incrustado en el código.
       assets: spec.logo?.path ? { logo: spec.logo.path } : {},

@@ -155,6 +155,13 @@ export function normalizeSpec(input = {}) {
         role: String(e?.role ?? 'point').slice(0, 20),
         text,
         onScreenTitle: String(e?.onScreenTitle ?? '').trim().slice(0, 60),
+        // El rotulo viaja completo desde el borrador revisado: si se perdiera
+        // aqui, aceptar o quitar una propuesta en la interfaz no serviria de nada.
+        showOnScreenText: e?.showOnScreenText === undefined ? undefined : Boolean(e.showOnScreenText),
+        onScreenPosition: e?.onScreenPosition ?? undefined,
+        onScreenStyle: e?.onScreenStyle ?? undefined,
+        onScreenAnimation: e?.onScreenAnimation ?? undefined,
+        onScreenTextManual: Boolean(e?.onScreenTextManual),
         visualPrompt: String(e?.visualPrompt ?? '').trim().slice(0, 200),
         duration: Number(dur.toFixed(2)),
         seccion: e?.seccion ? String(e.seccion).slice(0, 120) : null,
@@ -379,7 +386,15 @@ export function regenerateScene(id, indice, parche = {}, { providerName = null }
     if (text.length > SCENE_TEXT_MAX) throw new Error(`La narración de la escena supera ${SCENE_TEXT_MAX} caracteres.`);
     escena.text = text;
   }
-  if (parche.onScreenTitle !== undefined) escena.onScreenTitle = String(parche.onScreenTitle).slice(0, 60);
+  if (parche.onScreenTitle !== undefined) {
+    escena.onScreenTitle = String(parche.onScreenTitle).slice(0, 60);
+    // Editar el rotulo a mano lo blinda frente a propuestas automaticas.
+    escena.onScreenTextManual = true;
+  }
+  if (parche.showOnScreenText !== undefined) escena.showOnScreenText = Boolean(parche.showOnScreenText);
+  if (parche.onScreenPosition !== undefined) escena.onScreenPosition = parche.onScreenPosition;
+  if (parche.onScreenAnimation !== undefined) escena.onScreenAnimation = parche.onScreenAnimation;
+  if (parche.onScreenStyle !== undefined) escena.onScreenStyle = parche.onScreenStyle;
   if (parche.visualPrompt !== undefined) escena.visualPrompt = String(parche.visualPrompt).slice(0, 200);
   if (parche.duration !== undefined) {
     const d = Number(parche.duration);

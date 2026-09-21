@@ -309,7 +309,9 @@ export function captionBand(width, height, style = {}) {
 /** Vista para la interfaz: presets, tipografias y opciones, sin duplicar textos. */
 export function captionStyleOptions() {
   return {
-    presets: Object.values(PRESETS).map(p => ({ id: p.id, label: p.label, description: p.description })),
+    // Cada preset viaja CON sus valores: la interfaz aplica el preset sin
+    // tener que preguntar otra vez al backend, y sin duplicar la tabla.
+    presets: Object.values(PRESETS).map(p => ({ id: p.id, label: p.label, description: p.description, style: { ...p.style } })),
     fonts: TIPOGRAFIAS,
     positions: POSICIONES,
     alignments: ALINEACIONES,

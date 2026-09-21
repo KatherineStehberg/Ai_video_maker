@@ -1,1 +1,48 @@
 :root{font:15px system-ui,sans-serif;color:#172c43;background:#f2f5fa}*{box-sizing:border-box}body{margin:0}header{height:76px;background:#112b43;color:white;display:flex;align-items:center;justify-content:space-between;padding:0 32px}header span{font-weight:400;margin-left:18px;color:#bfcede}header a{color:#c2daeb;font-size:13px}main{display:grid;grid-template-columns:240px 1fr;max-width:1500px;margin:auto}aside{padding:28px 20px}aside button{width:100%}aside #projects button{margin-top:10px;background:white;color:#203c57;text-align:left;border:1px solid #d7e1eb}h1{font-size:30px;margin:6px 0 16px}h2{font-size:19px}p{line-height:1.65}section{background:white;border:1px solid #dce5ef;border-radius:12px;padding:28px;margin-bottom:22px}.workspace{padding:28px;min-width:0}.eyebrow{letter-spacing:2px;font-size:11px;font-weight:700;color:#307da4}.muted{color:#586c80;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}label{display:block;font-size:13px;font-weight:600;margin:12px 0}input:not([type=checkbox]):not([type=range]),select,textarea{display:block;width:100%;padding:11px;margin-top:7px;border:1px solid #b9cbdc;border-radius:6px;font:inherit;background:#fcfdff;color:#16344d}textarea{resize:vertical;line-height:1.55}button{padding:11px 18px;border:0;border-radius:6px;background:#13698b;color:white;font:inherit;cursor:pointer}button.secondary{background:#e7f0f5;color:#23465c}button:disabled{opacity:.5;cursor:wait}a{color:#126889}details{font-size:13px;margin-top:20px}summary{cursor:pointer;font-weight:600}.scene{border:1px solid #d7e1eb;border-left:4px solid #1a799f;border-radius:8px;padding:18px;margin:14px 0;background:#fcfdff}.scene h3{margin:0}.scene .tag{font-size:12px;color:#476376}.actions{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin:20px 0}.approval{background:#eff8f3;padding:16px}.heading{display:flex;align-items:center;justify-content:space-between}video{width:100%;max-height:520px;background:#081b2b;border-radius:6px}progress{width:100%;accent-color:#187e9c}#message{position:sticky;bottom:10px;padding:14px;border-radius:6px;background:#fff0d9;color:#704218}#message:empty{display:none}#downloads a{display:inline-block;margin:15px 18px 0 0}button,input,select,textarea,a{outline-offset:3px}@media(max-width:850px){main{display:block}aside{padding:15px}.workspace{padding:12px}header{padding:12px;height:auto}header span{display:none}section{padding:18px}}
+
+/* ---------------------------------------------------------------------------
+   TEXTO DESTACADO POR ESCENA  (ver studio.js -> bloqueDestacado)
+   Plegable: la mayoría de las escenas NO llevan rótulo, así que cerrado es el
+   estado normal y la tarjeta no crece sin motivo.
+--------------------------------------------------------------------------- */
+.destacado { border: 1px solid #d8dee9; border-radius: 8px; padding: .5rem .6rem; margin: .5rem 0; }
+.destacado > summary { cursor: pointer; font-size: .85rem; display: flex; align-items: center; gap: .35rem; }
+.destacado > summary input { margin: 0; }
+/* `display:grid` en la clase gana al `[hidden]{display:none}` del navegador,
+   asi que ocultar el panel con la propiedad `hidden` no surtia efecto. */
+.destacado-panel { display: grid; gap: .5rem; margin-top: .5rem; }
+.destacado-panel[hidden] { display: none; }
+.destacado input[type="color"] { height: 32px; padding: 2px; }
+
+/* Vista previa: proporción del encuadre, rótulo donde caería y franja de
+   subtítulos, para comprobar de un vistazo que no se pisan. */
+.previa {
+  position: relative; aspect-ratio: 16 / 9; width: 100%; max-width: 320px;
+  border-radius: 6px; overflow: hidden; border: 1px solid #d8dee9;
+  background: linear-gradient(135deg, #46506b, #232a3d);
+}
+.previa-rotulo {
+  position: absolute; left: 7.5%; right: 7.5%; text-align: center;
+  font-weight: 700; line-height: 1.15; word-break: break-word;
+}
+.previa-rotulo[data-vacio="si"] { opacity: .45; font-style: italic; }
+.previa-subtitulo {
+  position: absolute; left: 15%; right: 15%; bottom: 8%; text-align: center;
+  font-size: .5rem; color: rgba(255,255,255,.8);
+  background: rgba(0,0,0,.55); border-radius: 3px; padding: 1px 0;
+}
+.previa[data-pos="top"]         .previa-rotulo { top: 8%; }
+.previa[data-pos="upper-third"] .previa-rotulo { top: 16%; }
+.previa[data-pos="center"]      .previa-rotulo { top: 44%; }
+.previa[data-pos="lower-third"] .previa-rotulo { top: 58%; }
+.previa[data-pos="bottom"]      .previa-rotulo { top: 62%; }
+.previa[data-size="small"]  .previa-rotulo { font-size: .62rem; }
+.previa[data-size="medium"] .previa-rotulo { font-size: .8rem; }
+.previa[data-size="large"]  .previa-rotulo { font-size: 1rem; }
+.previa[data-size="xlarge"] .previa-rotulo { font-size: 1.3rem; }
+.previa[data-bg="box"] .previa-rotulo { background: rgba(0,0,0,.45); border-radius: 4px; padding: .12em .3em; }
+.previa[data-bg="outline"] .previa-rotulo { text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 2px #000; }
+
+/* Presets de subtítulos */
+.subs-presets { display: flex; gap: .3rem; flex-wrap: wrap; margin: .35rem 0; }
+.subs-presets button[aria-pressed="true"] { outline: 2px solid currentColor; }

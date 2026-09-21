@@ -1,5 +1,6 @@
 import { splitSentences } from '../lib/util.js';
 import { keywordsFrom } from '../core/script-generator.js';
+import { acortarDestacado, esRotuloValido } from '../core/on-screen-text.js';
 import {
   MAX_ESCENAS, TOLERANCIA_OBJETIVO, SCENE_TEXT_MAX, SCENE_DURATION_LIMITS,
 } from './limits.js';
@@ -198,6 +199,22 @@ export function normalizarOracionesLargas(oraciones, { palabrasMax, wpm = WPM_PO
 }
 
 /**
+ * Decide si la apertura de seccion merece un rotulo, y cual.
+ *
+ * Un titulo de seccion es un buen destacado; una muletilla de dialogo no.
+ * `acortarDestacado` lo limita a ocho palabras y `duplicaNarracion` descarta
+ * lo que solo repetiria lo que ya dice el subtitulo.
+ */
+export function rotuloDeSeccion(cruda) {
+  const apagado = { onScreenTitle: '', showOnScreenText: false };
+  if (!cruda.abreSeccion || !cruda.seccion) return apagado;
+
+  // Un trozo de dialogo no es un titulo aunque el detector lo marcara.
+  if (!esRotuloValido(cruda.seccion, cruda.texto)) return apagado;
+  return { onScreenTitle: acortarDestacado(tituloCorto(cruda.seccion, 60)), showOnScreenText: true };
+}
+
+/**
  * Convierte un guion completo en escenas.
  *
  * @param {string} texto        el guion tal cual lo escribió la usuaria
@@ -257,7 +274,12 @@ export function segmentarGuion(texto, {
     return {
       role: c.abreSeccion ? 'section' : i === 0 ? 'intro' : i === crudas.length - 1 ? 'outro' : 'point',
       text: c.texto,
-      onScreenTitle: c.abreSeccion && c.seccion ? tituloCorto(c.seccion, 60) : '',
+      // ROTULO. Solo en aperturas de seccion, y solo si el titulo de la
+      // seccion da un destacado legitimo: breve y que no sea la narracion
+      // copiada. Un guion narrativo con dialogos produce falsos titulos
+      // («-Por ejemplo», «Me dijo»), y esos NO son rotulos.
+      ...rotuloDeSeccion(c),
+      abreSeccion: c.abreSeccion,
       visualPrompt: keywordsFrom(`${tema} ${c.texto}`.trim()),
       duration: Number(duracion.toFixed(2)),
       seccion: c.seccion || null,

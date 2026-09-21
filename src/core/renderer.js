@@ -10,6 +10,7 @@ import { writeAssForFormat } from './subtitles.js';
 import { slugify, clamp } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
 import { stripLangTags } from './lang.js';
+import { onScreenMetrics } from './on-screen-text.js';
 
 const log = logger('render');
 
@@ -111,7 +112,14 @@ async function renderSceneClip(scene, index, ctx) {
   const srcAbs = srcRel ? abs(srcRel) : null;
   const kind = srcAbs && fs.existsSync(srcAbs) ? assetKind(srcAbs) : 'none';
   const fingerprint = createHash('sha256').update(JSON.stringify({
-    version:1, scene:{duration:scene.duration,assetPath:scene.assetPath,kenBurns:scene.kenBurns,transition:scene.transition,onScreenTitle:scene.onScreenTitle},
+    version:2, scene:{duration:scene.duration,assetPath:scene.assetPath,kenBurns:scene.kenBurns,transition:scene.transition,
+      // Los cinco campos del rotulo entran en la huella: cambiar el color o
+      // la animacion tiene que invalidar el clip cacheado, o el render
+      // reutilizaria en silencio el clip con el rotulo viejo.
+      showOnScreenText:scene.showOnScreenText,onScreenTitle:scene.onScreenTitle,
+      onScreenPosition:scene.onScreenPosition,onScreenStyle:scene.onScreenStyle,
+      onScreenAnimation:scene.onScreenAnimation},
+    captions:{enabled:project.captions?.enabled,style:project.captions?.style},
     index,W,H,fps,profile,brand,font:ctx.fontFile,
     source:srcAbs && fs.existsSync(srcAbs) ? [fs.statSync(srcAbs).size,fs.statSync(srcAbs).mtimeMs] : null,
   })).digest('hex');
@@ -144,22 +152,65 @@ async function renderSceneClip(scene, index, ctx) {
     filters.push(kenBurnsFilter(kb, frames, W, H), `fps=${fps}`, 'setsar=1');
   }
 
-  // Titulo en pantalla (opcional, por escena).
+  // ---------------------------------------------------------------------
+  // TEXTO DESTACADO (opcional, por escena).
+  //
+  // Solo se dibuja si la escena lo pide con `showOnScreenText`. Una escena
+  // sin rotulo conserva imagen, voz y subtitulos: apagar el rotulo NO quita
+  // nada mas.
+  // ---------------------------------------------------------------------
   const onScreenTitle = stripLangTags(scene.onScreenTitle);
-  if (onScreenTitle && ctx.fontFile) {
-    // El tamano se adapta al largo del texto: con un tamano fijo, un titulo
-    // largo se sale del encuadre por ambos lados (x=(w-text_w)/2 se vuelve
-    // negativo). Se estima el ancho en ~0.5 em por caracter y se deja un 10%
-    // de margen. Nunca crece por encima del tamano de diseno.
-    const largo = Math.max(1, onScreenTitle.length);
-    const size = Math.round(Math.max(W / 40, Math.min(W / 16, (W * 1.8) / largo)));
-    filters.push(
-      `drawtext=fontfile='${escapeFilterPath(ctx.fontFile)}':` +
-      `text='${escapeDrawtext(onScreenTitle)}':` +
-      `fontcolor=${brand?.colors?.text || '#ffffff'}:fontsize=${size}:` +
-      `x=(w-text_w)/2:y=h*0.12:` +
-      `box=1:boxcolor=black@0.45:boxborderw=${Math.round(size / 3)}`,
-    );
+  if (scene.showOnScreenText && onScreenTitle && ctx.fontFile) {
+    // La geometria la resuelve on-screen-text.js: tamano segun el formato,
+    // encogido para caber en el 85 % del ancho, dentro de las zonas seguras y
+    // FUERA de la banda que ocupan los subtitulos.
+    const m = onScreenMetrics(W, H, {
+      text: onScreenTitle,
+      position: scene.onScreenPosition,
+      style: scene.onScreenStyle,
+      captionStyle: project.captions?.style,
+      captionsEnabled: project.captions?.enabled !== false,
+    });
+    if (m.solapaConSubtitulos) {
+      log.warn(`Escena ${index + 1}: el rotulo no cabe fuera de la banda de subtitulos; se coloca arriba.`);
+    }
+
+    const st = m.style;
+    const colorFondo = `${st.backgroundColor}@${st.backgroundOpacity.toFixed(2)}`;
+    const fondo = st.background === 'box'
+      ? `:box=1:boxcolor=${colorFondo}:boxborderw=${Math.round(m.fontSize / 3)}`
+      : st.background === 'outline'
+        ? `:borderw=${Math.max(2, Math.round(m.fontSize / 12))}:bordercolor=${st.outlineColor}`
+        : '';
+
+    // ANIMACION DE ENTRADA. drawtext no sabe animar, pero sus parametros
+    // aceptan expresiones sobre `t`, asi que la entrada se escribe como una
+    // funcion del tiempo. `pop` es un fundido mas corto y seco que `fade`.
+    const ENTRADA = { fade: 0.5, 'slide-up': 0.45, pop: 0.18, none: 0 };
+    const d = ENTRADA[scene.onScreenAnimation] ?? 0;
+    const anim = scene.onScreenAnimation;
+
+    // La opacidad sube de 0 a 1 durante los primeros `d` segundos.
+    const alpha = d > 0 && anim !== 'slide-up'
+      ? `:alpha='if(lt(t,${d}),t/${d},1)'`
+      : '';
+    const desplazamiento = Math.round(m.fontSize * 0.8);
+    const interlineado = Math.round(m.fontSize * 1.18);
+
+    // Cada linea es un drawtext propio: drawtext no parte texto en lineas.
+    m.lineas.forEach((linea, n) => {
+      const base = m.y + n * interlineado;
+      // `slide-up`: la linea entra desplazada hacia abajo y sube a su sitio.
+      const y = anim === 'slide-up' && d > 0
+        ? `'if(lt(t,${d}),${base}+${desplazamiento}*(1-t/${d}),${base})'`
+        : String(base);
+      filters.push(
+        `drawtext=fontfile='${escapeFilterPath(ctx.fontFile)}':` +
+        `text='${escapeDrawtext(linea)}':` +
+        `fontcolor=${st.color}:fontsize=${m.fontSize}:` +
+        `x=(w-text_w)/2:y=${y}${fondo}${alpha}`,
+      );
+    });
   }
 
   // Transicion barata: fundido de entrada/salida por clip.

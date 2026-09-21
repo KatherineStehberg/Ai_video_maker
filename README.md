@@ -172,6 +172,48 @@ npm.cmd install --no-save --package-lock=false --prefix .tmp/browser-tools playw
 node scripts/browser-smoke.mjs
 ```
 
+### Subtítulos y texto destacado
+
+Son **dos cosas distintas** y conviene no confundirlas:
+
+| | Subtítulo | Texto destacado |
+|---|---|---|
+| Qué lleva | toda la narración, palabra por palabra | 2–8 palabras |
+| Dónde sale | en **todas** las escenas | sólo en **algunas** |
+| Para qué | que se entienda sin sonido | fijar una idea: título, concepto, cifra, cierre |
+| Se controla en | panel global «Cómo se ven los subtítulos» | cada tarjeta de escena |
+
+Los dos pueden coexistir en la misma escena: el rótulo se coloca fuera de la
+banda de subtítulos, así que nunca se pisan.
+
+**Tamaño de letra por formato** (`src/core/captions-style.js`). Los dos extremos
+están medidos; 1:1 y 4:5 se interpolan entre ellos, porque el tamaño depende de
+cómo se mira cada formato y no de la geometría:
+
+| Formato | Resolución | Letra | Franja inferior reservada |
+|---|---|---|---|
+| 9:16 | 1080×1920 | 64 px | 18 % (controles de TikTok/Instagram) |
+| 4:5  | 1080×1350 | 61 px | 14 % |
+| 1:1  | 1080×1080 | 58 px | 12 % |
+| 16:9 | 1920×1080 | 48 px | 10 % |
+
+Ancho máximo del bloque 85 %, dos líneas como mucho, corte por palabras.
+
+**Presets**: Redes sociales, Curso, Limpio y Alto contraste. Son multiplicadores
+sobre el tamaño del formato, así que un preset sigue adaptándose a los cuatro.
+Cambiar de preset reemplaza los controles; retocarlos después se conserva.
+
+**Cuándo se propone un rótulo**: portada o gancho, apertura de sección, dato con
+una cifra concreta y cierre o llamada a la acción. Nunca en dos escenas
+seguidas, nunca en más del 35 % del video, y nunca si el texto disponible es un
+trozo de narración (diálogo, verbo de habla, frase cortada) o una frase que
+habría que recortar. Es una **propuesta**: se acepta, se edita, se añade o se
+quita antes de renderizar.
+
+```powershell
+node scripts/captions-smoke.mjs   # navegador real, Estudio y editor (Node 20+)
+```
+
 ### Prueba de guion largo
 
 ```powershell

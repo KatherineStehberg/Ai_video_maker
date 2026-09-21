@@ -5,6 +5,8 @@ import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js'
 import { ASPECTS } from '../config.js';
 import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
 import { normalizeLanguage } from './lang.js';
+import { normalizeCaptionStyle } from './captions-style.js';
+import { normalizeOnScreenText } from './on-screen-text.js';
 
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
@@ -37,7 +39,14 @@ export function makeScene(partial = {}) {
     transition: TRANSITIONS.includes(partial.transition) ? partial.transition : 'fade',
     caption: partial.caption ?? null,          // null => se usa `text`
     kenBurns: partial.kenBurns ?? 'auto',      // auto | in | out | none
-    onScreenTitle: partial.onScreenTitle ?? '',
+    // TEXTO DESTACADO sobre la imagen. Son CINCO campos y no uno porque un
+    // rotulo tiene texto, sitio, aspecto y entrada; ver core/on-screen-text.js.
+    // `normalizeOnScreenText` tambien resuelve la compatibilidad con proyectos
+    // guardados antes de que existiera `showOnScreenText`.
+    ...normalizeOnScreenText(partial),
+    // Marca de edicion manual: si la usuaria escribio el rotulo a mano, las
+    // propuestas automaticas no lo pisan al regenerar.
+    onScreenTextManual: partial.onScreenTextManual ?? false,
     notes: partial.notes ?? '',
   };
 }
@@ -87,9 +96,15 @@ export function makeProject(partial = {}) {
       enabled: partial.captions?.enabled ?? true,
       burnIn: partial.captions?.burnIn ?? true,      // quemados en el video
       fontSize: partial.captions?.fontSize ?? null,  // null => calculado por aspecto
-      maxCharsPerLine: partial.captions?.maxCharsPerLine ?? 38,
+      // null => lo calcula la metrica del formato. Un 38 fijo era arbitrario y
+      // ademas anulaba el calculo: con letra mas grande caben menos caracteres,
+      // asi que el ancho de linea tiene que seguir al tamano de fuente.
+      maxCharsPerLine: partial.captions?.maxCharsPerLine ?? null,
       provider: partial.captions?.provider ?? 'auto',
       file: partial.captions?.file ?? null,
+      // Estilo global de los subtitulos: preset, tipografia, color, fondo,
+      // opacidad, contorno, posicion y alineacion. Ver core/captions-style.js.
+      style: normalizeCaptionStyle(partial.captions?.style || {}),
     },
     assets: {
       intro: partial.assets?.intro ?? null,

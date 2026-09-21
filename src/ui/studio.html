@@ -8,7 +8,22 @@
 <div class="grid"><label>Marca<select id="edit-brand"></select></label><label>Estilo<select id="style"><option value="clean">Educativo · limpio</option><option value="dynamic">Promocional · zoom suave</option><option value="minimal">Explicativo · sin fundidos</option></select></label><label>Formato<select id="edit-format"></select></label><label>Language<select id="edit-language"><option value="es">Spanish</option><option value="en">English</option><option value="bilingual">Bilingual</option></select></label><label>Narración<select id="voice"></select></label></div>
 <div class="grid" id="lang-voices"><label>Voice EN<select id="voice-en"></select></label><label>Voice ES<select id="voice-es"></select></label><label>Velocidad<input type="range" id="voice-rate" min="-5" max="5" step="1" value="0"></label></div>
 <p class="muted">Estas dos listas traen <strong>todas</strong> las voces instaladas de cada idioma. La que aparece marcada es sólo la predeterminada: puedes cambiarla y se guarda con el proyecto. ¿Quieres más voces? Windows: Configuración · Hora e idioma · Voz.</p>
-<p id="voice-note" class="muted"></p><p class="muted">Para alternar idiomas dentro de una escena marca el tramo: <code>[en]the board approved the budget[/en]</code> o <code>[es]Buenos días[/es]</code>. Las marcas no se narran ni salen en los subtítulos.</p><div class="grid"><label>Música<select id="music"><option value="">Sin música</option></select></label><label>Volumen de música<input type="range" id="music-volume" min="0" max="1" step=".01" value=".12"></label><label><input type="checkbox" id="captions" checked> Subtítulos estimados por escena</label></div>
+<p id="voice-note" class="muted"></p><p class="muted">Para alternar idiomas dentro de una escena marca el tramo: <code>[en]the board approved the budget[/en]</code> o <code>[es]Buenos días[/es]</code>. Las marcas no se narran ni salen en los subtítulos.</p><div class="grid"><label>Música<select id="music"><option value="">Sin música</option></select></label><label>Volumen de música<input type="range" id="music-volume" min="0" max="1" step=".01" value=".12"></label><label><input type="checkbox" id="captions" checked> Subtitulado (todo el video)</label></div>
+<details id="subs-detalle" open><summary>Cómo se ven los subtítulos</summary>
+<p class="muted" id="subs-resumen"></p>
+<div class="subs-presets" id="subs-presets" role="group" aria-label="Presets de subtítulos"></div>
+<p class="muted" id="subs-preset-desc"></p>
+<div class="grid">
+<label>Tipografía<select id="subs-font"></select></label>
+<label>Tamaño<select id="subs-scale"><option value=".85">Más pequeño</option><option value="1" selected>Normal</option><option value="1.15">Más grande</option><option value="1.3">Muy grande</option></select></label>
+<label>Color<input type="color" id="subs-color" value="#ffffff"></label>
+<label>Fondo<select id="subs-bg"><option value="outline">Contorno oscuro</option><option value="box">Caja semitransparente</option><option value="none">Sin fondo</option></select></label>
+<label>Color del fondo<input type="color" id="subs-bgcolor" value="#000000"></label>
+<label>Opacidad del fondo<input type="range" id="subs-bgopacity" min="0" max="1" step=".05" value=".6"></label>
+<label>Contorno<input type="range" id="subs-outline" min="0" max="2.5" step=".05" value="1.15"></label>
+<label>Posición<select id="subs-pos"><option value="bottom">Abajo (zona segura)</option><option value="center">Centro</option><option value="top">Arriba</option></select></label>
+<label>Alineación<select id="subs-align"><option value="center">Centrado</option><option value="left">Izquierda</option><option value="right">Derecha</option></select></label>
+</div><p class="muted" id="subs-medida"></p></details>
 <h2>Escenas editables</h2><p class="muted">Edita el texto, título, duración y recurso. Regenerar una escena prepara sólo su voz y su preview; las demás se conservan. Al exportar se recompone el montaje final.</p><div id="scenes"></div>
 <details><summary>Referencias originales del encargo</summary><label>Una URL de Drive/GitHub por línea<textarea id="references" rows="3"></textarea></label><p>No implica autorización ni lectura del contenido. Importa una copia autorizada en la biblioteca.</p></details>
 <label class="approval"><input id="approve" type="checkbox"> Apruebo el guion actual para generar el video con los recursos seleccionados.</label>
