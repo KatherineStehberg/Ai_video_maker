@@ -40,21 +40,109 @@ export const DURACION = { min: 0.1, max: 2, porDefecto: 0.5 };
 export const MAXIMO_POR_ESCENA = 0.5;
 
 /**
+ * FAMILIAS del catalogo, para que elegir entre casi sesenta transiciones no sea
+ * una lista interminable.
+ */
+export const CATEGORIAS = [
+  { id: 'basica', label: 'Básicas' },
+  { id: 'fundido', label: 'Fundidos' },
+  { id: 'deslizar', label: 'Deslizamientos' },
+  { id: 'barrido', label: 'Barridos' },
+  { id: 'forma', label: 'Formas' },
+  { id: 'efecto', label: 'Efectos' },
+];
+
+/**
+ * Transiciones que este FFmpeg ANUNCIA pero no puede ejecutar.
+ *
+ * `squeezev` aparece en la ayuda del filtro y tumba el proceso al renderizar
+ * (violacion de acceso, comprobado dos veces). Estar en la lista de ayuda no
+ * basta: por eso hay esta segunda reja.
+ */
+export const INESTABLES = {
+  squeezev: 'Esta versión de FFmpeg se cierra al renderizarla.',
+};
+
+/**
  * Catalogo. `xfade` es el nombre EXACTO del filtro de FFmpeg; si este FFmpeg no
  * lo trae, la transicion se ofrece deshabilitada y etiquetada, nunca simulada.
+ *
+ * LAS DIRECCIONES ESTAN MEDIDAS, no deducidas del nombre: se cruzaron dos
+ * clips planos (rojo -> azul) y se miro, a mitad de transicion, en que mitad
+ * del cuadro estaba ya la escena nueva. `slideleft`, por ejemplo, NO entra por
+ * la izquierda: entra por la derecha y empuja hacia la izquierda.
  */
 export const CATALOGO = [
-  { id: 'none', label: 'Sin transición', xfade: null, descripcion: 'Corte seco entre escenas.' },
-  { id: 'fade', label: 'Fundido', xfade: 'fade', descripcion: 'La escena anterior se funde con la siguiente.' },
-  { id: 'dissolve', label: 'Disolver', xfade: 'dissolve', descripcion: 'Disolución granulada, más orgánica que el fundido.' },
-  { id: 'slideleft', label: 'Deslizar desde la derecha', xfade: 'slideleft', descripcion: 'La escena nueva empuja a la anterior hacia la izquierda.' },
-  { id: 'slideright', label: 'Deslizar desde la izquierda', xfade: 'slideright', descripcion: 'La escena nueva empuja a la anterior hacia la derecha.' },
-  { id: 'slideup', label: 'Deslizar desde abajo', xfade: 'slideup', descripcion: 'La escena nueva empuja a la anterior hacia arriba.' },
-  { id: 'slidedown', label: 'Deslizar desde arriba', xfade: 'slidedown', descripcion: 'La escena nueva empuja a la anterior hacia abajo.' },
-  { id: 'wipeleft', label: 'Barrido horizontal', xfade: 'wipeleft', descripcion: 'Una línea vertical barre la imagen de un lado a otro.' },
-  { id: 'wipeup', label: 'Barrido vertical', xfade: 'wipeup', descripcion: 'Una línea horizontal barre la imagen de abajo a arriba.' },
-  { id: 'zoomin', label: 'Zoom suave', xfade: 'zoomin', descripcion: 'La escena nueva entra acercándose.' },
-  { id: 'fadeblack', label: 'Fundido a negro', xfade: 'fadeblack', descripcion: 'Pasa por negro entre las dos escenas.' },
+  // ---- basicas ----
+  { id: 'none', label: 'Sin transición', categoria: 'basica', xfade: null, descripcion: 'Corte seco entre escenas.' },
+  { id: 'fade', label: 'Fundido', categoria: 'basica', xfade: 'fade', descripcion: 'La escena anterior se funde con la siguiente.' },
+  { id: 'dissolve', label: 'Disolver', categoria: 'basica', xfade: 'dissolve', descripcion: 'Disolución granulada, más orgánica que el fundido.' },
+
+  // ---- fundidos ----
+  { id: 'fadeslow', label: 'Fundido lento', categoria: 'fundido', xfade: 'fadeslow', descripcion: 'Fundido que arranca despacio y se acelera al final.' },
+  { id: 'fadefast', label: 'Fundido rápido', categoria: 'fundido', xfade: 'fadefast', descripcion: 'Fundido que resuelve pronto y se posa al final.' },
+  { id: 'fadeblack', label: 'Fundido a negro', categoria: 'fundido', xfade: 'fadeblack', descripcion: 'Pasa por negro entre las dos escenas.' },
+  { id: 'fadewhite', label: 'Fundido a blanco', categoria: 'fundido', xfade: 'fadewhite', descripcion: 'Pasa por blanco: más luminoso que el fundido a negro.' },
+  { id: 'fadegrays', label: 'Fundido en grises', categoria: 'fundido', xfade: 'fadegrays', descripcion: 'Pierde el color, cambia de escena y lo recupera.' },
+  { id: 'distance', label: 'Fundido por color', categoria: 'fundido', xfade: 'distance', descripcion: 'El cambio avanza por zonas según su color.' },
+
+  // ---- deslizamientos ----
+  { id: 'slideleft', label: 'Deslizar desde la derecha', categoria: 'deslizar', xfade: 'slideleft', descripcion: 'La escena nueva entra por la derecha y empuja a la anterior.' },
+  { id: 'slideright', label: 'Deslizar desde la izquierda', categoria: 'deslizar', xfade: 'slideright', descripcion: 'La escena nueva entra por la izquierda y empuja a la anterior.' },
+  { id: 'slideup', label: 'Deslizar desde abajo', categoria: 'deslizar', xfade: 'slideup', descripcion: 'La escena nueva entra por abajo y empuja a la anterior.' },
+  { id: 'slidedown', label: 'Deslizar desde arriba', categoria: 'deslizar', xfade: 'slidedown', descripcion: 'La escena nueva entra por arriba y empuja a la anterior.' },
+  { id: 'coverleft', label: 'Cubrir desde la derecha', categoria: 'deslizar', xfade: 'coverleft', descripcion: 'La escena nueva pasa por encima desde la derecha; la anterior se queda quieta.' },
+  { id: 'coverright', label: 'Cubrir desde la izquierda', categoria: 'deslizar', xfade: 'coverright', descripcion: 'La escena nueva pasa por encima desde la izquierda.' },
+  { id: 'coverup', label: 'Cubrir desde abajo', categoria: 'deslizar', xfade: 'coverup', descripcion: 'La escena nueva sube por encima de la anterior.' },
+  { id: 'coverdown', label: 'Cubrir desde arriba', categoria: 'deslizar', xfade: 'coverdown', descripcion: 'La escena nueva baja por encima de la anterior.' },
+  { id: 'revealleft', label: 'Revelar hacia la izquierda', categoria: 'deslizar', xfade: 'revealleft', descripcion: 'La escena anterior se va por la izquierda y deja ver la nueva.' },
+  { id: 'revealright', label: 'Revelar hacia la derecha', categoria: 'deslizar', xfade: 'revealright', descripcion: 'La escena anterior se va por la derecha y deja ver la nueva.' },
+  { id: 'revealup', label: 'Revelar hacia arriba', categoria: 'deslizar', xfade: 'revealup', descripcion: 'La escena anterior sube y deja ver la nueva.' },
+  { id: 'revealdown', label: 'Revelar hacia abajo', categoria: 'deslizar', xfade: 'revealdown', descripcion: 'La escena anterior baja y deja ver la nueva.' },
+  { id: 'smoothleft', label: 'Deslizar suave desde la derecha', categoria: 'deslizar', xfade: 'smoothleft', descripcion: 'Como deslizar, pero con el borde difuminado.' },
+  { id: 'smoothright', label: 'Deslizar suave desde la izquierda', categoria: 'deslizar', xfade: 'smoothright', descripcion: 'Como deslizar, pero con el borde difuminado.' },
+  { id: 'smoothup', label: 'Deslizar suave desde abajo', categoria: 'deslizar', xfade: 'smoothup', descripcion: 'Como deslizar, pero con el borde difuminado.' },
+  { id: 'smoothdown', label: 'Deslizar suave desde arriba', categoria: 'deslizar', xfade: 'smoothdown', descripcion: 'Como deslizar, pero con el borde difuminado.' },
+  { id: 'squeezeh', label: 'Aplastar en horizontal', categoria: 'deslizar', xfade: 'squeezeh', descripcion: 'La escena anterior se estrecha hasta desaparecer.' },
+  { id: 'squeezev', label: 'Aplastar en vertical', categoria: 'deslizar', xfade: 'squeezev', descripcion: 'La escena anterior se aplasta hasta desaparecer.' },
+
+  // ---- barridos ----
+  { id: 'wipeleft', label: 'Barrido hacia la izquierda', categoria: 'barrido', xfade: 'wipeleft', descripcion: 'Una línea vertical descubre la escena nueva desde la derecha.' },
+  { id: 'wiperight', label: 'Barrido hacia la derecha', categoria: 'barrido', xfade: 'wiperight', descripcion: 'Una línea vertical descubre la escena nueva desde la izquierda.' },
+  { id: 'wipeup', label: 'Barrido hacia arriba', categoria: 'barrido', xfade: 'wipeup', descripcion: 'Una línea horizontal descubre la escena nueva desde abajo.' },
+  { id: 'wipedown', label: 'Barrido hacia abajo', categoria: 'barrido', xfade: 'wipedown', descripcion: 'Una línea horizontal descubre la escena nueva desde arriba.' },
+  { id: 'wipetl', label: 'Barrido a la esquina superior izquierda', categoria: 'barrido', xfade: 'wipetl', descripcion: 'La escena nueva entra por la esquina inferior derecha.' },
+  { id: 'wipetr', label: 'Barrido a la esquina superior derecha', categoria: 'barrido', xfade: 'wipetr', descripcion: 'La escena nueva entra por la esquina inferior izquierda.' },
+  { id: 'wipebl', label: 'Barrido a la esquina inferior izquierda', categoria: 'barrido', xfade: 'wipebl', descripcion: 'La escena nueva entra por la esquina superior derecha.' },
+  { id: 'wipebr', label: 'Barrido a la esquina inferior derecha', categoria: 'barrido', xfade: 'wipebr', descripcion: 'La escena nueva entra por la esquina superior izquierda.' },
+  { id: 'diagtl', label: 'Diagonal suave, esquina superior izquierda', categoria: 'barrido', xfade: 'diagtl', descripcion: 'Barrido diagonal difuminado; la escena nueva entra por la esquina opuesta.' },
+  { id: 'diagtr', label: 'Diagonal suave, esquina superior derecha', categoria: 'barrido', xfade: 'diagtr', descripcion: 'Barrido diagonal difuminado; la escena nueva entra por la esquina opuesta.' },
+  { id: 'diagbl', label: 'Diagonal suave, esquina inferior izquierda', categoria: 'barrido', xfade: 'diagbl', descripcion: 'Barrido diagonal difuminado; la escena nueva entra por la esquina opuesta.' },
+  { id: 'diagbr', label: 'Diagonal suave, esquina inferior derecha', categoria: 'barrido', xfade: 'diagbr', descripcion: 'Barrido diagonal difuminado; la escena nueva entra por la esquina opuesta.' },
+  { id: 'horzopen', label: 'Apertura horizontal', categoria: 'barrido', xfade: 'horzopen', descripcion: 'El cuadro se abre por el centro hacia los lados.' },
+  { id: 'horzclose', label: 'Cierre horizontal', categoria: 'barrido', xfade: 'horzclose', descripcion: 'El cuadro se cierra desde los lados hacia el centro.' },
+  { id: 'vertopen', label: 'Apertura vertical', categoria: 'barrido', xfade: 'vertopen', descripcion: 'El cuadro se abre por el centro hacia arriba y abajo.' },
+  { id: 'vertclose', label: 'Cierre vertical', categoria: 'barrido', xfade: 'vertclose', descripcion: 'El cuadro se cierra desde arriba y abajo hacia el centro.' },
+  { id: 'radial', label: 'Barrido radial', categoria: 'barrido', xfade: 'radial', descripcion: 'Una manecilla recorre el cuadro y va dejando la escena nueva.' },
+
+  // ---- formas ----
+  { id: 'circleopen', label: 'Círculo que se abre', categoria: 'forma', xfade: 'circleopen', descripcion: 'Un círculo crece desde el centro con la escena nueva.' },
+  { id: 'circleclose', label: 'Círculo que se cierra', categoria: 'forma', xfade: 'circleclose', descripcion: 'Un círculo se cierra sobre la escena anterior.' },
+  { id: 'circlecrop', label: 'Círculo a negro', categoria: 'forma', xfade: 'circlecrop', descripcion: 'La imagen se cierra en un círculo sobre negro y vuelve a abrirse.' },
+  { id: 'rectcrop', label: 'Rectángulo a negro', categoria: 'forma', xfade: 'rectcrop', descripcion: 'La imagen se cierra en un rectángulo sobre negro y vuelve a abrirse.' },
+
+  // ---- efectos ----
+  { id: 'zoomin', label: 'Zoom suave', categoria: 'efecto', xfade: 'zoomin', descripcion: 'La escena nueva entra acercándose.' },
+  { id: 'pixelize', label: 'Pixelado', categoria: 'efecto', xfade: 'pixelize', descripcion: 'Las dos escenas se cruzan pasando por bloques gruesos.' },
+  { id: 'hblur', label: 'Desenfoque', categoria: 'efecto', xfade: 'hblur', descripcion: 'El cambio ocurre con la imagen movida, como un barrido de cámara.' },
+  { id: 'hlslice', label: 'Tiras hacia la izquierda', categoria: 'efecto', xfade: 'hlslice', descripcion: 'La escena nueva entra por la derecha en tiras horizontales.' },
+  { id: 'hrslice', label: 'Tiras hacia la derecha', categoria: 'efecto', xfade: 'hrslice', descripcion: 'La escena nueva entra por la izquierda en tiras horizontales.' },
+  { id: 'vuslice', label: 'Tiras hacia arriba', categoria: 'efecto', xfade: 'vuslice', descripcion: 'La escena nueva entra por abajo en tiras verticales.' },
+  { id: 'vdslice', label: 'Tiras hacia abajo', categoria: 'efecto', xfade: 'vdslice', descripcion: 'La escena nueva entra por arriba en tiras verticales.' },
+  { id: 'hlwind', label: 'Viento hacia la izquierda', categoria: 'efecto', xfade: 'hlwind', descripcion: 'La escena nueva entra por la derecha deshilachada, como al viento.' },
+  { id: 'hrwind', label: 'Viento hacia la derecha', categoria: 'efecto', xfade: 'hrwind', descripcion: 'La escena nueva entra por la izquierda deshilachada, como al viento.' },
+  { id: 'vuwind', label: 'Viento hacia arriba', categoria: 'efecto', xfade: 'vuwind', descripcion: 'La escena nueva entra por abajo deshilachada, como al viento.' },
+  { id: 'vdwind', label: 'Viento hacia abajo', categoria: 'efecto', xfade: 'vdwind', descripcion: 'La escena nueva entra por arriba deshilachada, como al viento.' },
 ];
 
 export const porId = id => CATALOGO.find(t => t.id === id) || null;
@@ -67,11 +155,12 @@ export const porId = id => CATALOGO.find(t => t.id === id) || null;
  */
 export function filtrarDisponibles(soportadas = []) {
   const set = new Set(soportadas);
-  return CATALOGO.map(t => ({
-    ...t,
-    disponible: t.xfade === null ? true : set.has(t.xfade),
-    motivo: t.xfade === null || set.has(t.xfade) ? null : 'Este FFmpeg no trae esta transición.',
-  }));
+  return CATALOGO.map((t) => {
+    if (t.xfade === null) return { ...t, disponible: true, motivo: null };
+    if (INESTABLES[t.xfade]) return { ...t, disponible: false, motivo: INESTABLES[t.xfade] };
+    if (!set.has(t.xfade)) return { ...t, disponible: false, motivo: 'Este FFmpeg no trae esta transición.' };
+    return { ...t, disponible: true, motivo: null };
+  });
 }
 
 /** Normaliza lo que venga del disco o de la interfaz al contrato del proyecto. */

@@ -427,23 +427,93 @@ export function panelTransiciones({ s, acc }) {
   const e = escenaActual(s);
   if (!e) { frag.append(vacio('Selecciona una escena.')); return frag; }
 
+  const catalogo = s.capacidades?.transiciones || [{ id: 'none', label: 'Sin transición', disponible: true }];
+  const limites = s.capacidades?.duracionTransicion || { min: 0.1, max: 2, porDefecto: 0.5 };
+  // La transición pertenece a la escena de DESTINO: describe cómo ENTRA esta
+  // escena desde la anterior. Por eso la primera no puede tener ninguna.
+  const t = e.transition || { type: 'none', duration: 0, enabled: false };
+  const esPrimera = e.numero === 1;
+
   frag.append(el('p', 'ayuda',
-    'El montaje aplica un fundido de entrada y salida por clip. Los deslizamientos y '
-    + 'barridos no están implementados en el render, así que no se ofrecen: se verían como un fundido.'));
+    'Cada transición se aplica al ENTRAR esta escena desde la anterior, y se renderiza '
+    + 'de verdad en el MP4. Las que esta versión de FFmpeg no puede hacer salen marcadas «Próximamente».'));
 
   const caja = el('div', 'bloque');
   caja.append(el('h3', null, `Escena ${e.numero}`));
 
-  const tr = lista(s.capacidades?.transiciones || [{ id: 'none', label: 'Sin transición' }], e.transition);
-  tr.addEventListener('change', () => acc.cambiarEscena(e.id, 'transition', tr.value));
+  if (esPrimera) {
+    caja.append(vacio('La primera escena no entra desde ninguna otra: no lleva transición.'));
+    frag.append(caja);
+    frag.append(bloqueMovimiento({ s, acc, e }));
+    return frag;
+  }
+
+  const tr = listaTransiciones(catalogo, s.capacidades?.categoriasTransicion, t.type);
+  tr.addEventListener('change', () => acc.cambiarEscena(e.id, 'transition', {
+    type: tr.value,
+    // Al elegir una transición se conserva la duración que ya tenía; si venía
+    // de «sin transición», se parte de la duración por defecto.
+    duration: t.duration > 0 ? t.duration : limites.porDefecto,
+    enabled: tr.value !== 'none',
+  }));
   caja.append(campo('Transición', tr));
 
-  const mv = lista(s.capacidades?.movimientos || [{ id: 'none', label: 'Sin movimiento' }], e.kenBurns);
-  mv.addEventListener('change', () => acc.cambiarEscena(e.id, 'kenBurns', mv.value));
-  caja.append(campo('Movimiento de la imagen', mv, 'Acercar o alejar lentamente sobre una imagen fija.'));
+  const ficha = catalogo.find(x => x.id === t.type);
+  if (ficha?.descripcion) caja.append(el('p', 'mini', ficha.descripcion));
+
+  if (t.type !== 'none') {
+    const dur = entrada({ tipo: 'range', min: limites.min, max: limites.max, step: 0.05, valor: t.duration || limites.porDefecto });
+    const durTexto = el('span', 'mini', `${Number(t.duration || limites.porDefecto).toFixed(2)} s`);
+    dur.addEventListener('input', () => { durTexto.textContent = `${Number(dur.value).toFixed(2)} s`; });
+    dur.addEventListener('change', () => acc.cambiarEscena(e.id, 'transition', { ...t, duration: Number(dur.value) }));
+    caja.append(campo('Duración de la transición', dur,
+      'Se solapa con el final de la escena anterior, así que el video NO se alarga. '
+      + 'No puede pasar de la mitad de la escena más corta de las dos.'));
+    caja.append(durTexto);
+  }
 
   frag.append(caja);
+  frag.append(bloqueMovimiento({ s, acc, e }));
   return frag;
+}
+
+/**
+ * Selector de transiciones agrupado por familia.
+ *
+ * Son casi sesenta: sin agrupar, la lista es inmanejable. Las que este FFmpeg
+ * no puede hacer aparecen deshabilitadas y con el motivo en el `title`, en vez
+ * de desaparecer sin explicación o, peor, hacer otra cosa parecida.
+ */
+function listaTransiciones(catalogo, categorias, valor) {
+  const sel = document.createElement('select');
+  const familias = categorias?.length ? categorias : [{ id: null, label: 'Transiciones' }];
+  for (const familia of familias) {
+    const dentro = catalogo.filter(t => (familia.id ? t.categoria === familia.id : true));
+    if (!dentro.length) continue;
+    const grupo = document.createElement('optgroup');
+    grupo.label = familia.label;
+    for (const t of dentro) {
+      const op = document.createElement('option');
+      op.value = t.id;
+      op.textContent = t.disponible === false ? `${t.label} — Próximamente` : t.label;
+      op.disabled = t.disponible === false;
+      if (t.motivo) op.title = t.motivo;
+      grupo.append(op);
+    }
+    sel.append(grupo);
+  }
+  sel.value = valor;
+  return sel;
+}
+
+/** Movimiento de la imagen fija: vive con las transiciones porque es lo mismo. */
+function bloqueMovimiento({ s, acc, e }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Movimiento de la imagen'));
+  const mv = lista(s.capacidades?.movimientos || [{ id: 'none', label: 'Sin movimiento' }], e.kenBurns);
+  mv.addEventListener('change', () => acc.cambiarEscena(e.id, 'kenBurns', mv.value));
+  caja.append(campo('Movimiento', mv, 'Acercar o alejar lentamente sobre una imagen fija.'));
+  return caja;
 }
 
 // ====================================================================== AUDIO

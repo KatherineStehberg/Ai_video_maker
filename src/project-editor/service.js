@@ -29,7 +29,7 @@ import { listTemplates } from '../templates/index.js';
 import { ASPECTS } from '../config.js';
 import { abs, rel, workDir } from '../lib/paths.js';
 import { xfadeDisponibles } from '../lib/ffmpeg.js';
-import { filtrarDisponibles, normalizarTransicion, DURACION as DURACION_TRANSICION } from './transitions.js';
+import { filtrarDisponibles, normalizarTransicion, CATEGORIAS as CATEGORIAS_TRANSICION, DURACION as DURACION_TRANSICION } from './transitions.js';
 import { normalizarEfecto, VOLUMEN, EFECTO_MAX_SEGUNDOS } from './audio.js';
 import { lineaDeTiempo } from './timeline.js';
 import { assetKind, resolveSafeAsset } from '../core/asset-manager.js';
@@ -70,6 +70,7 @@ export async function catalogoTransiciones() {
   _transiciones = filtrarDisponibles(soportadas).map(t => ({
     id: t.id,
     label: t.label,
+    categoria: t.categoria,
     descripcion: t.descripcion,
     disponible: t.disponible,
     etiqueta: t.disponible ? null : 'Próximamente',
@@ -379,6 +380,7 @@ export async function capacidades() {
       maxWords: PALABRAS_DESTACADO.max,
     },
     transiciones: await catalogoTransiciones(),
+    categoriasTransicion: CATEGORIAS_TRANSICION,
     duracionTransicion: DURACION_TRANSICION,
     volumen: VOLUMEN,
     movimientos: MOVIMIENTOS_REALES,
