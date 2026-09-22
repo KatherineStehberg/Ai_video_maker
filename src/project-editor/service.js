@@ -28,6 +28,10 @@ import { loadBrand, listBrands } from '../core/brands.js';
 import { listTemplates } from '../templates/index.js';
 import { ASPECTS } from '../config.js';
 import { abs, rel, workDir } from '../lib/paths.js';
+import { xfadeDisponibles } from '../lib/ffmpeg.js';
+import { filtrarDisponibles, normalizarTransicion, DURACION as DURACION_TRANSICION } from './transitions.js';
+import { normalizarEfecto, VOLUMEN, EFECTO_MAX_SEGUNDOS } from './audio.js';
+import { lineaDeTiempo } from './timeline.js';
 import { assetKind, resolveSafeAsset } from '../core/asset-manager.js';
 import { buildCues, verifyCaptionCoverage } from '../core/subtitles.js';
 import { captionStyleOptions, normalizeCaptionStyle, captionMetrics } from '../core/captions-style.js';
@@ -39,7 +43,7 @@ import { listAllVoices } from '../providers/tts/index.js';
 import { LANGUAGES } from '../core/lang.js';
 import { getStorage } from './storage.js';
 import { peaks } from './waveform.js';
-import { creditoDeImagen, creditoDeMusica, imagenesDisponibles } from './media-library.js';
+import { creditoDeImagen, creditoDeMusica, creditoDeSfx, imagenesDisponibles } from './media-library.js';
 import { logger } from '../lib/logger.js';
 
 const log = logger('editor');
@@ -47,15 +51,35 @@ const log = logger('editor');
 /**
  * TRANSICIONES REALES.
  *
- * El modelo admite cinco valores historicos, pero el renderer solo distingue
- * dos comportamientos: sin transicion, o un fundido de entrada y salida por
- * clip. `slideleft` y `wipeleft` se guardarian pero se verian como un fundido,
- * asi que NO se ofrecen: seria prometer un efecto que no existe.
+ * El catalogo esta en `transitions.js`, pero cual de ellas se puede ofrecer lo
+ * decide EL BINARIO: se le pregunta a este FFmpeg que sabe hacer `xfade`. Lo
+ * que no soporte se devuelve deshabilitado y etiquetado «Próximamente», nunca
+ * sustituido por otro efecto parecido.
+ *
+ * Se consulta una vez por proceso: el binario no cambia en caliente.
  */
-export const TRANSICIONES_REALES = [
-  { id: 'none', label: 'Sin transición' },
-  { id: 'fade', label: 'Fundido' },
-];
+let _transiciones = null;
+export async function catalogoTransiciones() {
+  if (_transiciones) return _transiciones;
+  let soportadas = [];
+  try {
+    soportadas = await xfadeDisponibles();
+  } catch (e) {
+    log.warn(`No se pudo preguntar a FFmpeg por las transiciones: ${e.message}`);
+  }
+  _transiciones = filtrarDisponibles(soportadas).map(t => ({
+    id: t.id,
+    label: t.label,
+    descripcion: t.descripcion,
+    disponible: t.disponible,
+    etiqueta: t.disponible ? null : 'Próximamente',
+    motivo: t.motivo,
+  }));
+  return _transiciones;
+}
+
+/** Duraciones admitidas por una transicion, para que la interfaz las respete. */
+export const DURACION_TRANSICIONES = DURACION_TRANSICION;
 
 /** Efectos de movimiento sobre imagen fija que el renderer implementa. */
 export const MOVIMIENTOS_REALES = [
@@ -158,7 +182,9 @@ export function derivar(p) {
       text: s.text || '',
       caption: s.caption,
       visualPrompt: s.visualPrompt || '',
-      transition: s.transition || 'none',
+      // Contrato completo { type, duration, enabled }: la interfaz necesita la
+      // duracion, no solo el nombre del efecto.
+      transition: normalizarTransicion(s.transition),
       kenBurns: s.kenBurns || 'none',
       excluida: Boolean(s.excluida),
       recurso,
@@ -224,6 +250,14 @@ export function derivar(p) {
     },
     textoDestacado: destacados,
     audio: resumenAudio(p, escenas, musica),
+    // Bloques de transicion y pistas de musica y efectos, ya situados en el
+    // tiempo. La interfaz los pinta; no los recalcula.
+    linea: lineaDeTiempo(p, {
+      // Basta con una escena con voz para saber que habra narracion; la pista
+      // montada solo existe al exportar.
+      narracion: narracionTrack.length ? { path: narracionTrack[0].narracion.path } : null,
+      existe: f => fs.existsSync(abs(f)),
+    }),
     pistas: {
       textoDestacado: escenas.filter(e => e.tieneTextoDestacado).length,
       subtitulos: escenas.reduce((a, e) => a + e.cues, 0),
@@ -299,7 +333,14 @@ export function publico(p) {
     status: p.status,
     captions: p.captions,
     voice: { provider: p.voice?.provider, name: p.voice?.name, enabled: p.voice?.enabled !== false, gain: p.voice?.gain ?? 1 },
-    music: { enabled: Boolean(p.music?.enabled), path: p.music?.path || null, volume: p.music?.volume ?? 0.12, credit: p.music?.credit || null },
+    music: {
+      enabled: Boolean(p.music?.enabled), path: p.music?.path || null,
+      volume: p.music?.volume ?? 0.12, loop: p.music?.loop !== false, credit: p.music?.credit || null,
+    },
+    // Efectos elegidos por la usuaria, con su credito. Nunca hay ninguno que
+    // no haya puesto ella.
+    sfx: Array.isArray(p.sfx) ? p.sfx : [],
+    originalAudio: p.originalAudio || { path: null, enabled: false, volume: 0.8, start: 0 },
     assets: { logo: p.assets?.logo || null },
     cta: p.cta || '',
     outputs: p.outputs || {},
@@ -337,11 +378,13 @@ export async function capacidades() {
       backgrounds: FONDOS_DESTACADO,
       maxWords: PALABRAS_DESTACADO.max,
     },
-    transiciones: TRANSICIONES_REALES,
+    transiciones: await catalogoTransiciones(),
+    duracionTransicion: DURACION_TRANSICION,
+    volumen: VOLUMEN,
     movimientos: MOVIMIENTOS_REALES,
     almacenamiento: getStorage().describe?.() ?? { id: getStorage().id },
     // Solo un booleano: si hay banco de imagenes. Nunca la clave ni su largo.
-    biblioteca: { imagenes: imagenesDisponibles(), proveedorImagenes: 'Pexels', musica: 'local' },
+    biblioteca: { imagenes: imagenesDisponibles(), proveedorImagenes: 'Pexels', musica: 'local', efectos: 'local' },
     // Lo que TODAVIA no existe, declarado para que la interfaz lo deshabilite
     // en vez de fingirlo.
     pendiente: {
@@ -431,7 +474,41 @@ export async function guardar(id, patch = {}) {
       ...p.music,
       ...(m.path !== undefined ? { path: m.path || null, enabled: Boolean(m.path) && m.enabled !== false, credit: credito } : {}),
       ...(m.enabled !== undefined && m.path === undefined ? { enabled: Boolean(m.enabled) && Boolean(p.music?.path) } : {}),
-      ...(m.volume !== undefined ? { volume: num(m.volume, 0, 1, 0.12) } : {}),
+      ...(m.volume !== undefined ? { volume: num(m.volume, VOLUMEN.min, VOLUMEN.max, 0.12) } : {}),
+      // Con el bucle apagado la musica suena una vez y luego hay silencio.
+      ...(m.loop !== undefined ? { loop: Boolean(m.loop) } : {}),
+    };
+  }
+
+  // ---- EFECTOS DE SONIDO ----
+  // La lista llega ENTERA: es la forma mas simple de admitir anadir, quitar,
+  // reordenar y silenciar sin inventar un protocolo de operaciones.
+  if (patch.sfx !== undefined) {
+    if (!Array.isArray(patch.sfx)) throw new Error('`sfx` debe ser una lista.');
+    if (patch.sfx.length > 60) throw new Error('Demasiados efectos de sonido (máximo 60).');
+    const escenas = new Set(p.scenes.map(x => x.id));
+    p.sfx = patch.sfx.map((e) => {
+      // Mismo criterio que la musica: el credito se lee de la ficha en disco,
+      // nunca del navegador, y un efecto sin licencia declarada no se acepta.
+      const credito = creditoDeSfx(e.path);
+      if (e.sceneId && !escenas.has(e.sceneId)) throw new Error(`La escena ${e.sceneId} no existe en este proyecto.`);
+      if (e.duration !== undefined && e.duration !== null) {
+        const d = Number(e.duration);
+        if (!Number.isFinite(d) || d <= 0 || d > EFECTO_MAX_SEGUNDOS) {
+          throw new Error(`Duración de efecto no válida: debe estar entre 0 y ${EFECTO_MAX_SEGUNDOS} s.`);
+        }
+      }
+      return normalizarEfecto({ ...e, credit: credito, titulo: credito.titulo });
+    });
+  }
+
+  // ---- AUDIO ORIGINAL del video subido ----
+  if (patch.originalAudio) {
+    const o = patch.originalAudio;
+    p.originalAudio = {
+      ...p.originalAudio,
+      ...(o.enabled !== undefined ? { enabled: Boolean(o.enabled) && Boolean(p.originalAudio?.path) } : {}),
+      ...(o.volume !== undefined ? { volume: num(o.volume, VOLUMEN.min, VOLUMEN.max, 0.8) } : {}),
     };
   }
 
@@ -453,8 +530,24 @@ export async function guardar(id, patch = {}) {
       if (cambio.duration !== undefined) vieja.duration = num(cambio.duration, 0.5, 300, vieja.duration);
       if (cambio.excluida !== undefined) vieja.excluida = Boolean(cambio.excluida);
       if (cambio.transition !== undefined) {
-        if (!TRANSICIONES_REALES.some(x => x.id === cambio.transition)) throw new Error('Transición no soportada.');
-        vieja.transition = cambio.transition;
+        const t = normalizarTransicion(cambio.transition);
+        const catalogo = await catalogoTransiciones();
+        const ficha = catalogo.find(x => x.id === t.type);
+        if (!ficha || !ficha.disponible) throw new Error('Transición no soportada.');
+        // La duracion se valida ANTES de normalizar: `normalizarTransicion`
+        // acota en silencio, y aqui hay que avisar de que el valor no servia.
+        const pedida = cambio.transition?.duration;
+        if (t.type !== 'none' && pedida !== undefined && pedida !== null) {
+          const d = Number(pedida);
+          if (!Number.isFinite(d) || d < DURACION_TRANSICION.min || d > DURACION_TRANSICION.max) {
+            throw new Error(`Duración de transición no válida: debe estar entre ${DURACION_TRANSICION.min} y ${DURACION_TRANSICION.max} s.`);
+          }
+        }
+        // La primera escena no entra desde ninguna otra.
+        if (t.type !== 'none' && p.scenes[0]?.id === vieja.id) {
+          throw new Error('La primera escena no puede llevar transición de entrada.');
+        }
+        vieja.transition = t;
       }
       if (cambio.kenBurns !== undefined) {
         if (!MOVIMIENTOS_REALES.some(x => x.id === cambio.kenBurns)) throw new Error('Movimiento no soportado.');

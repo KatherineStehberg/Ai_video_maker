@@ -21,13 +21,14 @@
  *   GET   /api/project-editor/library/images?q=&aspecto=&pagina=   buscar
  *   POST  /api/project-editor/library/images/import      { id, consulta }
  *   GET   /api/project-editor/library/music?q=&maxDuracion=         listar
+ *   GET   /api/project-editor/library/sfx?q=&categoria=             listar
  *
  * La biblioteca NUNCA devuelve la clave del proveedor ni acepta URLs de
  * descarga del navegador: solo terminos de busqueda e identificadores.
  */
 
 import { capacidades, listar, vistaEditor, guardar, regenerarEscena, exportar, estadoTrabajo, ondaDe } from './service.js';
-import { buscarImagenes, importarImagen, listarMusica } from './media-library.js';
+import { buscarImagenes, importarImagen, listarMusica, listarSfx } from './media-library.js';
 
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -79,6 +80,13 @@ export async function projectEditorRoute(req, res, url) {
         send(res, 200, await listarMusica({
           consulta: url.searchParams.get('q') || '',
           maxDuracion: url.searchParams.get('maxDuracion'),
+        }));
+        return true;
+      }
+      if (req.method === 'GET' && seg[1] === 'sfx') {
+        send(res, 200, await listarSfx({
+          consulta: url.searchParams.get('q') || '',
+          categoria: url.searchParams.get('categoria') || null,
         }));
         return true;
       }

@@ -7,6 +7,8 @@ import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
 import { normalizeLanguage } from './lang.js';
 import { normalizeCaptionStyle } from './captions-style.js';
 import { normalizeOnScreenText } from './on-screen-text.js';
+import { normalizarEfecto, VOLUMEN_POR_DEFECTO } from '../project-editor/audio.js';
+import { normalizarTransicion } from '../project-editor/transitions.js';
 
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
@@ -46,7 +48,9 @@ export function makeScene(partial = {}) {
     narrationKey: partial.narrationKey ?? null,
     durationLocked: partial.durationLocked ?? false,
     provenance: partial.provenance ?? { kind: 'unverified', authorized: false, originalReference: null },
-    transition: TRANSITIONS.includes(partial.transition) ? partial.transition : 'fade',
+    // Transicion de ENTRADA de esta escena: { type, duration, enabled }.
+    // Admite la cadena que se guardaba antes ('fade', 'none'…) y la convierte.
+    transition: normalizarTransicion(partial.transition),
     caption: partial.caption ?? null,          // null => se usa `text`
     kenBurns: partial.kenBurns ?? 'auto',      // auto | in | out | none
     // TEXTO DESTACADO sobre la imagen. Son CINCO campos y no uno porque un
@@ -109,8 +113,20 @@ export function makeProject(partial = {}) {
       fadeIn: partial.music?.fadeIn ?? 1.5,
       fadeOut: partial.music?.fadeOut ?? 2,
       enabled: partial.music?.enabled ?? false,
+      // La musica se repite hasta cubrir el video salvo que se desactive.
+      loop: partial.music?.loop !== false,
       // Licencia, fuente y atribucion de la pista elegida. Ver media-library.js.
       credit: partial.music?.credit ?? null,
+    },
+    // EFECTOS DE SONIDO elegidos por la usuaria, anclados a una escena y a un
+    // segundo dentro de ella. Nunca se anaden solos. Ver project-editor/audio.js.
+    sfx: (Array.isArray(partial.sfx) ? partial.sfx : []).map(normalizarEfecto).filter(e => e.path),
+    // Audio del video que subio la usuaria, cuando lo hay.
+    originalAudio: {
+      path: partial.originalAudio?.path ?? null,
+      enabled: partial.originalAudio?.enabled === true && Boolean(partial.originalAudio?.path),
+      volume: partial.originalAudio?.volume ?? VOLUMEN_POR_DEFECTO.original,
+      start: partial.originalAudio?.start ?? 0,
     },
     captions: {
       enabled: partial.captions?.enabled ?? true,

@@ -9,6 +9,8 @@ import { assetKind } from './asset-manager.js';
 import { activeScenes } from './project.js';
 import { writeAssForFormat } from './subtitles.js';
 import { buildNarrationTrack } from './tts.js';
+import { planDeMezcla } from '../project-editor/audio.js';
+import { planDeMontaje, porId as transicionPorId } from '../project-editor/transitions.js';
 import { slugify, clamp } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
 import { stripLangTags } from './lang.js';
@@ -104,17 +106,22 @@ function kenBurnsFilter(mode, frames, W, H, maxZoom = 1.16) {
  * Trabajar por escena mantiene el uso de RAM acotado (importante con 8 GB)
  * y permite cachear: reeditar una escena no re-renderiza las demas.
  */
-async function renderSceneClip(scene, index, ctx) {
+async function renderSceneClip(scene, index, ctx, { extra = 0 } = {}) {
   const { W, H, fps, profile, brand, project, clipsDir, cacheDir } = ctx;
   const out = path.join(clipsDir, `${String(index).padStart(3, '0')}_${scene.id}.mp4`);
   const duration = clamp(Number(scene.duration) || 3, 0.5, 300);
-  const frames = Math.max(1, Math.round(duration * fps));
+  // `extra` es el solape que se comera la transicion hacia la escena siguiente.
+  // Se renderiza DE MAS al final del clip para que el video no se acorte; el
+  // contenido (Ken Burns, rotulo) sigue su curso durante ese sobrante en vez de
+  // congelarse. Ver project-editor/transitions.js.
+  const duracionRender = Number((duration + Math.max(0, extra)).toFixed(3));
+  const frames = Math.max(1, Math.round(duracionRender * fps));
 
   const srcRel = scene.assetPath;
   const srcAbs = srcRel ? abs(srcRel) : null;
   const kind = srcAbs && fs.existsSync(srcAbs) ? assetKind(srcAbs) : 'none';
   const fingerprint = createHash('sha256').update(JSON.stringify({
-    version:2, scene:{duration:scene.duration,assetPath:scene.assetPath,kenBurns:scene.kenBurns,transition:scene.transition,
+    version:3, extra, scene:{duration:scene.duration,assetPath:scene.assetPath,kenBurns:scene.kenBurns,transition:scene.transition,
       // Los cinco campos del rotulo entran en la huella: cambiar el color o
       // la animacion tiene que invalidar el clip cacheado, o el render
       // reutilizaria en silencio el clip con el rotulo viejo.
@@ -215,19 +222,14 @@ async function renderSceneClip(scene, index, ctx) {
     });
   }
 
-  // Transicion barata: fundido de entrada/salida por clip.
-  // Evita xfade (que exige decodificar dos clips a la vez) en CPU modesta.
-  if (scene.transition && scene.transition !== 'none') {
-    const fd = Math.min(0.4, duration / 4);
-    filters.push(`fade=t=in:st=0:d=${fd.toFixed(2)}`);
-    filters.push(`fade=t=out:st=${(duration - fd).toFixed(2)}:d=${fd.toFixed(2)}`);
-  }
+  // Las transiciones YA NO se falsean con un fundido por clip: el clip sale
+  // limpio y el enlace real entre escenas lo hace `xfade` al concatenar.
 
   filters.push('format=yuv420p');
 
   const args = [
     ...inputArgs,
-    '-t', duration.toFixed(3),
+    '-t', duracionRender.toFixed(3),
     '-vf', filters.join(','),
     '-an',
     '-c:v', 'libx264',
@@ -260,6 +262,61 @@ async function normalizeBumper(srcAbs, ctx, tag) {
   return out;
 }
 
+/**
+ * Numero maximo de clips que se encadenan con transiciones en una sola pasada.
+ *
+ * `xfade` obliga a tener TODOS los clips abiertos a la vez. Con un proyecto de
+ * cientos de escenas eso es un grafo enorme y cientos de archivos abiertos. Por
+ * encima de este limite se monta sin transiciones y se avisa, en vez de
+ * arriesgar un render que se cae a la mitad.
+ */
+export const MAX_CLIPS_CON_TRANSICION = 80;
+
+/**
+ * Une los clips aplicando las transiciones REALES de FFmpeg.
+ *
+ * `xfade` SOLAPA: la salida dura la suma menos el solape. Para que el video no
+ * se acorte (y la voz y los subtitulos no queden desplazados), cada clip que
+ * entrega una transicion se renderizo con ese solape de mas al final. Por eso
+ * el `offset` de cada enlace es la suma de duraciones PLANIFICADAS, no la
+ * longitud real de los clips.
+ *
+ * Los enlaces sin transicion se unen con `concat` dentro del mismo grafo.
+ */
+async function concatConTransiciones(piezas, ctx, workingDir) {
+  const { profile, fps } = ctx;
+  const out = path.join(workingDir, 'video_mudo.mp4');
+  const partes = [];
+  let anterior = '[0:v]';
+  let acumulado = piezas[0].planificada;
+
+  for (let i = 1; i < piezas.length; i++) {
+    const etiqueta = i === piezas.length - 1 ? '[vout]' : `[v${i}]`;
+    const t = piezas[i].entra;
+    if (t) {
+      const xfade = transicionPorId(t.type)?.xfade;
+      partes.push(`${anterior}[${i}:v]xfade=transition=${xfade}:duration=${t.duration.toFixed(3)}:offset=${acumulado.toFixed(3)}${etiqueta}`);
+    } else {
+      partes.push(`${anterior}[${i}:v]concat=n=2:v=1:a=0${etiqueta}`);
+    }
+    acumulado = Number((acumulado + piezas[i].planificada).toFixed(3));
+    anterior = etiqueta;
+  }
+
+  const args = [
+    ...piezas.flatMap(pieza => ['-i', pieza.file]),
+    '-filter_complex', partes.join(';'),
+    '-map', '[vout]',
+    '-an',
+    '-c:v', 'libx264', '-preset', profile.preset, '-crf', '18',
+    '-pix_fmt', 'yuv420p', '-r', String(fps), '-movflags', '+faststart',
+  ];
+  if (CONFIG.render.threads > 0) args.push('-threads', String(CONFIG.render.threads));
+  args.push(out);
+  await ffmpegRun(args);
+  return out;
+}
+
 /** Concatena los clips sin recodificar (concat demuxer). */
 async function concatClips(clips, workingDir) {
   const listFile = path.join(workingDir, 'concat.txt');
@@ -278,58 +335,72 @@ async function concatClips(clips, workingDir) {
 }
 
 /**
- * Construye la pista de audio final: narracion + musica con ducking simple.
- * Devuelve la ruta del WAV mezclado, o null si no hay nada que sonar.
+ * Construye la pista de audio final a partir del PLAN DE MEZCLA.
+ *
+ * El plan (project-editor/audio.js) ya decidio que suena, con que volumen y en
+ * que segundo; aqui solo se traduce a filtros:
+ *
+ *   narracion  la voz montada, al volumen de mezcla
+ *   musica     en bucle si hace falta, recortada al video, con fundidos
+ *   efectos    retrasados hasta su instante y recortados si se pidio
+ *   original   el audio del video que subio la usuaria
+ *
+ * Con mas de una fuente se pone un LIMITADOR al final: sumar pistas puede pasar
+ * de 0 dBFS y saturar, que es el chasquido tipico de una mezcla mal hecha.
+ *
+ * Devuelve la ruta del WAV mezclado, o null si no hay NADA que sonar; en ese
+ * caso el video se exporta sin pista de audio, no con una pista de silencio.
  */
 async function buildAudioTrack(project, workingDir, totalSeconds, { narracion = null } = {}) {
-  // La pista de voz la decide quien llama (ver renderProject): antes se usaba
-  // cualquier narration.wav que hubiese en la carpeta, aunque faltase o fuese
-  // de una version anterior de las escenas.
-  const narration = narracion;
-  const hasNarration = project.voice?.enabled !== false && Boolean(narration) && fs.existsSync(narration);
-  const musicRel = project.music?.enabled ? project.music?.path : null;
-  const musicAbs = musicRel ? abs(musicRel) : null;
-  const hasMusic = Boolean(musicAbs && fs.existsSync(musicAbs));
-
-  if (!hasNarration && !hasMusic) return null;
+  const plan = planDeMezcla(project, {
+    narracion: narracion ? { path: narracion } : null,
+    existe: (f) => fs.existsSync(path.isAbsolute(f) ? f : abs(f)),
+  });
+  if (!plan.hayAudio) return null;
 
   const out = path.join(workingDir, 'audio_final.wav');
   const inputs = [];
-  const filters = [];
-  const labels = [];
-  let i = 0;
+  const filtros = [];
+  const etiquetas = [];
 
-  if (hasNarration) {
-    inputs.push('-i', narration);
-    // Ganancia de mezcla de la narracion. Antes era 1.0 fijo, asi que el
-    // control de volumen de la voz no tenia ningun efecto en el montaje.
-    const gananciaVoz = clamp(Number(project.voice?.gain ?? 1), 0, 2);
-    filters.push(`[${i}:a]aresample=48000,volume=${gananciaVoz.toFixed(3)}[voz]`);
-    labels.push('[voz]');
-    i++;
-  }
-  if (hasMusic) {
-    const vol = clamp(Number(project.music.volume ?? 0.12), 0, 1);
-    const fadeIn = clamp(Number(project.music.fadeIn) || 0, 0, 10);
-    const fadeOut = clamp(Number(project.music.fadeOut) || 0, 0, 10);
-    inputs.push('-stream_loop', '-1', '-i', musicAbs); // repite si es mas corta que el video
-    filters.push(
-      `[${i}:a]aresample=48000,atrim=0:${totalSeconds.toFixed(3)},` +
-      `afade=t=in:st=0:d=${fadeIn},` +
-      `afade=t=out:st=${Math.max(0, totalSeconds - fadeOut).toFixed(3)}:d=${fadeOut},` +
-      `volume=${vol}[mus]`,
-    );
-    labels.push('[mus]');
-    i++;
-  }
+  plan.fuentes.forEach((f, i) => {
+    const archivo = path.isAbsolute(f.path) ? f.path : abs(f.path);
+    // El bucle se pide en la ENTRADA, no en un filtro: asi FFmpeg relee el
+    // archivo desde el principio en vez de cargarlo entero en memoria.
+    if (f.loop) inputs.push('-stream_loop', '-1');
+    inputs.push('-i', archivo);
 
-  const graph = labels.length > 1
-    ? `${filters.join(';')};${labels.join('')}amix=inputs=${labels.length}:normalize=0:duration=longest[out]`
-    : `${filters.join(';')};${labels[0]}anull[out]`;
+    const pasos = ['aresample=48000'];
+    // La musica y el audio original se cortan al final del video; un efecto
+    // solo si se le puso duracion.
+    const recorte = f.recorte;
+    if (recorte) pasos.push(`atrim=0:${Number(recorte).toFixed(3)}`, 'asetpts=PTS-STARTPTS');
+    if (f.fadeIn > 0) pasos.push(`afade=t=in:st=0:d=${f.fadeIn.toFixed(3)}`);
+    if (f.fadeOut > 0) pasos.push(`afade=t=out:st=${Math.max(0, totalSeconds - f.fadeOut).toFixed(3)}:d=${f.fadeOut.toFixed(3)}`);
+    pasos.push(`volume=${Number(f.volume).toFixed(3)}`);
+    // Un efecto suena en SU segundo: se retrasa en todos los canales.
+    if (f.start > 0) pasos.push(`adelay=delays=${Math.round(f.start * 1000)}:all=1`);
+    // Todas las fuentes al mismo formato antes de mezclar.
+    pasos.push('aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo');
+
+    const etiqueta = `[a${i}]`;
+    filtros.push(`[${i}:a]${pasos.join(',')}${etiqueta}`);
+    etiquetas.push(etiqueta);
+  });
+
+  // `normalize=0`: amix NO debe bajar la voz por el hecho de haber anadido
+  // musica. El nivel de cada pista lo decide quien mezcla, no el filtro.
+  filtros.push(etiquetas.length > 1
+    ? `${etiquetas.join('')}amix=inputs=${etiquetas.length}:normalize=0:duration=longest[mezcla]`
+    : `${etiquetas[0]}anull[mezcla]`);
+  // `apad` + `atrim`: la pista dura EXACTAMENTE lo que el video.
+  filtros.push(plan.necesitaLimitador
+    ? `[mezcla]alimiter=limit=0.95:level=disabled,apad,atrim=0:${totalSeconds.toFixed(3)}[out]`
+    : `[mezcla]apad,atrim=0:${totalSeconds.toFixed(3)}[out]`);
 
   await ffmpegRun([
     ...inputs,
-    '-filter_complex', graph,
+    '-filter_complex', filtros.join(';'),
     '-map', '[out]',
     '-t', totalSeconds.toFixed(3),
     '-ar', '48000', '-ac', '2',
@@ -424,12 +495,26 @@ export async function renderProject(project, brand, {
   const totalSeconds = escenas.reduce((a, s) => a + (Number(s.duration) || 0), 0);
   if (!(totalSeconds > 0)) throw new Error('El proyecto no tiene duracion');
 
+  // Plan de montaje: que transicion entra en cada escena y cuanto solape hay
+  // que renderizar de mas en la anterior.
+  const montaje = planDeMontaje(project);
+  const totalClips = escenas.length
+    + (project.assets?.intro || brand?.intro ? 1 : 0)
+    + (project.assets?.outro || brand?.outro ? 1 : 0);
+  const conTransiciones = montaje.conTransiciones && totalClips <= MAX_CLIPS_CON_TRANSICION;
+  if (montaje.conTransiciones && !conTransiciones) {
+    log.warn(`${totalClips} clips superan el limite de ${MAX_CLIPS_CON_TRANSICION} para transiciones: se monta con cortes secos.`);
+  }
+
   // --- 1. Clips por escena ---
-  const clips = [];
+  // Cada pieza lleva su duracion PLANIFICADA (la del guion, no la del archivo)
+  // y la transicion con la que entra: las dos cosas que necesita el montaje.
+  const piezas = [];
   const introAbs = project.assets?.intro || brand?.intro;
   if (introAbs && fs.existsSync(abs(introAbs))) {
     onProgress?.({ step: 'intro', pct: 2 });
-    clips.push(await normalizeBumper(abs(introAbs), ctx, 'intro'));
+    const file = await normalizeBumper(abs(introAbs), ctx, 'intro');
+    piezas.push({ file, planificada: (await probeDuration(file)) || 0, entra: null });
   }
 
   for (let i = 0; i < escenas.length; i++) {
@@ -440,17 +525,28 @@ export async function renderProject(project, brand, {
       pct: 5 + Math.round((i / escenas.length) * 55),
       message: `Escena ${i + 1}/${escenas.length} (${aspect})`,
     });
-    clips.push(await renderSceneClip(escenas[i], i, ctx));
+    const plan = montaje.clips[i];
+    const extra = conTransiciones ? plan.extra : 0;
+    piezas.push({
+      file: await renderSceneClip(escenas[i], i, ctx, { extra }),
+      planificada: plan.planificada,
+      entra: conTransiciones ? plan.entra : null,
+    });
   }
 
   const outroAbs = project.assets?.outro || brand?.outro;
   if (outroAbs && fs.existsSync(abs(outroAbs))) {
-    clips.push(await normalizeBumper(abs(outroAbs), ctx, 'outro'));
+    const file = await normalizeBumper(abs(outroAbs), ctx, 'outro');
+    piezas.push({ file, planificada: (await probeDuration(file)) || 0, entra: null });
   }
 
-  // --- 2. Concatenar (sin recodificar) ---
-  onProgress?.({ step: 'concat', pct: 65, message: 'Uniendo escenas' });
-  const silent = await concatClips(clips, clipsDir);
+  // --- 2. Unir las escenas ---
+  // Sin transiciones se concatena SIN recodificar (rapido). Con transiciones
+  // hay que recodificar: `xfade` mezcla pixeles de dos clips.
+  onProgress?.({ step: 'concat', pct: 65, message: conTransiciones ? 'Uniendo escenas con transiciones' : 'Uniendo escenas' });
+  const silent = conTransiciones
+    ? await concatConTransiciones(piezas, ctx, clipsDir)
+    : await concatClips(piezas.map(x => x.file), clipsDir);
   const videoSeconds = (await probeDuration(silent)) || totalSeconds;
 
   // --- 3. Audio ---

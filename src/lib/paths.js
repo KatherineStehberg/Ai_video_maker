@@ -14,6 +14,8 @@ export const PATHS = {
   assets: path.join(ROOT, 'data', 'assets'),
   assetsImages: path.join(ROOT, 'data', 'assets', 'images'),
   assetsMusic: path.join(ROOT, 'data', 'assets', 'music'),
+  // Efectos de sonido de la biblioteca local, cada uno con su ficha de licencia.
+  assetsSfx: path.join(ROOT, 'data', 'assets', 'sfx'),
   assetsFonts: path.join(ROOT, 'data', 'assets', 'fonts'),
   assetsBrands: path.join(ROOT, 'data', 'assets', 'brands'),
   models: path.join(ROOT, 'models'),

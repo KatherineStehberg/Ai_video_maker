@@ -209,6 +209,7 @@ export function comprobarHost(url, permitidos) {
 const EXT_AUDIO = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac', '.opus']);
 
 export const dirMusica = () => PATHS.assetsMusic;
+export const dirSfx = () => PATHS.assetsSfx;
 
 /**
  * Proveedores de musica. Hoy solo existe el local.
@@ -253,6 +254,21 @@ async function asegurarFfprobe() {
     globalThis.__ffprobeResuelto = ffprobe || null;
   }
 }
+
+/**
+ * CATEGORIAS DE EFECTOS DE SONIDO.
+ *
+ * Sirven para agrupar la biblioteca en la interfaz. La categoria la declara la
+ * ficha de cada archivo; si trae una que no esta aqui, el efecto se lista igual
+ * bajo «otros»: inventarse categorias es peor que tener una cajon de sastre.
+ */
+export const CATEGORIAS_SFX = [
+  { id: 'transicion', label: 'Transiciones' },
+  { id: 'interfaz', label: 'Interfaz' },
+  { id: 'impacto', label: 'Impactos' },
+  { id: 'ambiente', label: 'Ambientes' },
+  { id: 'otros', label: 'Otros' },
+];
 
 /**
  * Lee la ficha de licencia de una pista. Devuelve el motivo si no sirve.
@@ -366,6 +382,93 @@ export function creditoDeMusica(rutaRelativa) {
     };
   }
   throw new Error('Esa música no está en una carpeta permitida.');
+}
+
+/**
+ * Efectos de sonido de la biblioteca local.
+ *
+ * Misma regla que la musica: SIN ficha de licencia, no se ofrece. Los que se
+ * quedan fuera se devuelven en `rechazadas` con el motivo, para que la
+ * interfaz pueda explicarlo en vez de hacer como que no existen.
+ */
+export async function listarSfx({ consulta = '', categoria = null, dir = dirSfx() } = {}) {
+  await asegurarFfprobe();
+  const efectos = [];
+  const rechazadas = [];
+  if (fs.existsSync(dir)) {
+    for (const nombre of fs.readdirSync(dir).sort()) {
+      const ext = path.extname(nombre).toLowerCase();
+      if (!EXT_AUDIO.has(ext)) continue;
+      const file = path.join(dir, nombre);
+      const f = fichaMusica(file);
+      if (!f.ok) { rechazadas.push({ archivo: nombre, motivo: f.motivo }); continue; }
+      const ficha = f.ficha;
+      const cat = CATEGORIAS_SFX.some(c => c.id === ficha.categoria) ? ficha.categoria : 'otros';
+      efectos.push({
+        proveedor: 'local',
+        id: rel(file),
+        path: rel(file),
+        url: `/file?path=${encodeURIComponent(rel(file))}`,
+        titulo: ficha.titulo || path.basename(nombre, ext),
+        categoria: cat,
+        duracion: duracionAudio(file),
+        formato: ext.slice(1).toUpperCase(),
+        bytes: fs.statSync(file).size,
+        // Volumen con el que este sonido queda equilibrado frente a la voz.
+        volumenSugerido: Number(ficha.volumenSugerido) > 0 ? Number(ficha.volumenSugerido) : 0.6,
+        etiquetas: Array.isArray(ficha.etiquetas) ? ficha.etiquetas : [],
+        licencia: ficha.licencia,
+        licenciaUrl: ficha.licenciaUrl || null,
+        fuente: ficha.fuente,
+        autor: ficha.autor || null,
+        atribucion: ficha.atribucion || null,
+        requiereAtribucion: Boolean(ficha.requiereAtribucion),
+        incorporado: ficha.incorporado || null,
+      });
+    }
+  }
+
+  const q = normalizar(consulta);
+  const filtrados = efectos.filter((e) => {
+    if (categoria && e.categoria !== categoria) return false;
+    if (!q) return true;
+    const texto = normalizar([e.titulo, e.categoria, ...e.etiquetas].join(' '));
+    return q.split(/\s+/).every(w => texto.includes(w));
+  });
+
+  return {
+    disponible: true,
+    categorias: CATEGORIAS_SFX,
+    efectos: filtrados,
+    total: efectos.length,
+    rechazadas,
+    motivo: !efectos.length
+      ? 'La biblioteca de efectos está vacía. Añade archivos con su ficha de licencia en data/assets/sfx/.'
+      : !filtrados.length ? 'Ningún efecto coincide con la búsqueda.' : null,
+  };
+}
+
+/**
+ * ¿Se puede usar este efecto? Devuelve su credito si si.
+ *
+ * Solo la biblioteca local con licencia declarada. Un efecto suelto en
+ * cualquier carpeta no se acepta, aunque exista el archivo.
+ */
+export function creditoDeSfx(rutaRelativa) {
+  const ruta = path.resolve(PATHS.root, String(rutaRelativa || ''));
+  const r = path.relative(PATHS.assetsSfx, ruta);
+  if (r.startsWith('..') || path.isAbsolute(r)) throw new Error('Ese efecto no está en la biblioteca de efectos.');
+  if (!fs.existsSync(ruta)) throw new Error('El efecto indicado no existe.');
+  if (!EXT_AUDIO.has(path.extname(ruta).toLowerCase())) throw new Error('El archivo indicado no es de audio.');
+  const f = fichaMusica(ruta);
+  if (!f.ok) throw new Error(`Ese efecto no se puede usar: ${f.motivo}`);
+  return {
+    proveedor: 'local', archivoLocal: rel(ruta), titulo: f.ficha.titulo || path.basename(ruta),
+    categoria: f.ficha.categoria || 'otros',
+    licencia: f.ficha.licencia, licenciaUrl: f.ficha.licenciaUrl || null, fuente: f.ficha.fuente,
+    autor: f.ficha.autor || null, atribucion: f.ficha.atribucion || null,
+    requiereAtribucion: Boolean(f.ficha.requiereAtribucion),
+  };
 }
 
 /** Credito de una imagen a partir de su ficha en disco. null si no la tiene. */
