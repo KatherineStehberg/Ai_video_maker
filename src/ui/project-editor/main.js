@@ -22,6 +22,7 @@ import {
 import { PANELES } from './panels.js';
 import { crearPreview } from './preview.js';
 import { crearTimeline, zoomQueEncaja } from './timeline.js';
+import { crearAudio, avisoAudio } from './audio.js';
 
 const $ = id => document.getElementById(id);
 
@@ -34,6 +35,11 @@ const preview = crearPreview({
   rotulo: $('rotulo'), subtitulo: $('subtitulo'),
   zonaArriba: $('zona-arriba'), zonaAbajo: $('zona-abajo'),
 });
+
+const audio = crearAudio({ voz: $('audio-voz'), musica: $('audio-musica'), video: $('marco-video') });
+// Acceso de diagnostico: permite comprobar desde las herramientas del
+// navegador (y desde las pruebas) si de verdad sale sonido. No cambia nada.
+window.__audioEditor = audio;
 
 const timeline = crearTimeline({
   nombres: $('tl-nombres'), pistas: $('tl-pistas'), regla: $('tl-regla'),
@@ -227,24 +233,42 @@ function reproducir() {
   $('play').textContent = '❚❚';
   $('play').setAttribute('aria-label', 'Pausar');
 
-  // Reloj propio: la vista previa es una composición, no un vídeo, así que el
-  // tiempo lo lleva el editor. Sobre el MP4 exportado manda el <video>.
+  // EL SONIDO ARRANCA AQUI, con el gesto de pulsar Play. Antes esta funcion
+  // solo movia un reloj: ni la voz ni el MP4 se reproducian nunca, y por eso
+  // la vista previa era muda.
+  const modo = s.fuentePreview === 'mp4' && s.derivado?.salida?.url ? 'mp4' : 'aproximada';
+  audio.empezar({ modo, escenas: escenasVisibles(s), t: s.tiempo });
+
   let anterior = performance.now();
+  let escenaPintada = s.escenaSel;
   reloj_ = setInterval(() => {
     const ahora = performance.now();
     const dt = (ahora - anterior) / 1000;
     anterior = ahora;
-    const t = s.tiempo + dt;
+    // Con el MP4 manda el propio video: su tiempo es el de verdad. En la
+    // vista aproximada manda el reloj y la voz se ajusta a el.
+    // En la vista aproximada, mientras la voz suena, manda la voz.
+    const tv = modo === 'mp4' ? audio.tiempoVideo() : null;
+    const provisional = tv ?? (s.tiempo + dt);
+    const ta = modo === 'mp4' ? null : audio.sincronizar({ escenas: escenasVisibles(s), t: provisional });
+    const t = ta ?? provisional;
     if (t >= total) { pausar(); s = { ...s, tiempo: total }; pintar(); return; }
     s = { ...s, tiempo: t };
     sincronizarEscenaConTiempo();
-    pintar();
+    // Durante la reproduccion solo se repinta lo que se mueve. Reconstruir el
+    // panel y las 1 000 piezas de la linea de tiempo diez veces por segundo
+    // bloqueaba la pagina en proyectos largos.
+    preview.pintar(s);
+    pintarReproductor();
+    timeline.moverCabezal(s);
     timeline.seguir(s);
+    if (s.escenaSel !== escenaPintada) { escenaPintada = s.escenaSel; pintarPanel(); timeline.pintar(s); }
   }, 100);
 }
 
 function pausar() {
   if (reloj_) { clearInterval(reloj_); reloj_ = null; }
+  audio.parar();
   if (s.reproduciendo) s = { ...s, reproduciendo: false };
   $('play').textContent = '▶';
   $('play').setAttribute('aria-label', 'Reproducir');
@@ -311,6 +335,14 @@ function pintarReproductor() {
     chip.textContent = 'Vista previa aproximada';
     chip.dataset.tono = 'aviso';
   }
+  // Aviso de audio: sin voz, voz silenciada o al 0 %. Se ve junto al Play
+  // para que un silencio nunca parezca un fallo del reproductor.
+  const aviso = avisoAudio(proyectoVisible(s), s.derivado);
+  const chipAudio = $('aviso-audio');
+  chipAudio.hidden = !aviso;
+  if (aviso) { chipAudio.textContent = aviso.texto; chipAudio.title = aviso.detalle; chipAudio.dataset.tono = aviso.tono; }
+  audio.configurar({ proyecto: proyectoVisible(s), derivado: s.derivado });
+
   const hayMp4 = Boolean(s.derivado?.salida?.url);
   $('ver-mp4').hidden = !hayMp4;
   $('ver-mp4').textContent = s.fuentePreview === 'mp4' ? 'Ver vista previa' : 'Ver MP4 exportado';
@@ -370,6 +402,8 @@ $('barra').addEventListener('input', () => {
   sincronizarEscenaConTiempo();
   pintar();
 });
+$('volumen-escucha').addEventListener('input', () => audio.volumenEscucha($('volumen-escucha').value));
+
 $('ver-mp4').addEventListener('click', () => {
   pausar();
   s = { ...s, fuentePreview: s.fuentePreview === 'mp4' ? 'aproximada' : 'mp4' };

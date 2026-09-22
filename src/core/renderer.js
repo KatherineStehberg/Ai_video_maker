@@ -8,6 +8,7 @@ import { brandLogoPath, brandFontPath } from './brands.js';
 import { assetKind } from './asset-manager.js';
 import { activeScenes } from './project.js';
 import { writeAssForFormat } from './subtitles.js';
+import { buildNarrationTrack } from './tts.js';
 import { slugify, clamp } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
 import { stripLangTags } from './lang.js';
@@ -280,9 +281,12 @@ async function concatClips(clips, workingDir) {
  * Construye la pista de audio final: narracion + musica con ducking simple.
  * Devuelve la ruta del WAV mezclado, o null si no hay nada que sonar.
  */
-async function buildAudioTrack(project, workingDir, totalSeconds) {
-  const narration = path.join(workingDir, 'narration.wav');
-  const hasNarration = project.voice?.enabled !== false && fs.existsSync(narration);
+async function buildAudioTrack(project, workingDir, totalSeconds, { narracion = null } = {}) {
+  // La pista de voz la decide quien llama (ver renderProject): antes se usaba
+  // cualquier narration.wav que hubiese en la carpeta, aunque faltase o fuese
+  // de una version anterior de las escenas.
+  const narration = narracion;
+  const hasNarration = project.voice?.enabled !== false && Boolean(narration) && fs.existsSync(narration);
   const musicRel = project.music?.enabled ? project.music?.path : null;
   const musicAbs = musicRel ? abs(musicRel) : null;
   const hasMusic = Boolean(musicAbs && fs.existsSync(musicAbs));
@@ -451,7 +455,14 @@ export async function renderProject(project, brand, {
 
   // --- 3. Audio ---
   onProgress?.({ step: 'audio', pct: 72, message: 'Mezclando audio' });
-  const audio = await buildAudioTrack(project, wd, videoSeconds);
+  // LA VOZ SE MONTA AQUI, desde los WAV de cada escena incluida. Antes el
+  // render solo buscaba un narration.wav ya hecho por el paso de narracion, y
+  // si ese paso no se ejecutaba (volver a renderizar, o exportar sin motor de
+  // voz disponible) el MP4 salia MUDO aunque todas las escenas tuvieran voz; y
+  // si quedaba uno viejo, se mezclaba una voz que ya no correspondia. La pista
+  // esta cacheada por escena y por bloque: si nada cambio, no se rehace nada.
+  const pistaVoz = project.voice?.enabled !== false ? await buildNarrationTrack(project) : null;
+  const audio = await buildAudioTrack(project, wd, videoSeconds, { narracion: pistaVoz ? abs(pistaVoz) : null });
 
   // --- 4. Pasada final: subtitulos + logo + CTA + audio ---
   onProgress?.({ step: 'compose', pct: 78, message: 'Componiendo video final' });

@@ -291,9 +291,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 
 .reproductor { display: flex; align-items: center; gap: var(--e2); flex: none; }
-.reproductor .barra, .reproductor input[type="range"] { flex: 1; min-width: 0; }
+.reproductor .barra { flex: 1; min-width: 0; }
 .btn-play { font-size: .9rem; min-width: 34px; }
 .tiempo { font-size: var(--txt-xs); color: var(--tinta-suave); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Volumen de escucha: compacto, para que la barra quepa en 1366 px. */
+.volumen { display: flex; align-items: center; gap: 2px; font-size: .8rem; flex: none; }
+.volumen input[type="range"] { width: 70px; flex: none; }
+.reproductor #barra { flex: 1; min-width: 0; }
 
 /* ---------------------------------------------------------- [TIMELINE] */
 .ed-timeline {

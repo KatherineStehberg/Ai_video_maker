@@ -83,7 +83,11 @@
            posiciona en porcentaje para que coincida con el render. -->
       <div class="marco" id="marco" data-formato="9:16">
         <img class="marco-fondo" id="marco-img" alt="" hidden>
-        <video class="marco-video" id="marco-video" hidden preload="metadata"></video>
+        <video class="marco-video" id="marco-video" hidden preload="metadata" playsinline></video>
+        <!-- Audio de la vista previa: voz de la escena en curso y música.
+             Sin `autoplay` ni `muted`: sólo suenan al pulsar Play. -->
+        <audio id="audio-voz" preload="auto"></audio>
+        <audio id="audio-musica" preload="auto"></audio>
         <div class="marco-vacio" id="marco-vacio">Sin imagen en esta escena</div>
         <div class="zona zona-arriba" id="zona-arriba" hidden></div>
         <div class="zona zona-abajo" id="zona-abajo" hidden></div>
@@ -96,6 +100,13 @@
       <button class="btn btn-icono btn-play" id="play" aria-label="Reproducir">▶</button>
       <span class="tiempo" id="tiempo">0:00 / 0:00</span>
       <input type="range" id="barra" min="0" max="1000" value="0" step="1" aria-label="Posición">
+      <!-- Volumen de ESCUCHA: el de quien reproduce. No se guarda en el
+           proyecto; el volumen de la narración del video está en Audio. -->
+      <label class="volumen" title="Volumen de escucha (no cambia el video)">
+        <span aria-hidden="true">🔊</span>
+        <input type="range" id="volumen-escucha" min="0" max="1" step="0.05" value="1" aria-label="Volumen de escucha">
+      </label>
+      <span class="pill" id="aviso-audio" data-tono="aviso" hidden></span>
       <span class="pill" id="fuente-preview" data-tono="aviso">Vista previa aproximada</span>
       <button class="btn btn-mini" id="ver-mp4" hidden>Ver MP4 exportado</button>
     </div>

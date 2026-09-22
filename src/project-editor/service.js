@@ -133,19 +133,24 @@ export function derivar(p) {
   const metrica = captionMetrics(dims.width, dims.height, p.captions?.style || {});
   const subsActivos = p.captions?.enabled !== false;
 
+  // Una escena excluida NO ocupa tiempo: el render, los subtitulos y la pista
+  // de voz la saltan, y la linea de tiempo tiene que decir lo mismo. Antes su
+  // duracion se sumaba igual, y a partir de ella la vista previa y el audio
+  // quedaban desplazados respecto al MP4.
   let t = 0;
   const escenas = (p.scenes || []).map((s, i) => {
     const start = t;
     const dur = Number(s.duration) || 0;
-    t += dur;
+    if (!s.excluida) t += dur;
     const recurso = estadoRecurso(s);
+    const vozArchivo = s.narrationPath && fs.existsSync(abs(s.narrationPath)) ? s.narrationPath : null;
     const cues = subsActivos ? buildCues({ ...p, scenes: [s] }, { width: dims.width, height: dims.height }) : [];
     return {
       index: i,
       id: s.id,
       numero: i + 1,
       start: Number(start.toFixed(3)),
-      end: Number((start + dur).toFixed(3)),
+      end: Number((start + (s.excluida ? 0 : dur)).toFixed(3)),
       duration: Number(dur.toFixed(3)),
       text: s.text || '',
       caption: s.caption,
@@ -155,7 +160,11 @@ export function derivar(p) {
       excluida: Boolean(s.excluida),
       recurso,
       // Indicadores de la tarjeta de escena.
-      tieneNarracion: Boolean(s.narrationPath && fs.existsSync(abs(s.narrationPath))),
+      tieneNarracion: Boolean(vozArchivo),
+      // Voz de ESTA escena, para que la vista previa la reproduzca. Se usa el
+      // WAV por escena y no la pista montada (narration.wav) porque esta solo
+      // se rehace al exportar: tras excluir o reordenar, quedaria desfasada.
+      narracion: vozArchivo ? { url: `/file?path=${encodeURIComponent(vozArchivo)}`, path: vozArchivo } : null,
       tieneSubtitulos: cues.length > 0,
       cues: cues.length,
       tieneTextoDestacado: Boolean(s.showOnScreenText && String(s.onScreenTitle || '').trim()),
@@ -209,6 +218,7 @@ export function derivar(p) {
       archivo: p.captions?.file || null,
     },
     textoDestacado: destacados,
+    audio: resumenAudio(p, escenas, musica),
     pistas: {
       textoDestacado: escenas.filter(e => e.tieneTextoDestacado).length,
       subtitulos: escenas.reduce((a, e) => a + e.cues, 0),
@@ -228,6 +238,38 @@ export function derivar(p) {
     revision: ed.revision,
     exportedRevision: ed.exportedRevision,
     job: ed.job,
+  };
+}
+
+/**
+ * Que va a sonar, y si no suena nada, por que.
+ *
+ * Es lo que la interfaz ensena junto al reproductor. Distingue cuatro casos
+ * que desde fuera se oyen igual (silencio) pero tienen arreglo distinto: no se
+ * ha generado voz, la voz esta silenciada, el volumen esta a 0, o hay voz.
+ */
+export function resumenAudio(p, escenas, hayMusica) {
+  const activas = escenas.filter(e => !e.excluida);
+  const conVoz = activas.filter(e => e.narracion).length;
+  const vozActiva = p.voice?.enabled !== false;
+  const ganancia = Number(p.voice?.gain ?? 1);
+  const musica = hayMusica
+    ? { url: `/file?path=${encodeURIComponent(p.music.path)}`, volumen: Number(p.music.volume ?? 0.12), activa: Boolean(p.music.enabled) }
+    : null;
+
+  let aviso = null;
+  if (!conVoz && !musica) aviso = 'Este proyecto no tiene audio: ni narración generada ni música.';
+  else if (conVoz && !vozActiva) aviso = 'La narración está silenciada: el video se exportará sin voz.';
+  else if (conVoz && vozActiva && ganancia <= 0) aviso = 'El volumen de la narración está al 0 %: se exportará en silencio.';
+  else if (conVoz < activas.length && conVoz > 0) aviso = `Hay ${activas.length - conVoz} escenas sin voz generada: en ellas no sonará nada.`;
+
+  return {
+    narracion: { escenasConVoz: conVoz, escenas: activas.length, activa: vozActiva, ganancia },
+    musica,
+    // En el MP4 habra pista de audio si suena algo: voz activa con archivo,
+    // o musica activa. Es la misma regla que aplica el renderer.
+    exportaraAudio: Boolean((vozActiva && conVoz) || musica?.activa),
+    aviso,
   };
 }
 
@@ -302,7 +344,13 @@ export async function capacidades() {
   };
 }
 
+/**
+ * Numero acotado. Un valor vacio (`''`, `null`, espacios) NO es 0: es «no
+ * me han dado nada» y se queda el valor por defecto. `Number('')` vale 0, y
+ * sin esta comprobacion un control de volumen vacio silenciaba la voz.
+ */
 const num = (v, min, max, porDefecto) => {
+  if (v === null || v === undefined || (typeof v === 'string' && !v.trim())) return porDefecto;
   const n = Number(v);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : porDefecto;
 };

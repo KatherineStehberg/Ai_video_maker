@@ -147,6 +147,13 @@ export function crearTimeline({ nombres, pistas, regla, cabezal, scroll, lienzo,
       cabezal.style.left = `${Math.min(duracion, Math.max(0, s.tiempo)) * pxSeg}px`;
     },
 
+    /** Solo mueve el cabezal. Es lo único que cambia mientras se reproduce. */
+    moverCabezal(s) {
+      const pxSeg = Number(lienzo.dataset.pxSeg) || PX_SEG_BASE;
+      const total = Math.max(1, s.derivado?.duracion || 1);
+      cabezal.style.left = `${Math.min(total, Math.max(0, s.tiempo)) * pxSeg}px`;
+    },
+
     /** Deja el cabezal a la vista cuando la reproducción lo saca del encuadre. */
     seguir(s) {
       const pxSeg = Number(lienzo.dataset.pxSeg) || PX_SEG_BASE;
@@ -191,7 +198,7 @@ function pintarPista(pista, def, { s, escenas, pxSeg, duracion, ondas, onSelecci
 
   if (def.id === 'visual') {
     for (const e of escenas) {
-      pista.append(clip(e.start, e.duration, {
+      pista.append(clip(e.start, e.end - e.start, {
         titulo: `Escena ${e.numero}`, color: 'var(--p-visual)', index: e.index,
         excluida: e.excluida,
         miniatura: e.recurso?.kind === 'image' ? e.recurso.url : null,
@@ -199,13 +206,13 @@ function pintarPista(pista, def, { s, escenas, pxSeg, duracion, ondas, onSelecci
     }
   } else if (def.id === 'texto') {
     for (const e of escenas.filter(x => x.tieneTextoDestacado)) {
-      pista.append(clip(e.start, e.duration, {
+      pista.append(clip(e.start, e.end - e.start, {
         titulo: e.onScreenTitle, color: 'var(--p-texto)', index: e.index, excluida: e.excluida,
       }));
     }
   } else if (def.id === 'subs') {
     for (const e of escenas.filter(x => x.tieneSubtitulos && !x.excluida)) {
-      pista.append(clip(e.start, e.duration, {
+      pista.append(clip(e.start, e.end - e.start, {
         titulo: `${e.cues} subtítulo${e.cues === 1 ? '' : 's'}`, color: 'var(--p-subs)', index: e.index,
       }));
     }
