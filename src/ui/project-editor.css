@@ -371,7 +371,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
    y el layout de toda la lista y de toda la linea de tiempo. Estas reglas no
    cambian nada de lo que se ve: le dicen al navegador que lo que esta fuera de
    pantalla puede saltarse, y que cada zona se calcula por separado. */
-.escena-item { content-visibility: auto; contain-intrinsic-size: auto 74px; }
+/* `content-visibility: auto` estaba aqui y se ha quitado a proposito: al
+   repintar el panel (una vez por pulsacion de tecla), las tarjetas fuera de
+   pantalla se plegaban a su tamano estimado, el panel encogia y el navegador
+   recortaba la posicion del scroll. Resultado: al escribir en «Qué imagen
+   buscar» la lista se subia sola letra a letra. Con `contain: layout paint` se
+   conserva casi toda la mejora sin mentir sobre el alto. */
+.escena-item { contain: layout paint; }
 .panel-cuerpo, .tl-scroll, .lienzo { contain: layout paint; }
 .tl-pista { contain: layout style; }
 

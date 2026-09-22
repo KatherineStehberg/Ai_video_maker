@@ -73,7 +73,7 @@ const acc = {
     timeline.seguir(s);
   },
 
-  herramienta(nombre) { s = { ...s, herramienta: nombre }; pintar(); },
+  herramienta(nombre) { s = { ...s, herramienta: nombre }; scrollPanel = 0; pintar(); },
 
   zonasSeguras(valor) { s = { ...s, zonasSeguras: valor }; $('zonas-seguras').checked = valor; pintar(); },
 
@@ -459,14 +459,83 @@ function pintarEstado() {
   $('rehacer').disabled = !puedeRehacer(s);
 }
 
+const CONTROLES = 'input, textarea, select';
+
+/** Posicion del cursor, si el control la tiene. `number` y `range` no. */
+function cursorDe(n) {
+  try { return { inicio: n.selectionStart, fin: n.selectionEnd }; } catch { return null; }
+}
+
+/**
+ * Repintar el panel reconstruye sus nodos, y con ellos se va el foco.
+ *
+ * Al escribir una letra en «Qué imagen buscar», el input desaparecia a mitad de
+ * pulsacion: el teclado se quedaba sin campo y la vista saltaba a otro sitio.
+ * Aqui se anota QUE control estaba enfocado y donde tenia el cursor, para
+ * devolverlo despues. El control se identifica por su posicion entre los de su
+ * mismo tipo, que es estable mientras el panel no cambie de forma.
+ */
+function capturarFoco(cuerpo) {
+  const a = document.activeElement;
+  if (!a || !cuerpo.contains(a) || !a.matches(CONTROLES)) return null;
+  const mismos = [...cuerpo.querySelectorAll(CONTROLES)].filter(n => n.tagName === a.tagName && n.type === a.type);
+  return { tag: a.tagName, tipo: a.type, n: mismos.indexOf(a), cursor: cursorDe(a) };
+}
+
+function restaurarFoco(cuerpo, f) {
+  if (!f || f.n < 0) return;
+  const mismos = [...cuerpo.querySelectorAll(CONTROLES)].filter(n => n.tagName === f.tag && n.type === f.tipo);
+  const n = mismos[f.n];
+  if (!n) return;
+  // `preventScroll`: devolver el foco no debe mover la vista por su cuenta; del
+  // scroll se encarga la linea de arriba, que lo restaura tal y como estaba.
+  n.focus({ preventScroll: true });
+  if (f.cursor && typeof n.setSelectionRange === 'function') {
+    try { n.setSelectionRange(f.cursor.inicio, f.cursor.fin); } catch { /* este control no tiene cursor */ }
+  }
+}
+
+/**
+ * Posicion de scroll del panel QUERIDA POR LA USUARIA.
+ *
+ * No se lee del DOM en cada repintado: el propio repintado la recorta (el panel
+ * pasa un instante por un alto menor), y tomar ese valor recortado como nuevo
+ * punto de partida hacia que el panel se fuera subiendo solo, letra a letra,
+ * hasta el principio. Solo se actualiza cuando desplaza la usuaria.
+ */
+let scrollPanel = 0;
+let repintando = false;
+
+$('panel-cuerpo').addEventListener('scroll', () => {
+  if (!repintando) scrollPanel = $('panel-cuerpo').scrollTop;
+}, { passive: true });
+
 function pintarPanel() {
   const def = PANELES[s.herramienta] || PANELES.escenas;
   $('panel-titulo').textContent = def.titulo;
   const cuerpo = $('panel-cuerpo');
-  // Se conserva la posición del scroll: repintar al teclear no debe saltar.
-  const scroll = cuerpo.scrollTop;
+  // Se conservan el scroll y el foco: repintar al teclear no debe saltar ni
+  // dejar al teclado sin campo donde escribir.
+  const foco = capturarFoco(cuerpo);
+  repintando = true;
   cuerpo.replaceChildren(def.render({ s, acc }));
-  cuerpo.scrollTop = scroll;
+  // Leer `scrollHeight` OBLIGA al navegador a calcular las alturas del panel
+  // recien creado. Sin esta lectura, la asignacion de abajo se compara con el
+  // alto anterior (o con ninguno) y el navegador RECORTA la posicion; como la
+  // siguiente pulsacion parte de la posicion ya recortada, el panel se iba
+  // subiendo solo hasta arriba al escribir. Eso es lo que hacia que el campo
+  // «Qué imagen buscar» pareciera saltar de sitio letra a letra.
+  cuerpo.scrollTop = scrollPanel;
+  restaurarFoco(cuerpo, foco);
+  // El alto definitivo del panel no se conoce hasta el siguiente fotograma
+  // (las miniaturas todavia no estan colocadas). Si en ese momento es mas corto
+  // que la posicion pedida, el navegador la RECORTA. Se vuelve a aplicar
+  // entonces, y los saltos que provoca el propio repintado no se toman por
+  // desplazamientos de la usuaria: por eso `repintando`.
+  requestAnimationFrame(() => {
+    cuerpo.scrollTop = scrollPanel;
+    repintando = false;
+  });
 
   for (const b of $('herramientas').querySelectorAll('.herr')) {
     b.setAttribute('aria-current', String(b.dataset.herr === s.herramienta));
