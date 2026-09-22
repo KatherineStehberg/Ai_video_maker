@@ -530,8 +530,15 @@ export async function guardar(id, patch = {}) {
       if (cambio.duration !== undefined) vieja.duration = num(cambio.duration, 0.5, 300, vieja.duration);
       if (cambio.excluida !== undefined) vieja.excluida = Boolean(cambio.excluida);
       if (cambio.transition !== undefined) {
-        const t = normalizarTransicion(cambio.transition);
         const catalogo = await catalogoTransiciones();
+        // Se comprueba el tipo PEDIDO, no el normalizado: `normalizarTransicion`
+        // convierte lo desconocido en 'none', asi que un nombre inventado se
+        // guardaria como «sin transición» en vez de dar error.
+        const pedido = typeof cambio.transition === 'string' ? cambio.transition : cambio.transition?.type;
+        if (pedido !== undefined && pedido !== null && !catalogo.some(x => x.id === pedido)) {
+          throw new Error('Transición no soportada.');
+        }
+        const t = normalizarTransicion(cambio.transition);
         const ficha = catalogo.find(x => x.id === t.type);
         if (!ficha || !ficha.disponible) throw new Error('Transición no soportada.');
         // La duracion se valida ANTES de normalizar: `normalizarTransicion`

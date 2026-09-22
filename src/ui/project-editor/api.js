@@ -46,6 +46,8 @@ export const api = {
   importarImagen: (id, consulta) => pedir('/library/images/import', { method: 'POST', body: { id, consulta } }),
   musica: (q = '', maxDuracion = '') =>
     pedir(`/library/music?q=${encodeURIComponent(q)}&maxDuracion=${encodeURIComponent(maxDuracion)}`),
+  efectos: (q = '', categoria = '') =>
+    pedir(`/library/sfx?q=${encodeURIComponent(q)}&categoria=${encodeURIComponent(categoria)}`),
   onda: (id, pista, muestras = 600) =>
     pedir(`/projects/${encodeURIComponent(id)}/waveform?pista=${encodeURIComponent(pista)}&muestras=${muestras}`),
 };

@@ -359,6 +359,17 @@ async function buildAudioTrack(project, workingDir, totalSeconds, { narracion = 
   if (!plan.hayAudio) return null;
 
   const out = path.join(workingDir, 'audio_final.wav');
+
+  // TODO silenciado a proposito: el video lleva pista de audio, vacia. Asi se
+  // distingue «lo silencié» de «este video no tiene audio», que desde fuera
+  // suenan igual pero no son lo mismo.
+  if (plan.silenciado) {
+    await ffmpegRun([
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+      '-t', totalSeconds.toFixed(3), out,
+    ]);
+    return out;
+  }
   const inputs = [];
   const filtros = [];
   const etiquetas = [];

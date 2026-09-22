@@ -115,14 +115,17 @@ export function planDeMezcla(project, { narracion = null, existe = () => true } 
   const activas = (project?.scenes || []).filter(s => !s.excluida);
   const total = Number(activas.reduce((a, s) => a + (Number(s.duration) || 0), 0).toFixed(3));
   const fuentes = [];
+  // `silenciada: true` distingue «lo apagó la usuaria» de «no hay archivo».
+  // No es lo mismo un video SIN audio que un video con el audio bajado a cero:
+  // el primero se exporta sin pista, el segundo con una pista en silencio.
   const descartadas = [];
 
   // ---- narracion ----
   const vozActiva = project?.voice?.enabled !== false;
   const ganancia = num(project?.voice?.gain, VOLUMEN.min, VOLUMEN.max, VOLUMEN_POR_DEFECTO.narracion);
   if (narracion?.path && existe(narracion.path)) {
-    if (!vozActiva) descartadas.push({ tipo: 'narracion', motivo: 'silenciada' });
-    else if (ganancia <= 0) descartadas.push({ tipo: 'narracion', motivo: 'volumen a 0' });
+    if (!vozActiva) descartadas.push({ tipo: 'narracion', motivo: 'silenciada', silenciada: true });
+    else if (ganancia <= 0) descartadas.push({ tipo: 'narracion', motivo: 'volumen a 0', silenciada: true });
     else fuentes.push({ tipo: 'narracion', path: narracion.path, volume: ganancia, start: 0, loop: false, recorte: total });
   } else {
     descartadas.push({ tipo: 'narracion', motivo: 'no hay voz generada' });
@@ -130,8 +133,8 @@ export function planDeMezcla(project, { narracion = null, existe = () => true } 
 
   // ---- musica ----
   if (audio.music.path && existe(audio.music.path)) {
-    if (!audio.music.enabled) descartadas.push({ tipo: 'musica', motivo: 'silenciada' });
-    else if (audio.music.volume <= 0) descartadas.push({ tipo: 'musica', motivo: 'volumen a 0' });
+    if (!audio.music.enabled) descartadas.push({ tipo: 'musica', motivo: 'silenciada', silenciada: true });
+    else if (audio.music.volume <= 0) descartadas.push({ tipo: 'musica', motivo: 'volumen a 0', silenciada: true });
     else {
       fuentes.push({
         tipo: 'musica', path: audio.music.path, volume: audio.music.volume, start: 0,
@@ -147,8 +150,8 @@ export function planDeMezcla(project, { narracion = null, existe = () => true } 
   // ---- efectos ----
   for (const e of audio.sfx) {
     if (!existe(e.path)) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'el archivo ya no está' }); continue; }
-    if (!e.enabled) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'silenciado' }); continue; }
-    if (e.volume <= 0) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'volumen a 0' }); continue; }
+    if (!e.enabled) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'silenciado', silenciada: true }); continue; }
+    if (e.volume <= 0) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'volumen a 0', silenciada: true }); continue; }
     const t = momentoDeEfecto(e, activas);
     if (t === null) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'su escena está excluida' }); continue; }
     if (t >= total) { descartadas.push({ tipo: 'efecto', id: e.id, motivo: 'empieza después del final del video' }); continue; }
@@ -157,18 +160,24 @@ export function planDeMezcla(project, { narracion = null, existe = () => true } 
 
   // ---- audio original del video subido ----
   if (audio.original.path && existe(audio.original.path)) {
-    if (!audio.original.enabled) descartadas.push({ tipo: 'original', motivo: 'desactivado' });
-    else if (audio.original.volume <= 0) descartadas.push({ tipo: 'original', motivo: 'volumen a 0' });
+    if (!audio.original.enabled) descartadas.push({ tipo: 'original', motivo: 'desactivado', silenciada: true });
+    else if (audio.original.volume <= 0) descartadas.push({ tipo: 'original', motivo: 'volumen a 0', silenciada: true });
     else fuentes.push({ tipo: 'original', path: audio.original.path, volume: audio.original.volume, start: audio.original.start, loop: false, recorte: total });
   }
+
+  // Hay material pero esta todo apagado a proposito. El video lleva pista de
+  // audio EN SILENCIO: «tiene audio y lo silenciaste» y «no tiene audio» son
+  // dos estados distintos, y el archivo tiene que poder distinguirlos.
+  const silenciado = fuentes.length === 0 && descartadas.some(d => d.silenciada);
 
   return {
     total,
     fuentes,
     descartadas,
-    // Si no hay ni una fuente, el video se exporta SIN pista de audio: no se
-    // fabrica una pista de silencio para disimular.
-    hayAudio: fuentes.length > 0,
+    silenciado,
+    // Sin fuentes NI material silenciado, el video se exporta SIN pista de
+    // audio: no se fabrica una pista de silencio para disimular.
+    hayAudio: fuentes.length > 0 || silenciado,
     // Con varias fuentes la suma puede pasarse de 0 dBFS; el renderer pone un
     // limitador. Con una sola no hace falta tocar nada.
     necesitaLimitador: fuentes.length > 1 || fuentes.some(f => f.volume > 1),

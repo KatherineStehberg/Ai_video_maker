@@ -183,6 +183,67 @@ const acc = {
     mensaje('Música elegida. Pulsa «Guardar cambios» para conservarla.');
   },
 
+  async abrirEfectos() {
+    const b = s.biblioteca?.efectos || {};
+    if (b.abierta) { fijarBiblioteca('efectos', { abierta: false }); return; }
+    fijarBiblioteca('efectos', { abierta: true });
+    await acc.buscarEfectos(b.consulta || '', b.categoria || '');
+  },
+
+  async buscarEfectos(consulta = '', categoria = '') {
+    fijarBiblioteca('efectos', { consulta, categoria, estado: 'buscando', motivo: null });
+    try {
+      const r = await api.efectos(consulta, categoria);
+      fijarBiblioteca('efectos', { estado: 'listo', efectos: r.efectos, categorias: r.categorias, rechazadas: r.rechazadas, motivo: r.motivo });
+    } catch (e) {
+      fijarBiblioteca('efectos', { estado: 'error', motivo: 'No se pudo leer la biblioteca de efectos.' });
+      console.error(e);
+    }
+  },
+
+  /**
+   * Anade un efecto ANCLADO a la escena seleccionada y al segundo 0 de esa
+   * escena. Nada se anade solo: esto solo ocurre al pulsar «Usar».
+   */
+  usarEfecto(efecto) {
+    const p = proyectoVisible(s);
+    const escena = escenaActual(s);
+    const lista = [...(p?.sfx || [])];
+    lista.push({
+      id: `fx_${Date.now().toString(36)}`,
+      path: efecto.path,
+      sceneId: escena?.id || null,
+      start: 0,
+      volume: efecto.volumenSugerido ?? 0.6,
+      duration: null,
+      enabled: true,
+      titulo: efecto.titulo,
+      credit: { titulo: efecto.titulo, licencia: efecto.licencia, fuente: efecto.fuente },
+    });
+    s = cambiar(s, 'sfx', lista);
+    fijarBiblioteca('efectos', { abierta: false });
+    mensaje(escena
+      ? `Efecto añadido a la escena ${escena.numero}. Pulsa «Guardar cambios» para conservarlo.`
+      : 'Efecto añadido. Pulsa «Guardar cambios» para conservarlo.');
+  },
+
+  cambiarEfecto(id, campo, valor) {
+    const p = proyectoVisible(s);
+    s = cambiar(s, 'sfx', (p?.sfx || []).map(e => (e.id === id ? { ...e, [campo]: valor } : e)));
+  },
+
+  quitarEfecto(id) {
+    const p = proyectoVisible(s);
+    s = cambiar(s, 'sfx', (p?.sfx || []).filter(e => e.id !== id));
+    mensaje('Efecto quitado. Recuerda guardar.');
+  },
+
+  /** Pestana activa del panel de audio. Solo vista: no toca el proyecto. */
+  pestanaAudio(id) {
+    s = { ...s, pestanaAudio: id };
+    pintar();
+  },
+
   async subirRecurso(escena, archivo) {
     try {
       const manifiesto = await importar(archivo, 'own');

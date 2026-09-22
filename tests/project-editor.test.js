@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createServer } from '../src/server.js';
 import { makeProject, saveProject, loadProject, deleteProject, activeScenes, totalDuration } from '../src/core/project.js';
 import { buildCues, verifyCaptionCoverage } from '../src/core/subtitles.js';
-import { derivar, guardar, capacidades, TRANSICIONES_REALES, publico } from '../src/project-editor/service.js';
+import { derivar, guardar, capacidades, catalogoTransiciones, publico } from '../src/project-editor/service.js';
 import { localStorageAdapter, setStorage, getStorage } from '../src/project-editor/storage.js';
 import { peaks } from '../src/project-editor/waveform.js';
 import { ffmpegRun } from '../src/lib/ffmpeg.js';
@@ -213,10 +213,15 @@ test('con subtítulos apagados no se declara ni un cue', () => {
 
 test('sólo se ofrecen transiciones que el render distingue de verdad', async () => {
   const c = await capacidades();
-  assert.deepEqual(c.transiciones.map(t => t.id), ['none', 'fade']);
-  // Deslizar y barrer están en el modelo histórico pero el renderer los
-  // dibujaría como un fundido: ofrecerlos sería prometer un efecto que no hay.
-  assert.ok(!c.transiciones.some(t => /slide|wipe/.test(t.id)));
+  const catalogo = await catalogoTransiciones();
+  assert.deepEqual(c.transiciones.map(t => t.id), catalogo.map(t => t.id));
+  assert.ok(c.transiciones.some(t => t.id === 'fade' && t.disponible));
+  // Cada transición dice si este FFmpeg puede hacerla. Las que no, salen
+  // etiquetadas «Próximamente», nunca sustituidas por otro efecto.
+  for (const t of c.transiciones) {
+    assert.equal(typeof t.disponible, 'boolean', `${t.id} no declara disponibilidad`);
+    if (!t.disponible) assert.equal(t.etiqueta, 'Próximamente', `${t.id} no avisa de que no está`);
+  }
   assert.ok(c.pendiente.publicar, 'lo que no existe se declara');
   assert.ok(c.pendiente.arrastrarClips);
 });
@@ -278,7 +283,10 @@ test('el editor rechaza lo que el render no sabe hacer', async () => {
   saveProject(p);
   try {
     const rev = derivar(loadProject(p.id)).revision;
-    await assert.rejects(() => guardar(p.id, { revision: rev, scenes: [{ id: p.scenes[0].id, transition: 'wipeleft' }] }), /Transición no soportada/);
+    // `giro-3d` no esta en el catalogo; `wipeleft` SI existe ahora y se acepta.
+    await assert.rejects(() => guardar(p.id, { revision: rev, scenes: [{ id: p.scenes[1].id, transition: { type: 'giro-3d' } }] }), /Transición no soportada/);
+    await assert.rejects(() => guardar(p.id, { revision: rev, scenes: [{ id: p.scenes[1].id, transition: { type: 'fade', duration: 9 } }] }), /Duración de transición no válida/);
+    await assert.rejects(() => guardar(p.id, { revision: rev, scenes: [{ id: p.scenes[0].id, transition: { type: 'fade', duration: 0.4 } }] }), /primera escena/);
     await assert.rejects(() => guardar(p.id, { revision: rev, aspectRatio: '21:9' }), /Formato no admitido/);
     await assert.rejects(() => guardar(p.id, { revision: rev, scenes: [{ id: p.scenes[0].id, text: '   ' }] }), /sin narración/);
     await assert.rejects(() => guardar(p.id, { revision: rev, scenes: [{ id: 'no-existe', text: 'x' }] }), /no existe/);
