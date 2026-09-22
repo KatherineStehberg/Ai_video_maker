@@ -280,7 +280,9 @@ export function segmentarGuion(texto, {
       // («-Por ejemplo», «Me dijo»), y esos NO son rotulos.
       ...rotuloDeSeccion(c),
       abreSeccion: c.abreSeccion,
-      visualPrompt: keywordsFrom(`${tema} ${c.texto}`.trim()),
+      // El tema va aparte, no pegado al texto: mezclarlos hacia que las
+      // palabras del tema ganaran siempre y todas las escenas buscaran lo mismo.
+      visualPrompt: keywordsFrom(c.texto, 3, { tema, contexto: crudas.filter((_, j) => j !== i).map(x => x.texto) }),
       duration: Number(duracion.toFixed(2)),
       seccion: c.seccion || null,
       palabras,

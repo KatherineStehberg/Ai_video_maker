@@ -1,6 +1,7 @@
 import { resolveProvider } from '../providers/llm/index.js';
 import { getTemplate } from '../templates/index.js';
 import { logger } from '../lib/logger.js';
+import { busquedaDeEscena } from './keywords.js';
 
 const log = logger('script');
 
@@ -136,19 +137,17 @@ export async function suggestVisualPrompts(project, { provider = 'auto' } = {}) 
   }
 }
 
-const STOPWORDS = new Set([
-  'para', 'como', 'este', 'esta', 'esto', 'pero', 'porque', 'cuando', 'donde', 'sobre',
-  'entre', 'todo', 'toda', 'mas', 'muy', 'que', 'con', 'los', 'las', 'del', 'una', 'uno',
-  'por', 'sin', 'the', 'and', 'for', 'you', 'your', 'with', 'this', 'that', 'from',
-]);
-
-/** Palabras significativas del texto, para buscar assets sin depender de IA. */
-export function keywordsFrom(text, max = 6) {
-  return String(text || '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length > 3 && !STOPWORDS.has(w))
-    .slice(0, max)
-    .join(' ');
+/**
+ * Palabras para buscar la imagen de un texto, sin depender de IA.
+ *
+ * Antes se tomaban las primeras palabras largas de la frase, y salia el
+ * principio del texto en vez de su asunto: «Antes de empezar conviene tener
+ * claro…» daba «antes empezar conviene tener claro». Ahora las elige
+ * core/keywords.js puntuando sustantivos y descartando verbos y muletillas.
+ *
+ * `contexto` son las demas escenas: sirve para saber que distingue a esta del
+ * resto del guion. Sin el, el resultado sigue siendo razonable.
+ */
+export function keywordsFrom(text, max = 3, { contexto = [], tema = '' } = {}) {
+  return busquedaDeEscena(text, { contexto, tema, max });
 }

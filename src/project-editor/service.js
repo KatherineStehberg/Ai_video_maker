@@ -32,6 +32,7 @@ import { xfadeDisponibles } from '../lib/ffmpeg.js';
 import { filtrarDisponibles, normalizarTransicion, CATEGORIAS as CATEGORIAS_TRANSICION, DURACION as DURACION_TRANSICION } from './transitions.js';
 import { normalizarEfecto, VOLUMEN, EFECTO_MAX_SEGUNDOS } from './audio.js';
 import { lineaDeTiempo } from './timeline.js';
+import { busquedaDeEscena } from '../core/keywords.js';
 import { assetKind, resolveSafeAsset } from '../core/asset-manager.js';
 import { buildCues, verifyCaptionCoverage } from '../core/subtitles.js';
 import { captionStyleOptions, normalizeCaptionStyle, captionMetrics } from '../core/captions-style.js';
@@ -165,6 +166,9 @@ export function derivar(p) {
   // de voz la saltan, y la linea de tiempo tiene que decir lo mismo. Antes su
   // duracion se sumaba igual, y a partir de ella la vista previa y el audio
   // quedaban desplazados respecto al MP4.
+  // Para sugerir que buscar hace falta ver el guion entero: lo que se repite en
+  // todas las escenas no describe a ninguna.
+  const textos = (p.scenes || []).map(s => s.text || '');
   let t = 0;
   const escenas = (p.scenes || []).map((s, i) => {
     const start = t;
@@ -183,6 +187,12 @@ export function derivar(p) {
       text: s.text || '',
       caption: s.caption,
       visualPrompt: s.visualPrompt || '',
+      // Que buscaria el editor para ESTA escena. Se ofrece, no se aplica: el
+      // campo sigue siendo de la usuaria.
+      visualPromptSugerido: busquedaDeEscena(s.text || '', {
+        contexto: textos.filter((_, j) => j !== i),
+        tema: p.title || '',
+      }),
       // Contrato completo { type, duration, enabled }: la interfaz necesita la
       // duracion, no solo el nombre del efecto.
       transition: normalizarTransicion(s.transition),

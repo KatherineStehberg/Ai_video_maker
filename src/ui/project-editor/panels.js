@@ -133,12 +133,17 @@ export function panelEscenas({ s, acc }) {
   const dur = entrada({ tipo: 'number', valor: e.duration, min: 0.5, max: 300, step: 0.1 });
   dur.addEventListener('change', () => acc.cambiarEscena(e.id, 'duration', Number(dur.value)));
 
-  const prompt = entrada({ valor: e.visualPrompt, maxLength: 300 });
+  const prompt = entrada({
+    valor: e.visualPrompt, maxLength: 300,
+    // La sugerencia se ve como marca de agua: orienta sin escribir nada.
+    placeholder: e.visualPromptSugerido || 'palabras para buscar la imagen',
+  });
   prompt.addEventListener('input', () => acc.cambiarEscena(e.id, 'visualPrompt', prompt.value));
 
   const rej = el('div', 'rejilla-2');
   rej.append(campo('Duración (s)', dur), campo('Qué imagen buscar', prompt));
   caja.append(rej);
+  caja.append(sugerenciaVisual({ e, acc }));
 
   const incluir = entrada({ tipo: 'checkbox' });
   incluir.checked = !e.excluida;
@@ -317,9 +322,13 @@ export function panelRecursos({ s, acc }) {
   if (r.credito) caja.append(atribucionImagen(r.credito));
   else if (r.proveedor) caja.append(el('p', 'mini', `Origen: ${r.proveedor}`));
 
-  const prompt = entrada({ valor: e.visualPrompt, maxLength: 300 });
+  const prompt = entrada({
+    valor: e.visualPrompt, maxLength: 300,
+    placeholder: e.visualPromptSugerido || 'palabras para buscar la imagen',
+  });
   prompt.addEventListener('input', () => acc.cambiarEscena(e.id, 'visualPrompt', prompt.value));
   caja.append(campo('Qué buscar', prompt, 'Cambia el texto y vuelve a buscar para obtener otra imagen.'));
+  caja.append(sugerenciaVisual({ e, acc }));
 
   const acciones = el('div', 'fila');
   acciones.append(
@@ -340,6 +349,22 @@ export function panelRecursos({ s, acc }) {
 }
 
 /** «Foto de X en Pexels · licencia», con enlaces. Nunca se inventa un autor. */
+/**
+ * Sugerencia de busqueda a partir del texto de la escena.
+ *
+ * Se OFRECE, no se aplica sola: el campo es de la usuaria, y una sugerencia que
+ * se escribe sin permiso acaba pisando lo que alguien puso a mano. Solo aparece
+ * cuando aporta algo distinto de lo que ya hay escrito.
+ */
+function sugerenciaVisual({ e, acc }) {
+  const sug = (e.visualPromptSugerido || '').trim();
+  const fila = el('div', 'fila');
+  if (!sug || sug === (e.visualPrompt || '').trim()) { fila.hidden = true; return fila; }
+  fila.append(el('span', 'mini', `Según el texto de la escena: «${sug}»`));
+  fila.append(boton('Usar', 'btn-mini', () => acc.cambiarEscena(e.id, 'visualPrompt', sug)));
+  return fila;
+}
+
 function atribucionImagen(c) {
   const p = el('p', 'mini atribucion');
   p.append(document.createTextNode('Foto de '));

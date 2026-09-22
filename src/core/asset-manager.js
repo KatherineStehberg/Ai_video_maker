@@ -6,6 +6,7 @@ import { listTracks, resolveTrack } from '../providers/music/index.js';
 import { ASPECTS } from '../config.js';
 import { slugify } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
+import { busquedaDeEscena } from './keywords.js';
 
 const log = logger('assets');
 
@@ -90,7 +91,13 @@ export async function ensureSceneAssets(project, brandObj, { provider = 'auto', 
 
     const found = await provideImage(
       {
-        prompt: scene.visualPrompt || scene.text,
+        // Sin instruccion visual se buscan las palabras clave de la escena, no
+        // la frase entera: un buscador de imagenes con una frase de narracion
+        // devuelve cualquier cosa.
+        prompt: scene.visualPrompt || busquedaDeEscena(scene.text, {
+          contexto: (project.scenes || []).filter(x => x.id !== scene.id).map(x => x.text),
+          tema: project.title || '',
+        }) || scene.text,
         scene,
         project,
         brand: brandObj,
