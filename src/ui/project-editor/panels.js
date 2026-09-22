@@ -31,8 +31,11 @@ function campo(etiqueta, control, pista) {
 function entrada({ tipo = 'text', valor = '', ...extra } = {}) {
   const i = document.createElement('input');
   i.type = tipo;
-  i.value = valor ?? '';
+  // min, max y step ANTES que el valor. Un deslizador nace con 0-100 y paso 1:
+  // si se asigna 0.3 primero, se redondea a 0 y queda ahi aunque luego cambie
+  // el rango. Asi el volumen de la musica al 30 % se dibujaba en 0 %.
   Object.assign(i, extra);
+  i.value = valor ?? '';
   return i;
 }
 
@@ -311,7 +314,8 @@ export function panelRecursos({ s, acc }) {
     caja.append(vacio('Esta escena se renderizará con un fondo plano de marca.'));
   }
 
-  if (r.proveedor) caja.append(el('p', 'mini', `Origen: ${r.proveedor}`));
+  if (r.credito) caja.append(atribucionImagen(r.credito));
+  else if (r.proveedor) caja.append(el('p', 'mini', `Origen: ${r.proveedor}`));
 
   const prompt = entrada({ valor: e.visualPrompt, maxLength: 300 });
   prompt.addEventListener('input', () => acc.cambiarEscena(e.id, 'visualPrompt', prompt.value));
@@ -331,7 +335,89 @@ export function panelRecursos({ s, acc }) {
   caja.append(campo('Usar un archivo mío', subir, 'Se guarda una copia local. Declara que tienes permiso para usarlo.'));
 
   frag.append(caja);
+  frag.append(bancoImagenes({ s, acc, e }));
   return frag;
+}
+
+/** «Foto de X en Pexels · licencia», con enlaces. Nunca se inventa un autor. */
+function atribucionImagen(c) {
+  const p = el('p', 'mini atribucion');
+  p.append(document.createTextNode('Foto de '));
+  const autor = el('a', null, c.autor || 'autor desconocido');
+  if (c.autorUrl) { autor.href = c.autorUrl; autor.target = '_blank'; autor.rel = 'noopener'; }
+  p.append(autor, document.createTextNode(c.proveedor === 'pexels' ? ' en ' : ' · '));
+  const fuente = el('a', null, c.proveedor === 'pexels' ? 'Pexels' : (c.proveedor || 'origen'));
+  if (c.urlAtribucion) { fuente.href = c.urlAtribucion; fuente.target = '_blank'; fuente.rel = 'noopener'; }
+  p.append(fuente, document.createTextNode(` · ${c.licencia || 'licencia no declarada'}`));
+  return p;
+}
+
+/**
+ * Banco de imagenes gratuitas. La busqueda y la descarga las hace el backend:
+ * aqui solo se ven miniaturas y se elige. Sin banco configurado se dice, y se
+ * dejan a mano los archivos propios y los fondos locales.
+ */
+function bancoImagenes({ s, acc, e }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Imágenes gratuitas'));
+
+  if (!s.capacidades?.biblioteca?.imagenes) {
+    caja.append(el('p', 'ayuda',
+      'La biblioteca de imágenes gratuitas no está disponible en este equipo. '
+      + 'Puedes usar tus propios archivos o los fondos locales.'));
+    return caja;
+  }
+
+  const b = s.biblioteca?.imagenes || {};
+  const q = entrada({ tipo: 'search', valor: b.consulta ?? e.visualPrompt ?? '', placeholder: 'Ej.: naturaleza espiritual' });
+  q.addEventListener('input', () => acc.fijarConsulta('imagenes', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarImagenes(q.value); } });
+  caja.append(campo('Buscar por tema', q));
+  caja.append(boton(b.estado === 'buscando' ? 'Buscando…' : 'Buscar imágenes gratuitas', 'btn-mini btn-principal',
+    () => acc.buscarImagenes(q.value), { deshabilitado: b.estado === 'buscando' }));
+
+  if (b.estado === 'buscando' && !b.resultados?.length) caja.append(el('p', 'mini', 'Buscando imágenes…'));
+  if (b.motivo) caja.append(vacio(b.motivo));
+
+  // Vista previa de la elegida, antes de usarla.
+  const sel = b.seleccion;
+  if (sel) {
+    const previa = el('div', 'biblio-previa');
+    const img = document.createElement('img');
+    img.src = sel.vistaPrevia || sel.miniatura; img.alt = sel.descripcion || '';
+    previa.append(img);
+    previa.append(atribucionImagen({ proveedor: 'pexels', autor: sel.autor, autorUrl: sel.autorUrl, urlAtribucion: sel.paginaUrl, licencia: sel.licencia }));
+    previa.append(el('p', 'ayuda', 'Se ajusta al formato recortando los bordes, sin deformarla, y se ve durante toda la escena.'));
+    const fila = el('div', 'fila');
+    fila.append(
+      boton(b.estado === 'importando' ? 'Descargando…' : (e.recurso?.path ? 'Reemplazar por esta imagen' : 'Usar esta imagen'),
+        'btn-mini btn-principal', () => acc.usarImagen(e, sel), { deshabilitado: b.estado === 'importando' }),
+      boton('Mantener la actual', 'btn-mini', () => acc.previsualizarImagen(null)),
+    );
+    previa.append(fila);
+    caja.append(previa);
+  }
+
+  if (b.resultados?.length) {
+    const rejilla = el('div', 'biblio-rejilla');
+    for (const f of b.resultados) {
+      const t = el('button', 'biblio-tarjeta');
+      t.type = 'button';
+      t.title = `${f.descripcion || 'Imagen'} · ${f.autor}`;
+      if (sel?.id === f.id) t.setAttribute('aria-current', 'true');
+      const img = document.createElement('img');
+      img.src = f.miniatura; img.alt = f.descripcion || ''; img.loading = 'lazy';
+      t.append(img, el('span', 'biblio-autor', f.autor));
+      t.addEventListener('click', () => acc.previsualizarImagen(f));
+      rejilla.append(t);
+    }
+    caja.append(rejilla);
+    if (b.total > b.resultados.length) {
+      caja.append(boton('Ver más resultados', 'btn-mini', () => acc.buscarImagenes(b.consulta, (b.pagina || 1) + 1),
+        { deshabilitado: b.estado === 'buscando' }));
+    }
+  }
+  return caja;
 }
 
 // =============================================================== TRANSICIONES
@@ -391,35 +477,7 @@ export function panelAudio({ s, acc }) {
   frag.append(voz);
 
   // ---- música ----
-  const mus = el('div', 'bloque');
-  mus.append(el('h3', null, 'Música'));
-  if (p.music?.path) {
-    mus.append(el('p', 'mini', p.music.path.split('/').pop()));
-    const a = document.createElement('audio');
-    a.src = `/file?path=${encodeURIComponent(p.music.path)}`;
-    a.controls = true; a.preload = 'none'; a.style.width = '100%';
-    mus.append(a);
-
-    const volM = entrada({ tipo: 'range', min: 0, max: 1, step: 0.01, valor: p.music.volume ?? 0.12 });
-    const volTexto = el('span', 'mini', `${Math.round((p.music.volume ?? 0.12) * 100)} %`);
-    volM.addEventListener('input', () => { volTexto.textContent = `${Math.round(volM.value * 100)} %`; });
-    volM.addEventListener('change', () => acc.cambiar('music.volume', Number(volM.value)));
-    mus.append(campo('Volumen de la música', volM));
-    mus.append(volTexto);
-
-    const usar = entrada({ tipo: 'checkbox' });
-    usar.checked = Boolean(p.music.enabled);
-    usar.addEventListener('change', () => acc.cambiar('music.enabled', usar.checked));
-    const lblUsar = el('label', 'casilla');
-    lblUsar.append(usar, document.createTextNode('Incluir la música en el video'));
-    mus.append(lblUsar);
-  } else {
-    mus.append(vacio('Este proyecto no tiene música.'));
-  }
-  const subirM = entrada({ tipo: 'file', accept: 'audio/*' });
-  subirM.addEventListener('change', () => { if (subirM.files[0]) acc.subirMusica(subirM.files[0]); });
-  mus.append(campo('Usar una pista mía', subirM, 'Se guarda una copia local. Declara que tienes permiso para usarla.'));
-  frag.append(mus);
+  frag.append(bloqueMusica({ s, acc, p }));
 
   // ---- efectos ----
   const fx = el('div', 'bloque');
@@ -428,6 +486,101 @@ export function panelAudio({ s, acc }) {
   frag.append(fx);
 
   return frag;
+}
+
+/** Segundos -> "1:05". */
+const mmss = (seg) => {
+  const t = Math.round(Number(seg) || 0);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+};
+
+/**
+ * Musica del proyecto: la pista elegida con sus controles, y la biblioteca para
+ * elegir o cambiarla. Solo se ofrecen pistas con licencia declarada.
+ */
+function bloqueMusica({ s, acc, p }) {
+  const mus = el('div', 'bloque');
+  mus.append(el('h3', null, 'Música'));
+  const m = p.music || {};
+  const c = m.credit || null;
+
+  if (m.path) {
+    mus.append(el('p', null, c?.titulo || m.path.split('/').pop()));
+    if (c) mus.append(el('p', 'mini', `${c.licencia} · ${c.fuente}`));
+    if (c?.requiereAtribucion && c?.atribucion) mus.append(el('p', 'mini', `Atribución: ${c.atribucion}`));
+    const a = document.createElement('audio');
+    a.src = `/file?path=${encodeURIComponent(m.path)}`;
+    a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    mus.append(a);
+
+    const volM = entrada({ tipo: 'range', min: 0, max: 1, step: 0.01, valor: m.volume ?? 0.12 });
+    const volTexto = el('span', 'mini', `${Math.round((m.volume ?? 0.12) * 100)} %`);
+    volM.addEventListener('input', () => { volTexto.textContent = `${Math.round(volM.value * 100)} %`; });
+    volM.addEventListener('change', () => acc.cambiar('music.volume', Number(volM.value)));
+    mus.append(campo('Volumen de la música', volM, 'La voz no se reduce: la música se mezcla por debajo.'));
+    mus.append(volTexto);
+
+    const usar = entrada({ tipo: 'checkbox' });
+    usar.checked = !m.enabled;
+    usar.addEventListener('change', () => acc.cambiar('music.enabled', !usar.checked));
+    const lblUsar = el('label', 'casilla');
+    lblUsar.append(usar, document.createTextNode('Silenciar la música en el video'));
+    mus.append(lblUsar);
+
+    const fila = el('div', 'fila');
+    fila.append(
+      boton('Cambiar música', 'btn-mini', () => acc.abrirMusica()),
+      boton('Quitar música', 'btn-mini btn-peligro', () => acc.cambiar('music', { path: null, enabled: false })),
+    );
+    mus.append(fila);
+  } else {
+    mus.append(el('p', 'mini', 'Este proyecto no tiene música.'));
+    mus.append(boton('Agregar música', 'btn-mini btn-principal', () => acc.abrirMusica()));
+  }
+
+  const b = s.biblioteca?.musica || {};
+  if (b.abierta) mus.append(bibliotecaMusica({ b, acc, actual: m.path }));
+
+  const subirM = entrada({ tipo: 'file', accept: 'audio/*' });
+  subirM.addEventListener('change', () => { if (subirM.files[0]) acc.subirMusica(subirM.files[0]); });
+  mus.append(campo('Usar una pista mía', subirM, 'Se guarda una copia local. Declara que tienes permiso para usarla.'));
+  return mus;
+}
+
+function bibliotecaMusica({ b, acc, actual }) {
+  const caja = el('div', 'biblio-musica');
+  const q = entrada({ tipo: 'search', valor: b.consulta || '', placeholder: 'Ambiente o estilo: calma, espiritual, curso…' });
+  q.addEventListener('input', () => acc.fijarConsulta('musica', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarMusica(q.value, b.maxDuracion); } });
+  const dur = lista([['', 'Cualquier duración'], ['60', 'Hasta 1 min'], ['120', 'Hasta 2 min'], ['180', 'Hasta 3 min']], String(b.maxDuracion || ''));
+  dur.addEventListener('change', () => acc.buscarMusica(q.value, dur.value));
+  const rej = el('div', 'rejilla-2');
+  rej.append(campo('Buscar', q), campo('Duración', dur));
+  caja.append(rej);
+  caja.append(boton(b.estado === 'buscando' ? 'Buscando…' : 'Buscar música', 'btn-mini', () => acc.buscarMusica(q.value, dur.value)));
+
+  if (b.motivo) caja.append(vacio(b.motivo));
+  for (const t of b.pistas || []) {
+    const tarjeta = el('div', 'musica-tarjeta');
+    if (t.path === actual) tarjeta.setAttribute('aria-current', 'true');
+    tarjeta.append(el('strong', null, t.titulo));
+    tarjeta.append(el('p', 'mini',
+      [t.duracion ? mmss(t.duracion) : null, t.formato, `${(t.bytes / 1e6).toFixed(1)} MB`, t.genero, t.ambiente].filter(Boolean).join(' · ')));
+    tarjeta.append(el('p', 'mini', `${t.licencia} · ${t.fuente}`));
+    if (t.requiereAtribucion) tarjeta.append(el('p', 'mini', `Requiere atribución: ${t.atribucion || '—'}`));
+    const a = document.createElement('audio');
+    a.src = t.url; a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    // Solo suena una vista previa a la vez.
+    a.addEventListener('play', () => { for (const o of document.querySelectorAll('.musica-tarjeta audio')) if (o !== a) o.pause(); });
+    tarjeta.append(a);
+    tarjeta.append(boton(t.path === actual ? 'En uso' : 'Usar esta música', 'btn-mini btn-principal',
+      () => acc.usarMusica(t), { deshabilitado: t.path === actual }));
+    caja.append(tarjeta);
+  }
+  if (b.rechazadas?.length) {
+    caja.append(el('p', 'ayuda', `${b.rechazadas.length} archivo(s) de la carpeta no se ofrecen por no tener licencia declarada.`));
+  }
+  return caja;
 }
 
 // ================================================================= SUBTITULOS

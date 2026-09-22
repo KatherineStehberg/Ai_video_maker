@@ -112,6 +112,77 @@ const acc = {
     } catch (e) { fallo(e); }
   },
 
+  // ----------------------------------------------------------- BIBLIOTECA
+  // Lo que se escribe en un buscador se guarda sin repintar: repintar el panel
+  // a cada tecla borraria el campo mientras se escribe.
+  fijarConsulta(tipo, texto) {
+    s = { ...s, biblioteca: { ...s.biblioteca, [tipo]: { ...(s.biblioteca?.[tipo] || {}), consulta: texto } } };
+  },
+
+  async buscarImagenes(consulta, pagina = 1) {
+    const q = String(consulta || '').trim();
+    const previa = s.biblioteca?.imagenes || {};
+    fijarBiblioteca('imagenes', { consulta: q, estado: 'buscando', motivo: null, ...(pagina === 1 ? { resultados: [], seleccion: null } : {}) });
+    try {
+      const visible = proyectoVisible(s);
+      const r = await api.buscarImagenes(q, visible?.aspectRatio || '9:16', pagina, visible?.language || 'es');
+      const resultados = pagina > 1 ? [...(previa.resultados || []), ...r.resultados] : r.resultados;
+      fijarBiblioteca('imagenes', { estado: 'listo', resultados, pagina, total: r.total || resultados.length, motivo: r.motivo || null, disponible: r.disponible });
+    } catch (e) {
+      fijarBiblioteca('imagenes', { estado: 'error', motivo: 'No se pudo buscar ahora. Prueba de nuevo en un momento.' });
+      console.error(e);
+    }
+  },
+
+  previsualizarImagen(foto) { fijarBiblioteca('imagenes', { seleccion: foto }); },
+
+  /**
+   * Usa una imagen del banco en la escena. El backend la descarga a la cache
+   * local con su ficha de autor y licencia; aqui solo se apunta la escena a
+   * ese archivo. Queda como «Cambios sin guardar» hasta pulsar Guardar.
+   */
+  async usarImagen(escena, foto) {
+    fijarBiblioteca('imagenes', { estado: 'importando' });
+    try {
+      const r = await api.importarImagen(foto.id, s.biblioteca?.imagenes?.consulta || '');
+      s = { ...s, creditos: { ...(s.creditos || {}), [r.path]: r.credito } };
+      s = cambiarEscena(s, escena.id, 'assetPath', r.path);
+      fijarBiblioteca('imagenes', { estado: 'listo', seleccion: null });
+      mensaje('Imagen elegida. Pulsa «Guardar cambios» para conservarla.');
+    } catch (e) {
+      fijarBiblioteca('imagenes', { estado: 'listo', motivo: e.message });
+    }
+  },
+
+  async abrirMusica() {
+    const b = s.biblioteca?.musica || {};
+    if (b.abierta) { fijarBiblioteca('musica', { abierta: false }); return; }
+    fijarBiblioteca('musica', { abierta: true });
+    await acc.buscarMusica(b.consulta || '', b.maxDuracion || '');
+  },
+
+  async buscarMusica(consulta = '', maxDuracion = '') {
+    fijarBiblioteca('musica', { consulta, maxDuracion, estado: 'buscando', motivo: null });
+    try {
+      const r = await api.musica(consulta, maxDuracion);
+      fijarBiblioteca('musica', { estado: 'listo', pistas: r.pistas, rechazadas: r.rechazadas, motivo: r.motivo });
+    } catch (e) {
+      fijarBiblioteca('musica', { estado: 'error', motivo: 'No se pudo leer la biblioteca de música.' });
+      console.error(e);
+    }
+  },
+
+  usarMusica(pista) {
+    s = cambiar(s, 'music', {
+      path: pista.path, enabled: true,
+      volume: proyectoVisible(s)?.music?.volume ?? 0.12,
+      // Solo para verla ya en pantalla; el backend la reescribe desde la ficha.
+      credit: { titulo: pista.titulo, licencia: pista.licencia, fuente: pista.fuente, atribucion: pista.atribucion, requiereAtribucion: pista.requiereAtribucion },
+    });
+    fijarBiblioteca('musica', { abierta: false });
+    mensaje('Música elegida. Pulsa «Guardar cambios» para conservarla.');
+  },
+
   async subirRecurso(escena, archivo) {
     try {
       const manifiesto = await importar(archivo, 'own');
@@ -129,6 +200,12 @@ const acc = {
     } catch (e) { fallo(e); }
   },
 };
+
+/** Cambia el estado de un buscador de la biblioteca y repinta el panel. */
+function fijarBiblioteca(tipo, cambios) {
+  s = { ...s, biblioteca: { ...s.biblioteca, [tipo]: { ...(s.biblioteca?.[tipo] || {}), ...cambios } } };
+  pintar();
+}
 
 /**
  * Importa un archivo propio reutilizando el endpoint del estudio, que ya valida
@@ -160,8 +237,12 @@ async function guardar() {
   s = { ...s, guardando: true };
   pintarEstado();
   try {
+    const cambioMusica = Boolean(s.parche?.music);
     const r = await api.guardar(s.id, cuerpoGuardado(s));
     s = confirmarGuardado(s, r);
+    // La forma de onda de la musica se lee del archivo: si la pista cambio,
+    // hay que pedirla de nuevo. La de la voz no cambia al guardar.
+    if (cambioMusica) await cargarOndas({ soloMusica: true });
     pintar();
     return true;
   } catch (e) {
@@ -209,12 +290,12 @@ async function recargar() {
   pintar();
 }
 
-async function cargarOndas() {
+async function cargarOndas({ soloMusica = false } = {}) {
   const [narracion, musica] = await Promise.all([
-    api.onda(s.id, 'narracion').catch(() => null),
+    soloMusica ? Promise.resolve(undefined) : api.onda(s.id, 'narracion').catch(() => null),
     api.onda(s.id, 'musica').catch(() => null),
   ]);
-  timeline.ondas({ narracion, musica });
+  timeline.ondas(soloMusica ? { musica } : { narracion, musica });
 }
 
 // ------------------------------------------------------------ REPRODUCTOR

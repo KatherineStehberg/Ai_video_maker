@@ -55,7 +55,7 @@ export function avisoAudio(proyecto, derivado) {
   const a = derivado?.audio;
   if (!a) return null;
   const conVoz = a.narracion?.escenasConVoz || 0;
-  const musica = Boolean(a.musica && proyecto?.music?.enabled !== false && proyecto?.music?.path);
+  const musica = Boolean(proyecto?.music?.path && proyecto?.music?.enabled !== false);
   if (!conVoz && !musica) return { tono: 'aviso', texto: 'Sin audio' , detalle: 'Este proyecto no tiene narración generada ni música.' };
   if (conVoz && proyecto?.voice?.enabled === false) return { tono: 'aviso', texto: 'Voz silenciada', detalle: 'La narración está silenciada: el video se exportará sin voz.' };
   if (conVoz && gananciaVoz(proyecto) <= 0) return { tono: 'aviso', texto: 'Voz al 0 %', detalle: 'El volumen de la narración está al 0 %: se exportará en silencio.' };
@@ -130,10 +130,12 @@ export function crearAudio({ voz, musica, video }) {
 
     configurar({ proyecto, derivado }) {
       ganancia = gananciaVoz(proyecto);
-      const m = derivado?.audio?.musica;
-      volMusica = Number(proyecto?.music?.volume ?? m?.volumen ?? 0.12);
-      const musicaActiva = Boolean(m?.url && proyecto?.music?.enabled !== false && proyecto?.music?.path);
-      cargar(musica, musicaActiva ? m.url : null);
+      // La musica se toma del proyecto VISIBLE (con cambios sin guardar):
+      // elegir una pista tiene que sonar ya en la vista previa.
+      const ruta = proyecto?.music?.path || null;
+      volMusica = Number(proyecto?.music?.volume ?? derivado?.audio?.musica?.volumen ?? 0.12);
+      const musicaActiva = Boolean(ruta && proyecto?.music?.enabled !== false);
+      cargar(musica, musicaActiva ? `/file?path=${encodeURIComponent(ruta)}` : null);
       aplicarVolumenes();
     },
 

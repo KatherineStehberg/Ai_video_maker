@@ -39,6 +39,7 @@ import { listAllVoices } from '../providers/tts/index.js';
 import { LANGUAGES } from '../core/lang.js';
 import { getStorage } from './storage.js';
 import { peaks } from './waveform.js';
+import { creditoDeImagen, creditoDeMusica, imagenesDisponibles } from './media-library.js';
 import { logger } from '../lib/logger.js';
 
 const log = logger('editor');
@@ -116,6 +117,8 @@ function estadoRecurso(scene) {
     etiqueta: esFallback ? 'Fondo de marca (sustituible)' : 'Listo',
     kind,
     proveedor,
+    // Autor, licencia y origen cuando la imagen viene de un banco.
+    credito: scene.assetCredit || null,
     path: scene.assetPath,
     url: `/file?path=${encodeURIComponent(scene.assetPath)}`,
   };
@@ -185,7 +188,9 @@ export function derivar(p) {
 
   // Pistas de la linea de tiempo. Solo se declara la que tiene contenido real.
   const narracionTrack = escenas.filter(e => e.tieneNarracion);
-  const musica = p.music?.enabled && p.music?.path && fs.existsSync(abs(p.music.path));
+  // La pista de musica se muestra si hay una elegida, aunque este silenciada:
+  // asi se ve que existe y en que estado esta. Que suene lo decide `activa`.
+  const musica = Boolean(p.music?.path && fs.existsSync(abs(p.music.path)));
 
   const salida = p.outputs?.[p.aspectRatio] || p.outputPath || null;
   const salidaExiste = Boolean(salida && fs.existsSync(abs(salida)));
@@ -254,7 +259,8 @@ export function resumenAudio(p, escenas, hayMusica) {
   const vozActiva = p.voice?.enabled !== false;
   const ganancia = Number(p.voice?.gain ?? 1);
   const musica = hayMusica
-    ? { url: `/file?path=${encodeURIComponent(p.music.path)}`, volumen: Number(p.music.volume ?? 0.12), activa: Boolean(p.music.enabled) }
+    ? { url: `/file?path=${encodeURIComponent(p.music.path)}`, volumen: Number(p.music.volume ?? 0.12), activa: Boolean(p.music.enabled),
+      titulo: p.music.credit?.titulo || path.basename(p.music.path), credito: p.music.credit || null }
     : null;
 
   let aviso = null;
@@ -284,6 +290,7 @@ export function publico(p) {
   return {
     id: p.id,
     title: p.title,
+    language: p.language,
     brand: p.brand,
     template: p.template,
     language: p.language,
@@ -292,7 +299,7 @@ export function publico(p) {
     status: p.status,
     captions: p.captions,
     voice: { provider: p.voice?.provider, name: p.voice?.name, enabled: p.voice?.enabled !== false, gain: p.voice?.gain ?? 1 },
-    music: { enabled: Boolean(p.music?.enabled), path: p.music?.path || null, volume: p.music?.volume ?? 0.12 },
+    music: { enabled: Boolean(p.music?.enabled), path: p.music?.path || null, volume: p.music?.volume ?? 0.12, credit: p.music?.credit || null },
     assets: { logo: p.assets?.logo || null },
     cta: p.cta || '',
     outputs: p.outputs || {},
@@ -333,6 +340,8 @@ export async function capacidades() {
     transiciones: TRANSICIONES_REALES,
     movimientos: MOVIMIENTOS_REALES,
     almacenamiento: getStorage().describe?.() ?? { id: getStorage().id },
+    // Solo un booleano: si hay banco de imagenes. Nunca la clave ni su largo.
+    biblioteca: { imagenes: imagenesDisponibles(), proveedorImagenes: 'Pexels', musica: 'local' },
     // Lo que TODAVIA no existe, declarado para que la interfaz lo deshabilite
     // en vez de fingirlo.
     pendiente: {
@@ -414,13 +423,13 @@ export async function guardar(id, patch = {}) {
   }
   if (patch.music) {
     const m = patch.music;
-    if (m.path !== undefined && m.path) {
-      const file = resolveSafeAsset(m.path);
-      if (!file || !fs.existsSync(file)) throw new Error('La música indicada no existe.');
-    }
+    // Solo musica con licencia declarada (biblioteca) o archivo propio con la
+    // declaracion de autorizacion. `creditoDeMusica` lanza en cualquier otro
+    // caso, incluida una ruta fuera de las carpetas permitidas.
+    const credito = m.path ? creditoDeMusica(m.path) : null;
     p.music = {
       ...p.music,
-      ...(m.path !== undefined ? { path: m.path || null, enabled: Boolean(m.path) && m.enabled !== false } : {}),
+      ...(m.path !== undefined ? { path: m.path || null, enabled: Boolean(m.path) && m.enabled !== false, credit: credito } : {}),
       ...(m.enabled !== undefined && m.path === undefined ? { enabled: Boolean(m.enabled) && Boolean(p.music?.path) } : {}),
       ...(m.volume !== undefined ? { volume: num(m.volume, 0, 1, 0.12) } : {}),
     };
@@ -456,10 +465,16 @@ export async function guardar(id, patch = {}) {
           const file = resolveSafeAsset(cambio.assetPath);
           if (!file || !fs.existsSync(file)) throw new Error('El recurso indicado no existe.');
           vieja.assetPath = cambio.assetPath;
-          vieja.assetProvider = 'manual';
+          // El credito se lee de la ficha que hay junto al archivo en disco:
+          // si viniera del navegador, cualquiera podria atribuir una foto a
+          // quien quisiera.
+          const credito = creditoDeImagen(cambio.assetPath);
+          vieja.assetCredit = credito;
+          vieja.assetProvider = credito?.proveedor || 'manual';
         } else {
           vieja.assetPath = null;
           vieja.assetProvider = null;
+          vieja.assetCredit = null;
         }
       }
       // Texto destacado: los cinco campos.

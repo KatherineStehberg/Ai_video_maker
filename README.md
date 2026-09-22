@@ -211,6 +211,56 @@ node scripts/editor-visual-smoke.mjs    # navegador real a 1366x768 (Node 20+)
 node scripts/editor-export-smoke.mjs    # editar, guardar, exportar y medir el MP4
 ```
 
+### Biblioteca de recursos
+
+**Imágenes.** En el editor, herramienta **Recursos** → «Buscar imágenes
+gratuitas». Usa [Pexels](https://www.pexels.com/license/) y necesita
+`PEXELS_API_KEY` en el `.env`; sin clave la interfaz lo dice y deja los archivos
+propios y los fondos de marca. La clave vive sólo en el backend: el navegador
+manda el término de búsqueda o el id de la foto, nunca una URL. Cada imagen se
+descarga a `data/assets/images/_library/pexels/` con una ficha `<archivo>.json`
+(proveedor, id, autor, atribución, licencia, fecha, término buscado), así que el
+proyecto sigue funcionando sin conexión.
+
+**Música.** Herramienta **Audio** → «Agregar música». Lee
+`data/assets/music/`, y **sólo ofrece pistas con licencia declarada**: cada
+archivo necesita su ficha al lado.
+
+```json
+{
+  "titulo": "Calma luminosa",
+  "licencia": "CC0 1.0 (dominio público)",
+  "licenciaUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "fuente": "De dónde salió el archivo",
+  "autor": "Quién lo hizo",
+  "genero": "Ambiental",
+  "ambiente": "sereno",
+  "etiquetas": ["calma", "meditación"],
+  "requiereAtribucion": false
+}
+```
+
+Sin ficha, o sin `licencia` y `fuente`, la pista no aparece y no se puede usar.
+Para empezar con algo:
+
+```powershell
+node scripts/generar-musica-local.mjs
+```
+
+Genera cuatro pistas ambientales **sintetizadas con FFmpeg** a partir de tonos,
+sin samples ni obras de terceros, publicadas como CC0. Son sencillas, a
+propósito: sirven de fondo bajo una narración. Para música mejor, copia tus
+archivos con su ficha.
+
+**No hay proveedor remoto de música.** `media-library.js` documenta el contrato
+para añadir uno (detrás del backend, sin exponer claves, con licencia visible y
+archivo cacheado), pero no se descarga música de ningún servicio externo hasta
+verificar su licencia.
+
+```powershell
+node scripts/editor-library-smoke.mjs <idProyecto>   # flujo real, Pexels + música + MP4
+```
+
 ### Subtítulos y texto destacado
 
 Son **dos cosas distintas** y conviene no confundirlas:

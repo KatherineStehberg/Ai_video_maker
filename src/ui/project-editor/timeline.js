@@ -19,7 +19,7 @@
  * inventa una.
  */
 
-import { escenasVisibles, reloj } from './state.js';
+import { escenasVisibles, proyectoVisible, reloj } from './state.js';
 
 /** Pixeles por segundo a zoom 1. Un video de 30 s entra en pantalla. */
 export const PX_SEG_BASE = 40;
@@ -123,7 +123,9 @@ export function crearTimeline({ nombres, pistas, regla, cabezal, scroll, lienzo,
         { id: 'subs', nombre: 'Subtítulos', color: 'var(--p-subs)', cuenta: d.pistas.subtitulos },
         { id: 'voz', nombre: 'Narración', color: 'var(--p-voz)', cuenta: d.pistas.narracion },
         { id: 'visual', nombre: 'Visual', color: 'var(--p-visual)', cuenta: escenas.length },
-        { id: 'musica', nombre: 'Música', color: 'var(--p-musica)', cuenta: d.pistas.musica },
+        // La musica se decide sobre el proyecto VISIBLE: elegir una pista la
+        // muestra ya, antes de guardar. Silenciada sigue a la vista, marcada.
+        { id: 'musica', nombre: 'Música', color: 'var(--p-musica)', cuenta: proyectoVisible(s)?.music?.path ? 1 : 0 },
         { id: 'cortes', nombre: 'Cortes', color: 'var(--linea-fuerte)', cuenta: Math.max(0, escenas.length - 1) },
       ].filter(p => p.cuenta > 0);
 
@@ -220,15 +222,25 @@ function pintarPista(pista, def, { s, escenas, pxSeg, duracion, ondas, onSelecci
     const onda = ondas.narracion?.disponible ? ondas.narracion.picos : null;
     // Una sola pista continua: la narración se monta como un único WAV.
     pista.append(clip(0, duracion, {
-      titulo: onda ? 'Narración' : 'Narración (sin forma de onda)',
+      // Sin onda se dice por que: la pista montada aun no existe. Se crea al
+      // exportar (o al regenerar la voz); nunca se dibuja una onda inventada.
+      titulo: onda ? 'Narración' : 'Narración · la forma de onda aparece tras exportar',
       color: 'var(--p-voz)', onda, sinOnda: !onda,
     }));
   } else if (def.id === 'musica') {
-    const onda = ondas.musica?.disponible ? ondas.musica.picos : null;
-    pista.append(clip(0, duracion, {
-      titulo: onda ? 'Música' : 'Música (sin forma de onda)',
+    const m = proyectoVisible(s)?.music || {};
+    const guardada = s.proyecto?.music?.path === m.path;
+    // Solo se dibuja la onda si es la de ESTA pista: tras elegir otra, la onda
+    // anterior seria mentira hasta que se guarde y se lea el archivo nuevo.
+    const onda = guardada && ondas.musica?.disponible ? ondas.musica.picos : null;
+    const nombre = m.credit?.titulo || String(m.path || '').split('/').pop() || 'Música';
+    const estado = m.enabled === false ? ' · silenciada' : '';
+    const c = clip(0, duracion, {
+      titulo: onda ? `${nombre}${estado}` : `${nombre}${estado} · la forma de onda aparece al guardar`,
       color: 'var(--p-musica)', onda, sinOnda: !onda,
-    }));
+    });
+    if (m.enabled === false) c.style.opacity = '.45';
+    pista.append(c);
   } else if (def.id === 'cortes') {
     for (const e of escenas.slice(1)) {
       const marca = el('div', 'tl-clip');

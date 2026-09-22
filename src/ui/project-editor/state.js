@@ -136,7 +136,33 @@ export function escenasVisibles(s) {
   const escenas = s.derivado?.escenas || [];
   const cambios = s.parche?.scenes || {};
   if (!Object.keys(cambios).length) return escenas;
-  return escenas.map(e => (cambios[e.id] ? { ...e, ...cambios[e.id] } : e));
+  return escenas.map((e) => {
+    const c = cambios[e.id];
+    if (!c) return e;
+    const fusion = { ...e, ...c };
+    // Un recurso elegido y aun sin guardar tiene que verse YA en la tarjeta,
+    // en la vista previa y en la linea de tiempo, no solo tras guardar.
+    if (c.assetPath !== undefined) fusion.recurso = recursoPendiente(c.assetPath, s.creditos?.[c.assetPath]);
+    if (c.assetPath !== undefined) fusion.faltaRecurso = !c.assetPath;
+    return fusion;
+  });
+}
+
+const EXT_VIDEO = /\.(mp4|mov|webm|m4v|mkv)$/i;
+
+/** Ficha de recurso para una ruta elegida en el editor y aun no guardada. */
+export function recursoPendiente(ruta, credito = null) {
+  if (!ruta) return { estado: 'falta', etiqueta: 'Sin imagen', kind: null, url: null, path: null, credito: null };
+  return {
+    estado: 'listo',
+    etiqueta: 'Listo (sin guardar)',
+    kind: EXT_VIDEO.test(ruta) ? 'video' : 'image',
+    proveedor: credito?.proveedor || 'manual',
+    path: ruta,
+    url: `/file?path=${encodeURIComponent(ruta)}`,
+    credito,
+    pendiente: true,
+  };
 }
 
 export function escenaActual(s) {

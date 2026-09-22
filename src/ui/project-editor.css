@@ -309,9 +309,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tl-zoom { margin-left: auto; display: flex; align-items: center; gap: var(--e1); }
 .tl-cuerpo { flex: 1; display: grid; grid-template-columns: 132px 1fr; min-height: 0; }
 
-.tl-nombres { border-right: 1px solid var(--linea); overflow: hidden; padding-top: 22px; }
+/* Seis pistas (texto, subtitulos, voz, visual, musica, cortes) tienen que caber
+   en la linea de tiempo de 1366x768 sin cortar la ultima: filas de 22 px. */
+.tl-nombres { border-right: 1px solid var(--linea); overflow: hidden; padding-top: 20px; }
 .tl-nombre {
-  height: 26px; display: flex; align-items: center; gap: var(--e1);
+  height: 22px; display: flex; align-items: center; gap: var(--e1);
   padding: 0 var(--e2); font-size: .66rem; color: var(--tinta-suave);
   border-bottom: 1px solid var(--linea);
 }
@@ -321,15 +323,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tl-scroll { overflow-x: auto; overflow-y: hidden; position: relative; }
 .tl-lienzo { position: relative; height: 100%; min-width: 100%; }
 
-.tl-regla { height: 22px; position: relative; border-bottom: 1px solid var(--linea); background: var(--papel-2); }
+.tl-regla { height: 20px; position: relative; border-bottom: 1px solid var(--linea); background: var(--papel-2); }
 .tl-marca { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--linea-fuerte); padding-left: 3px; font-size: .58rem; color: var(--tinta-tenue); }
 
-.tl-pista { height: 26px; position: relative; border-bottom: 1px solid var(--linea); }
+.tl-pista { height: 22px; position: relative; border-bottom: 1px solid var(--linea); }
 .tl-pista:nth-child(odd) { background: #fafbfd; }
 .tl-clip {
   position: absolute; top: 3px; bottom: 3px; border-radius: 4px; overflow: hidden;
   border: 1px solid rgba(0,0,0,.14); cursor: pointer;
-  font-size: .58rem; color: #fff; padding: 0 3px; line-height: 20px; white-space: nowrap;
+  font-size: .58rem; color: #fff; padding: 0 3px; line-height: 14px; white-space: nowrap;
 }
 .tl-clip[aria-current="true"] { outline: 2px solid var(--marca); outline-offset: -1px; z-index: 2; }
 .tl-clip[data-excluida="si"] { opacity: .35; }
@@ -372,3 +374,30 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .escena-item { content-visibility: auto; contain-intrinsic-size: auto 74px; }
 .panel-cuerpo, .tl-scroll, .lienzo { contain: layout paint; }
 .tl-pista { contain: layout style; }
+
+/* ---------------------------------------------------------- BIBLIOTECA
+   Imagenes gratuitas (Recursos) y musica con licencia (Audio). Tarjetas
+   compactas dentro del panel de 300 px: dos columnas de miniaturas. */
+.biblio-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e1); }
+.biblio-tarjeta {
+  position: relative; display: block; padding: 0; border: 2px solid transparent;
+  border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--papel-2);
+  aspect-ratio: 4 / 3;
+}
+.biblio-tarjeta img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.biblio-tarjeta:hover { border-color: var(--linea-fuerte); }
+.biblio-tarjeta[aria-current="true"] { border-color: var(--marca); }
+.biblio-autor {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 4px;
+  font-size: .58rem; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.7));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
+}
+.biblio-previa { display: grid; gap: var(--e1); border: 1px solid var(--marca); border-radius: var(--radio); padding: var(--e2); background: var(--marca-tenue); }
+.biblio-previa img { width: 100%; border-radius: 6px; max-height: 190px; object-fit: contain; background: #0d1117; }
+.atribucion a { color: var(--marca-fuerte); }
+.biblio-musica { display: grid; gap: var(--e2); border-top: 1px solid var(--linea); padding-top: var(--e2); }
+.musica-tarjeta { display: grid; gap: 3px; border: 1px solid var(--linea); border-radius: 6px; padding: var(--e2); }
+.musica-tarjeta[aria-current="true"] { border-color: var(--marca); background: var(--marca-tenue); }
+.musica-tarjeta strong { font-size: var(--txt-sm); }
+.musica-tarjeta .mini { margin: 0; }
+.musica-tarjeta audio { height: 30px; }

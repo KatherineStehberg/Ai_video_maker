@@ -35,6 +35,10 @@ export function makeScene(partial = {}) {
     // es lo que distingue una imagen del tema de un fondo de marca de relleno,
     // y el editor necesita poder decirlo. Sin esto se perdia en cada recarga.
     assetProvider: partial.assetProvider ?? null,
+    // Origen y licencia del visual cuando viene de un banco (autor, URL de
+    // atribucion, licencia, fecha de descarga, termino buscado). Lo rellena el
+    // backend a partir de la ficha en disco, nunca el navegador.
+    assetCredit: partial.assetCredit ?? null,
     // Escena apagada: conserva todo pero no entra en el montaje.
     excluida: partial.excluida ?? false,
     narrationPath: partial.narrationPath ?? null,
@@ -105,6 +109,8 @@ export function makeProject(partial = {}) {
       fadeIn: partial.music?.fadeIn ?? 1.5,
       fadeOut: partial.music?.fadeOut ?? 2,
       enabled: partial.music?.enabled ?? false,
+      // Licencia, fuente y atribucion de la pista elegida. Ver media-library.js.
+      credit: partial.music?.credit ?? null,
     },
     captions: {
       enabled: partial.captions?.enabled ?? true,

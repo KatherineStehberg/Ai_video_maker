@@ -5,6 +5,60 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Biblioteca de imágenes y música en el editor (2026-09-22)
+
+Los recursos se eligen desde el editor, sin tener que subir un archivo cada vez.
+
+#### Imágenes gratuitas (Pexels)
+
+- Herramienta **Recursos**: buscador por tema, resultados en tarjetas con
+  miniatura y autor, vista previa antes de elegir, y botones para reemplazar la
+  imagen o mantener la actual. Estado de carga y mensajes claros cuando no hay
+  resultados o no hay conexión.
+- **La clave nunca sale del backend.** El navegador manda un término de
+  búsqueda o un identificador; nunca una URL de descarga. El servidor vuelve a
+  pedir la foto a Pexels por su id, comprueba que el archivo venga de
+  `images.pexels.com` y sólo entonces lo descarga.
+- Cada imagen se **cachea en local** (`data/assets/images/_library/pexels/`)
+  con una ficha al lado que guarda proveedor, id remoto, URL de descarga,
+  autor, URL de atribución, licencia, fecha y término buscado. El video sigue
+  funcionando sin conexión.
+- La **atribución** se muestra en el panel y se guarda con la escena. El crédito
+  se lee siempre de la ficha en disco, nunca de lo que mande el navegador.
+- Sin `PEXELS_API_KEY` la interfaz dice que la biblioteca remota no está
+  disponible y deja a mano los archivos propios y los fondos locales.
+- La búsqueda viaja con el **idioma del proyecto** (`locale`). Sin él, Pexels
+  leía las consultas como inglés: «naturaleza espiritual» devolvía una obra en
+  construcción en Espíritu Santo.
+
+#### Música
+
+- Herramienta **Audio**: biblioteca local con buscador por ambiente, estilo o
+  duración; tarjetas con nombre, duración, formato, tamaño, género, licencia y
+  fuente; vista previa con reproductor; volumen, silenciar y quitar.
+- **Sólo se ofrece música con licencia declarada.** Cada pista necesita su ficha
+  `<archivo>.json` con licencia y fuente; sin ella no aparece y no se puede
+  usar, ni siquiera indicando la ruta a mano.
+- `scripts/generar-musica-local.mjs` crea cuatro pistas ambientales **generadas
+  con FFmpeg a partir de tonos sintéticos**, sin samples ni obras de terceros,
+  publicadas como CC0. Para música mejor, basta con añadir archivos propios con
+  su ficha.
+- Estructura preparada para un proveedor remoto (contrato documentado en
+  `media-library.js`). **No hay ninguno conectado**: no se descarga música de
+  servicios externos sin verificar su licencia.
+- La pista de música aparece en la línea de tiempo con su **forma de onda real**
+  y se marca cuando está silenciada.
+
+#### Corregido de paso
+
+- **Los deslizadores con decimales mostraban un valor falso.** `entrada()`
+  asignaba `value` antes que `min`, `max` y `step`, así que un volumen de 0,3 se
+  dibujaba en 0 y un contorno de 1,15 en 1. Afectaba a música, voz y subtítulos.
+- **Una escena excluida ocupaba tiempo en la línea de tiempo** aunque el render
+  la saltaba, y desplazaba la vista previa y el audio respecto al MP4.
+- Con música ya son seis pistas: se ajustó su altura para que quepan todas en
+  1366×768 sin cortar la última.
+
 ### Añadido — Editor visual de proyectos (2026-09-21)
 
 Pantalla nueva para editar un video escena a escena, sin tocar JSON. Se abre

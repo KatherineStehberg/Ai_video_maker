@@ -39,6 +39,13 @@ export const api = {
   trabajo: id => pedir(`/projects/${encodeURIComponent(id)}/job`),
   regenerar: (id, cuerpo) => pedir(`/projects/${encodeURIComponent(id)}/regenerate`, { method: 'POST', body: cuerpo }),
   exportar: id => pedir(`/projects/${encodeURIComponent(id)}/export`, { method: 'POST', body: {} }),
+  // Biblioteca de recursos. Solo terminos de busqueda e identificadores: la
+  // descarga la decide y la hace el backend.
+  buscarImagenes: (q, aspecto, pagina = 1, idioma = 'es') =>
+    pedir(`/library/images?q=${encodeURIComponent(q)}&aspecto=${encodeURIComponent(aspecto || '9:16')}&pagina=${pagina}&idioma=${encodeURIComponent(idioma)}`),
+  importarImagen: (id, consulta) => pedir('/library/images/import', { method: 'POST', body: { id, consulta } }),
+  musica: (q = '', maxDuracion = '') =>
+    pedir(`/library/music?q=${encodeURIComponent(q)}&maxDuracion=${encodeURIComponent(maxDuracion)}`),
   onda: (id, pista, muestras = 600) =>
     pedir(`/projects/${encodeURIComponent(id)}/waveform?pista=${encodeURIComponent(pista)}&muestras=${muestras}`),
 };
