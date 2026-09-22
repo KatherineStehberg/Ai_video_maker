@@ -65,6 +65,23 @@ const POS_ROTULO = { top: 0.08, 'upper-third': 0.16, center: 0.44, 'lower-third'
 const FACTOR_ROTULO = { small: 1.1, medium: 1.45, large: 1.85, xlarge: 2.4 };
 
 export function crearPreview({ marco, img, video, vacioEl, rotulo, subtitulo, zonaArriba, zonaAbajo }) {
+  // El tamano del marco solo cambia si cambia la ventana o el formato. Medirlo
+  // en cada tic de la reproduccion (diez veces por segundo) obligaba al
+  // navegador a recalcular el layout de toda la pagina justo despues de cada
+  // escritura, y en un proyecto de 279 escenas eso bloqueaba la voz.
+  let cache = { clave: null, px: 0 };
+  let sucio = true;
+  if (typeof ResizeObserver !== 'undefined' && marco.parentElement) {
+    new ResizeObserver(() => { sucio = true; }).observe(marco.parentElement);
+  }
+  const medirMarco = (dimensiones) => {
+    const clave = `${dimensiones?.width}x${dimensiones?.height}`;
+    if (!sucio && cache.clave === clave && cache.px) return cache.px;
+    cache = { clave, px: ajustarMarco(marco, dimensiones) };
+    sucio = false;
+    return cache.px;
+  };
+
   return {
     /**
      * @param {object} s  estado del editor
@@ -80,7 +97,7 @@ export function crearPreview({ marco, img, video, vacioEl, rotulo, subtitulo, zo
       marco.dataset.formato = p.aspectRatio || '9:16';
       // Alto del marco EN PANTALLA: es la referencia para convertir los
       // tamanos del render (px sobre 1920) a px reales de la vista previa.
-      const marcoPx = ajustarMarco(marco, d.dimensiones);
+      const marcoPx = medirMarco(d.dimensiones);
       const alto = d.dimensiones?.height || 1920;
       // `font-size` en porcentaje es relativo a la fuente del PADRE, no a la
       // altura de la caja: puesto asi, un subtitulo de 48 px salia a 0,7 px y

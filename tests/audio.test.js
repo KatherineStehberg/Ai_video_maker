@@ -181,6 +181,35 @@ test('el render con narración produce una pista AAC que cubre el video', { time
   } finally { limpiar(p); }
 });
 
+test('REGRESIÓN: el render monta la voz aunque no exista narration.wav', { timeout: 300000 }, async () => {
+  // Antes el render solo usaba un narration.wav hecho por el paso de
+  // narración. Renderizar sin ese paso (volver a montar, o exportar sin motor
+  // de voz) daba un MP4 MUDO aunque todas las escenas tuvieran su voz.
+  const p = await proyectoConVoz();
+  try {
+    const pista = path.join(workDir(p.id), 'narration.wav');
+    fs.rmSync(pista, { force: true });
+    assert.equal(fs.existsSync(pista), false);
+
+    const r = await renderProject(p, loadBrand(p.brand), { aspectRatio: '16:9', subtitlesPath: null });
+    const a = (await ffprobeJson(r.absolute)).streams.filter(s => s.codec_type === 'audio');
+    assert.equal(a.length, 1, 'la voz de las escenas tiene que llegar al MP4');
+    assert.ok((await nivel(r.absolute)).media > -40, 'y tiene que oírse');
+  } finally { limpiar(p); }
+});
+
+test('REGRESIÓN: un narration.wav viejo no se cuela si ya no hay voz', { timeout: 300000 }, async () => {
+  const p = await proyectoConVoz();
+  try {
+    await renderizar(p);                                   // deja un narration.wav con voz
+    for (const s of p.scenes) s.narrationPath = null;      // se quitan todas las voces
+    saveProject(p);
+    const r = await renderProject(p, loadBrand(p.brand), { aspectRatio: '16:9', subtitlesPath: null });
+    const a = (await ffprobeJson(r.absolute)).streams.filter(s => s.codec_type === 'audio');
+    assert.equal(a.length, 0, 'sin voces en las escenas, el MP4 no puede llevar la voz de antes');
+  } finally { limpiar(p); }
+});
+
 test('el render sin audio produce un MP4 válido y sin pista falsa', { timeout: 300000 }, async () => {
   const p = makeProject({
     title: 'Prueba sin audio', aspectRatio: '16:9', brand: 'personal',

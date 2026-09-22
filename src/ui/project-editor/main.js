@@ -262,8 +262,22 @@ function reproducir() {
     pintarReproductor();
     timeline.moverCabezal(s);
     timeline.seguir(s);
-    if (s.escenaSel !== escenaPintada) { escenaPintada = s.escenaSel; pintarPanel(); timeline.pintar(s); }
+    // Cambio de escena mientras suena: solo se mueve el resaltado. Reconstruir
+    // el panel y la linea de tiempo de un proyecto de 279 escenas bloqueaba la
+    // pagina casi un segundo en cada cambio. El panel completo se repinta al
+    // pausar (ver el boton Play).
+    if (s.escenaSel !== escenaPintada) { escenaPintada = s.escenaSel; marcarSeleccion(s.escenaSel); }
   }, 100);
+}
+
+/** Marca la escena en curso en la lista y en la linea de tiempo, sin redibujar. */
+function marcarSeleccion(index) {
+  for (const n of document.querySelectorAll('.escena-item[aria-current="true"], .tl-clip[aria-current="true"]')) {
+    n.removeAttribute('aria-current');
+  }
+  for (const n of document.querySelectorAll(`.escena-item[data-index="${index}"], .tl-clip[data-index="${index}"]`)) {
+    n.setAttribute('aria-current', 'true');
+  }
 }
 
 function pausar() {

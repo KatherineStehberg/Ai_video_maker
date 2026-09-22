@@ -363,3 +363,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .ed { grid-template-columns: var(--herr) 1fr; grid-template-areas: "top top" "herr escenario" "panel panel" "tl tl"; grid-template-rows: var(--top) 1fr 220px var(--tl); }
   .ed-panel { border-right: 0; border-top: 1px solid var(--linea); }
 }
+
+/* ---------------------------------------------------------- RENDIMIENTO
+   Con cientos de escenas, cada tic de la reproduccion recalculaba el estilo
+   y el layout de toda la lista y de toda la linea de tiempo. Estas reglas no
+   cambian nada de lo que se ve: le dicen al navegador que lo que esta fuera de
+   pantalla puede saltarse, y que cada zona se calcula por separado. */
+.escena-item { content-visibility: auto; contain-intrinsic-size: auto 74px; }
+.panel-cuerpo, .tl-scroll, .lienzo { contain: layout paint; }
+.tl-pista { contain: layout style; }
