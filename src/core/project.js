@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PATHS, ensureDir, rel } from '../lib/paths.js';
+import { PATHS, ensureDir, rel, abs } from '../lib/paths.js';
 import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js';
 import { ASPECTS } from '../config.js';
 import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
@@ -264,6 +264,23 @@ export function loadProject(id) {
   return makeProject({ ...raw, createdAt: raw.createdAt, updatedAt: raw.updatedAt });
 }
 
+const IMAGEN = /\.(jpe?g|png|webp|gif|bmp)$/i;
+
+/**
+ * Imagen con la que se reconoce un proyecto en una lista.
+ *
+ * Se elige la primera escena incluida que tenga una imagen EN DISCO: una ruta
+ * guardada cuyo archivo ya no esta daria un recuadro roto, que identifica aun
+ * peor que no poner nada.
+ */
+function miniaturaDe(p) {
+  for (const s of p.scenes || []) {
+    if (s.excluida || !s.assetPath || !IMAGEN.test(s.assetPath)) continue;
+    try { if (fs.existsSync(abs(s.assetPath))) return s.assetPath; } catch { /* sigue buscando */ }
+  }
+  return null;
+}
+
 export function listProjects() {
   ensureDir(PATHS.projects);
   return fs.readdirSync(PATHS.projects)
@@ -282,6 +299,10 @@ export function listProjects() {
           duration: Math.round(totalDuration(p)),
           outputs: p.outputs || {},
           updatedAt: p.updatedAt,
+          // MINIATURA: la imagen de la primera escena que tenga una. Es lo
+          // unico que permite reconocer un proyecto de un vistazo cuando hay
+          // doscientos y la mitad se llaman parecido.
+          thumbnail: miniaturaDe(p),
         };
       } catch {
         return null;

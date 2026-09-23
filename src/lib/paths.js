@@ -17,6 +17,9 @@ const fuera = (variable, pordefecto) => (
 );
 
 const PROYECTOS = fuera('AIVM_PROJECTS_DIR', path.join(ROOT, 'data', 'projects'));
+// Los trabajos de generacion son lo que sale en el inicio: si las pruebas los
+// escriben en data/, entierran los videos de verdad igual que los proyectos.
+const TRABAJOS = fuera('AIVM_JOBS_DIR', path.join(ROOT, 'data', 'video-generation'));
 const SALIDA = fuera('AIVM_OUTPUT_DIR', path.join(ROOT, 'output'));
 
 export const PATHS = {
@@ -26,6 +29,7 @@ export const PATHS = {
   data: path.join(ROOT, 'data'),
   brands: path.join(ROOT, 'data', 'brands'),
   projects: PROYECTOS,
+  trabajos: TRABAJOS,
   assets: path.join(ROOT, 'data', 'assets'),
   assetsImages: path.join(ROOT, 'data', 'assets', 'images'),
   assetsMusic: path.join(ROOT, 'data', 'assets', 'music'),

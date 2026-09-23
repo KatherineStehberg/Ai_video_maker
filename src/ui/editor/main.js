@@ -377,8 +377,13 @@ function pintarDescargas() {
 
 async function cargarProyectos() {
   try {
-    const { proyectos } = await api.listProjects();
-    $('proyectos-total').textContent = proyectos.length ? `${proyectos.length} guardados` : '';
+    const { proyectos, total, sinProyecto } = await api.listProjects();
+    // Se dice cuantos hay en total y cuantos intentos no llegaron a proyecto:
+    // esconder algo sin contarlo es lo que hace dudar de una lista.
+    $('proyectos-total').textContent = [
+      total ? `${proyectos.length} de ${total} guardados` : '',
+      sinProyecto ? `${sinProyecto} intentos sin proyecto` : '',
+    ].filter(Boolean).join(' · ');
     renderProjects($('proyectos-lista'), proyectos, { onAbrir: abrirProyecto, onVer: abrirProyecto });
   } catch (e) {
     renderProjects($('proyectos-lista'), [], {});

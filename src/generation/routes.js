@@ -1,6 +1,6 @@
 import { listProviders, defaultProvider } from '../providers/video-generation/index.js';
 import {
-  createJob, getJob, publicJob, draftJob, planJob, listJobs, resumeJob, regenerateScene,
+  createJob, getJob, publicJob, draftJob, planJob, listJobs, listHomeProjects, resumeJob, regenerateScene,
   FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX, SCRIPT_MAX_CHARS, MAX_ESCENAS,
 } from './jobs.js';
 import { HTTP_BODY_MAX, SCENE_TEXT_MAX, SCENE_DURATION_LIMITS } from './limits.js';
@@ -86,7 +86,7 @@ export async function generationRoute(req, res, url) {
 
     // Proyectos recientes, para la pantalla de inicio. No borra nada.
     if (req.method === 'GET' && parts[2] === 'projects' && parts.length === 3) {
-      reply(res, 200, { proyectos: listJobs({ limit: Number(url.searchParams.get('limit')) || 40 }) });
+      reply(res, 200, listHomeProjects({ limit: Number(url.searchParams.get('limit')) || 40 }));
       return true;
     }
 

@@ -23,6 +23,7 @@ const entorno = {
   ...process.env,
   AIVM_PROJECTS_DIR: path.join(raiz, '.tmp', 'test-data', 'projects'),
   AIVM_OUTPUT_DIR: path.join(raiz, '.tmp', 'test-data', 'output'),
+  AIVM_JOBS_DIR: path.join(raiz, '.tmp', 'test-data', 'video-generation'),
 };
 
 const args = process.argv.slice(2);

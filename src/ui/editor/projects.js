@@ -67,9 +67,21 @@ export function renderProjects(container, proyectos, { onAbrir, onVer } = {}) {
     const tarjeta = el('article', 'proyecto');
     tarjeta.dataset.id = p.id;
 
-    // Miniatura: sin fotograma guardado se muestra el tema, que ya identifica
-    // el proyecto mejor que un recuadro gris vacío.
-    const mini = el('div', 'proyecto-mini', p.titulo.slice(0, 60));
+    // MINIATURA. La imagen de la primera escena identifica el proyecto de un
+    // vistazo, que es justo lo que no se podía hacer con doscientas tarjetas
+    // iguales. Sin imagen se enseña el título: nunca un recuadro gris vacío.
+    const mini = el('div', 'proyecto-mini');
+    if (p.miniatura) {
+      const img = document.createElement('img');
+      img.src = p.miniatura;
+      img.alt = '';
+      img.loading = 'lazy';
+      // Si el archivo ya no está, se cae al título en vez de dejar el icono roto.
+      img.addEventListener('error', () => { img.remove(); mini.textContent = p.titulo.slice(0, 60); });
+      mini.append(img);
+    } else {
+      mini.textContent = p.titulo.slice(0, 60);
+    }
     tarjeta.append(mini);
 
     const cuerpo = el('div', 'proyecto-cuerpo');
