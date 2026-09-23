@@ -58,6 +58,18 @@ function lista(opciones, valor) {
   return s;
 }
 
+/** Como `lista`, pero para pares [valor, texto] ya preparados. */
+function lista2(pares, valor) {
+  const s = document.createElement('select');
+  for (const [v, t] of pares) {
+    const op = document.createElement('option');
+    op.value = v; op.textContent = t;
+    s.append(op);
+  }
+  s.value = valor;
+  return s;
+}
+
 function boton(texto, clase, alPulsar, { deshabilitado = false, proximamente = false, titulo = '' } = {}) {
   const b = el('button', `btn ${clase || ''}${proximamente ? ' proximamente' : ''}`.trim(), texto);
   b.type = 'button';
@@ -543,12 +555,63 @@ function bloqueMovimiento({ s, acc, e }) {
 
 // ====================================================================== AUDIO
 
+/**
+ * PANEL DE AUDIO, por pestañas.
+ *
+ * Son cuatro fuentes distintas y no caben a la vez en 300 px: narración,
+ * música, efectos y el audio original del video subido. Cada una tiene sus
+ * controles, y mezclarlas en una sola columna era lo que hacía imposible saber
+ * qué estaba sonando.
+ *
+ * Lo que se ve aquí es lo que llega al MP4: el backend arma la mezcla con el
+ * mismo plan (project-editor/audio.js), así que un bloque silenciado aquí es un
+ * bloque silenciado allí.
+ */
 export function panelAudio({ s, acc }) {
   const frag = document.createDocumentFragment();
   const p = proyectoVisible(s);
   if (!p) return frag;
 
-  // ---- narración ----
+  const mezcla = s.derivado?.linea?.mezcla;
+  const efectos = p.sfx || [];
+  const original = p.originalAudio || {};
+
+  const PESTANAS = [
+    { id: 'narracion', label: 'Narración' },
+    { id: 'musica', label: 'Música' },
+    { id: 'efectos', label: efectos.length ? `Efectos (${efectos.length})` : 'Efectos' },
+    // El audio original solo existe si la usuaria subió un video con sonido.
+    ...(original.path ? [{ id: 'original', label: 'Audio original' }] : []),
+  ];
+  const activa = PESTANAS.some(x => x.id === s.pestanaAudio) ? s.pestanaAudio : 'narracion';
+
+  const tabs = el('div', 'pestanas');
+  for (const t of PESTANAS) {
+    const b = el('button', 'pestana', t.label);
+    b.type = 'button';
+    b.setAttribute('aria-current', String(t.id === activa));
+    b.addEventListener('click', () => acc.pestanaAudio(t.id));
+    tabs.append(b);
+  }
+  frag.append(tabs);
+
+  // Cuántas pistas van a sonar de verdad. Es el dato que zanja la duda de «¿se
+  // oirá la música?» sin tener que exportar para comprobarlo.
+  if (mezcla) {
+    frag.append(el('p', 'mini', mezcla.hayAudio
+      ? `En el video sonarán ${mezcla.pistas} pista(s).`
+      : 'El video se exportará SIN pista de audio: no hay nada que suene.'));
+  }
+
+  if (activa === 'narracion') frag.append(bloqueNarracion({ s, acc, p }));
+  if (activa === 'musica') frag.append(bloqueMusica({ s, acc, p }));
+  if (activa === 'efectos') frag.append(bloqueEfectos({ s, acc, p }));
+  if (activa === 'original') frag.append(bloqueOriginal({ s, acc, original }));
+
+  return frag;
+}
+
+function bloqueNarracion({ s, acc, p }) {
   const voz = el('div', 'bloque');
   voz.append(el('h3', null, 'Narración'));
   const conVoz = s.derivado?.pistas?.narracion || 0;
@@ -569,18 +632,140 @@ export function panelAudio({ s, acc }) {
   const lblMudo = el('label', 'casilla');
   lblMudo.append(mudo, document.createTextNode('Silenciar la narración en el video'));
   voz.append(lblMudo);
-  frag.append(voz);
+  return voz;
+}
 
-  // ---- música ----
-  frag.append(bloqueMusica({ s, acc, p }));
+/**
+ * EFECTOS DE SONIDO elegidos por la usuaria.
+ *
+ * Ninguno se añade solo. Cada uno queda anclado a una escena y a un segundo
+ * dentro de ella, así que sigue en su sitio aunque cambien las duraciones de
+ * las escenas anteriores.
+ */
+function bloqueEfectos({ s, acc, p }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Efectos de sonido'));
 
-  // ---- efectos ----
-  const fx = el('div', 'bloque');
-  fx.append(el('h3', null, 'Efectos de sonido'));
-  fx.append(el('p', 'ayuda', s.capacidades?.pendiente?.efectos || 'No hay pista de efectos de sonido.'));
-  frag.append(fx);
+  const escenas = escenasVisibles(s);
+  const nombreEscena = (id) => {
+    const i = escenas.findIndex(e => e.id === id);
+    return i < 0 ? 'sin escena' : `escena ${escenas[i].numero}`;
+  };
 
-  return frag;
+  const lista = p.sfx || [];
+  if (!lista.length) {
+    caja.append(el('p', 'mini', 'Este video no tiene efectos de sonido.'));
+  }
+
+  for (const fx of lista) {
+    const item = el('div', 'fx-item');
+    item.append(el('strong', null, fx.titulo || fx.path.split('/').pop()));
+    item.append(el('p', 'mini', [
+      nombreEscena(fx.sceneId),
+      `empieza en ${Number(fx.start || 0).toFixed(1)} s`,
+      fx.credit?.licencia || 'sin licencia declarada',
+    ].join(' · ')));
+
+    const a = document.createElement('audio');
+    a.src = `/file?path=${encodeURIComponent(fx.path)}`;
+    a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    item.append(a);
+
+    // A qué escena se ancla. Cambiarla lo mueve con ella.
+    const sel = lista2(escenas.map(e => [e.id, `Escena ${e.numero}`]), fx.sceneId || '');
+    sel.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'sceneId', sel.value));
+    item.append(campo('Escena', sel));
+
+    const ini = entrada({ tipo: 'number', min: 0, max: 600, step: 0.1, valor: fx.start ?? 0 });
+    ini.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'start', Number(ini.value)));
+    item.append(campo('Segundo dentro de la escena', ini));
+
+    const vol = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: fx.volume ?? 0.6 });
+    const volTexto = el('span', 'mini', `${Math.round((fx.volume ?? 0.6) * 100)} %`);
+    vol.addEventListener('input', () => { volTexto.textContent = `${Math.round(vol.value * 100)} %`; });
+    vol.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'volume', Number(vol.value)));
+    item.append(campo('Volumen', vol));
+    item.append(volTexto);
+
+    const mudo = entrada({ tipo: 'checkbox' });
+    mudo.checked = fx.enabled === false;
+    mudo.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'enabled', !mudo.checked));
+    const lbl = el('label', 'casilla');
+    lbl.append(mudo, document.createTextNode('Silenciar este efecto'));
+    item.append(lbl);
+
+    item.append(boton('Quitar', 'btn-mini btn-peligro', () => acc.quitarEfecto(fx.id)));
+    caja.append(item);
+  }
+
+  caja.append(boton(s.biblioteca?.efectos?.abierta ? 'Cerrar biblioteca' : 'Agregar efecto',
+    'btn-mini btn-principal', () => acc.abrirEfectos()));
+
+  const b = s.biblioteca?.efectos || {};
+  if (b.abierta) caja.append(bibliotecaEfectos({ b, acc }));
+  return caja;
+}
+
+/** Biblioteca local de efectos. Solo se ofrecen los que declaran licencia. */
+function bibliotecaEfectos({ b, acc }) {
+  const caja = el('div', 'biblio-musica');
+
+  const q = entrada({ tipo: 'search', valor: b.consulta || '', placeholder: 'campana, golpe, whoosh…' });
+  q.addEventListener('input', () => acc.fijarConsulta('efectos', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarEfectos(q.value, b.categoria || ''); } });
+
+  const cats = [['', 'Todas las categorías'], ...(b.categorias || []).map(c => [c.id, c.label])];
+  const cat = lista2(cats, b.categoria || '');
+  cat.addEventListener('change', () => acc.buscarEfectos(q.value, cat.value));
+
+  const rej = el('div', 'rejilla-2');
+  rej.append(campo('Buscar', q), campo('Categoría', cat));
+  caja.append(rej);
+
+  if (b.motivo) caja.append(vacio(b.motivo));
+
+  for (const e of b.efectos || []) {
+    const t = el('div', 'musica-tarjeta');
+    t.append(el('strong', null, e.titulo));
+    t.append(el('p', 'mini', [
+      e.duracion ? `${e.duracion.toFixed(1)} s` : null, e.formato, e.categoria,
+    ].filter(Boolean).join(' · ')));
+    t.append(el('p', 'mini', `${e.licencia} · ${e.fuente}`));
+    const a = document.createElement('audio');
+    a.src = e.url; a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    a.addEventListener('play', () => { for (const o of document.querySelectorAll('.musica-tarjeta audio')) if (o !== a) o.pause(); });
+    t.append(a);
+    t.append(boton('Usar', 'btn-mini btn-principal', () => acc.usarEfecto(e)));
+    caja.append(t);
+  }
+
+  if (b.rechazadas?.length) {
+    caja.append(el('p', 'ayuda',
+      `${b.rechazadas.length} archivo(s) de la carpeta no se ofrecen por no tener licencia declarada.`));
+  }
+  return caja;
+}
+
+/** Audio del video que subió la usuaria. Solo aparece si existe. */
+function bloqueOriginal({ s, acc, original }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Audio original del video'));
+  caja.append(el('p', 'mini', original.path.split('/').pop()));
+
+  const usar = entrada({ tipo: 'checkbox' });
+  usar.checked = original.enabled === true;
+  usar.addEventListener('change', () => acc.cambiar('originalAudio.enabled', usar.checked));
+  const lbl = el('label', 'casilla');
+  lbl.append(usar, document.createTextNode('Usar el audio original en el video'));
+  caja.append(lbl);
+
+  const vol = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: original.volume ?? 0.8 });
+  const volTexto = el('span', 'mini', `${Math.round((original.volume ?? 0.8) * 100)} %`);
+  vol.addEventListener('input', () => { volTexto.textContent = `${Math.round(vol.value * 100)} %`; });
+  vol.addEventListener('change', () => acc.cambiar('originalAudio.volume', Number(vol.value)));
+  caja.append(campo('Volumen', vol));
+  caja.append(volTexto);
+  return caja;
 }
 
 /** Segundos -> "1:05". */

@@ -211,6 +211,9 @@ const EXT_AUDIO = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac', '.op
 export const dirMusica = () => PATHS.assetsMusic;
 export const dirSfx = () => PATHS.assetsSfx;
 
+/** Texto comparable: sin mayusculas y sin acentos, para buscar como se habla. */
+const normalizar = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
 /**
  * Proveedores de musica. Hoy solo existe el local.
  *

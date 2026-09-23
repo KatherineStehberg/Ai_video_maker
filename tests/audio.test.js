@@ -132,7 +132,12 @@ test('cada escena con voz lleva la URL de su audio para la vista previa', async 
     const d = derivar(loadProject(p.id));
     for (const e of d.escenas) {
       assert.ok(e.narracion?.url, `la escena ${e.numero} no expone su voz`);
-      assert.match(e.narracion.url, /^\/file\?path=output/);
+      // Se comprueba que apunta al WAV de esa escena dentro de los
+      // intermedios, no la carpeta concreta: la raíz de salida se puede mover
+      // con AIVM_OUTPUT_DIR, y las pruebas la mueven para no escribir sobre el
+      // trabajo real.
+      assert.match(e.narracion.url, /^\/file\?path=/);
+      assert.match(decodeURIComponent(e.narracion.url), /drafts.+audio.+\.wav$/);
       assert.equal(e.tieneNarracion, true);
     }
     assert.equal(d.audio.narracion.escenasConVoz, 3);

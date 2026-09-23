@@ -1,6 +1,13 @@
 /**
  * Lanzador de las pruebas, con los datos APARTE de los tuyos.
  *
+ * NO puede llamarse `test.mjs`: el propio `node --test` considera archivo de
+ * prueba a todo lo que se llame asi, con lo que se ejecutaria a si mismo y
+ * lanzaria otro `node --test`, y ese otro, y otro. Se convirtio en una bomba
+ * de procesos (230 nodes en dos minutos) antes de que nada llegara a fallar.
+ * Por lo mismo se le pasan las rutas explicitas: sin ellas el runner rastrea
+ * el repositorio entero, incluida .tmp/.
+ *
  * Las pruebas crean proyectos de verdad («Clase de prueba», «TEST técnico de
  * estudio»…) y hasta ahora los escribian en data/projects, junto a los
  * proyectos reales. Como la lista del editor ordena por fecha, cada ejecucion
@@ -29,7 +36,7 @@ const entorno = {
 const args = process.argv.slice(2);
 const hijo = spawn(
   process.execPath,
-  ['--test', '--test-concurrency=1', ...(args.length ? args : [])],
+  ['--test', '--test-concurrency=1', ...(args.length ? args : ['tests/'])],
   { cwd: raiz, env: entorno, stdio: 'inherit' },
 );
 hijo.on('exit', code => process.exit(code ?? 1));

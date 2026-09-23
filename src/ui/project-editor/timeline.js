@@ -126,7 +126,10 @@ export function crearTimeline({ nombres, pistas, regla, cabezal, scroll, lienzo,
         // La musica se decide sobre el proyecto VISIBLE: elegir una pista la
         // muestra ya, antes de guardar. Silenciada sigue a la vista, marcada.
         { id: 'musica', nombre: 'Música', color: 'var(--p-musica)', cuenta: proyectoVisible(s)?.music?.path ? 1 : 0 },
-        { id: 'cortes', nombre: 'Cortes', color: 'var(--linea-fuerte)', cuenta: Math.max(0, escenas.length - 1) },
+        // Efectos y transiciones se leen del proyecto VISIBLE, como la musica:
+        // lo que se acaba de elegir se ve antes de guardar.
+        { id: 'efectos', nombre: 'Efectos', color: 'var(--p-texto)', cuenta: (proyectoVisible(s)?.sfx || []).length },
+        { id: 'cortes', nombre: 'Cortes y transiciones', color: 'var(--linea-fuerte)', cuenta: Math.max(0, escenas.length - 1) },
       ].filter(p => p.cuenta > 0);
 
       nombres.replaceChildren();
@@ -165,6 +168,11 @@ export function crearTimeline({ nombres, pistas, regla, cabezal, scroll, lienzo,
       if (x < izq + 40 || x > der - 40) scroll.scrollLeft = Math.max(0, x - scroll.clientWidth / 2);
     },
   };
+}
+
+/** Nombre legible de una transición, según el catálogo que dio el backend. */
+function nombreTransicion(s, tipo) {
+  return (s.capacidades?.transiciones || []).find(x => x.id === tipo)?.label || tipo;
 }
 
 function pintarPista(pista, def, { s, escenas, pxSeg, duracion, ondas, onSeleccionar }) {
@@ -241,15 +249,61 @@ function pintarPista(pista, def, { s, escenas, pxSeg, duracion, ondas, onSelecci
     });
     if (m.enabled === false) c.style.opacity = '.45';
     pista.append(c);
+  } else if (def.id === 'efectos') {
+    const escenaPorId = new Map(escenas.map(e => [e.id, e]));
+    for (const fx of proyectoVisible(s)?.sfx || []) {
+      const escena = escenaPorId.get(fx.sceneId);
+      // Un efecto anclado a una escena excluida no suena; se marca aparte.
+      const fuera = !escena || escena.excluida;
+      const inicio = fuera ? 0 : escena.start + (Number(fx.start) || 0);
+      // Sin duracion declarada el efecto suena entero; no se sabe cuanto dura
+      // sin leer el archivo, asi que se dibuja un bloque MINIMO y se dice.
+      const largo = Number(fx.duration) || 0.4;
+      const nombre = fx.titulo || String(fx.path || '').split('/').pop();
+      const c = clip(inicio, largo, {
+        titulo: fuera
+          ? `${nombre} · su escena está excluida: no sonará`
+          : `${nombre} · ${reloj(inicio)} · ${Math.round((fx.volume ?? 0.6) * 100)} %`
+            + (fx.credit?.licencia ? ` · ${fx.credit.licencia}` : ' · SIN LICENCIA')
+            + (fx.duration ? '' : ' · suena entero'),
+        color: 'var(--p-texto)',
+        // Sin analizar el archivo no hay onda real, y no se pinta ninguna falsa.
+        onda: null, sinOnda: true,
+      });
+      // Un bloque de 0,4 s es casi invisible con el zoom bajo: se le da un
+      // ancho minimo para poder verlo y pulsarlo.
+      c.style.minWidth = '6px';
+      if (fuera || fx.enabled === false) c.style.opacity = '.45';
+      pista.append(c);
+    }
   } else if (def.id === 'cortes') {
     for (const e of escenas.slice(1)) {
-      const marca = el('div', 'tl-clip');
-      marca.style.left = `${e.start * pxSeg}px`;
-      marca.style.width = '2px';
-      marca.style.background = 'var(--tinta-tenue)';
-      marca.title = `Corte en ${reloj(e.start)}`;
-      marca.addEventListener('click', () => onSeleccionar?.(e.index));
-      pista.append(marca);
+      const t = e.transition;
+      const activa = t && t.type !== 'none' && t.enabled !== false && t.duration > 0;
+
+      if (!activa) {
+        const marca = el('div', 'tl-clip');
+        marca.style.left = `${e.start * pxSeg}px`;
+        marca.style.width = '2px';
+        marca.style.background = 'var(--tinta-tenue)';
+        marca.title = `Corte seco en ${reloj(e.start)}`;
+        marca.addEventListener('click', () => onSeleccionar?.(e.index));
+        pista.append(marca);
+        continue;
+      }
+
+      // La transicion SE SOLAPA con el final de la escena anterior y el
+      // principio de esta: por eso el bloque va centrado en la frontera y no
+      // anadido detras. El video no se alarga por ponerla.
+      const etiqueta = nombreTransicion(s, t.type);
+      const bloque = clip(Math.max(0, e.start - t.duration / 2), t.duration, {
+        titulo: `${etiqueta} · ${t.duration.toFixed(2)} s · entra la escena ${e.numero}`,
+        color: 'var(--marca)', onda: null, sinOnda: true,
+      });
+      bloque.style.minWidth = '8px';
+      bloque.dataset.transicion = t.type;
+      bloque.addEventListener('click', () => onSeleccionar?.(e.index));
+      pista.append(bloque);
     }
   }
 }
