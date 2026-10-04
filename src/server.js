@@ -3,6 +3,7 @@ import { studioRoute } from './studio/routes.js';
 import { analysisRoute } from './analysis/routes.js';
 import { editsRoute } from './edits/routes.js';
 import { generationRoute } from './generation/routes.js';
+import { courseProductionRoute, startCourseProduction } from './course-production/index.js';
 import { projectEditorRoute } from './project-editor/routes.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -416,6 +417,7 @@ export function createServer() {
       if (await analysisRoute(req, res, url)) return;
       if (await editsRoute(req, res, url)) return;
       if (await generationRoute(req, res, url)) return;
+      if (await courseProductionRoute(req, res, url)) return;
       if (await projectEditorRoute(req, res, url)) return;
       if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
 
@@ -446,11 +448,13 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve
 if (isMain) {
   const server = createServer();
   server.listen(CONFIG.port, CONFIG.host, async () => {
+    startCourseProduction(server);
     const ff = await resolveFfmpeg();
     console.log('');
     console.log('  AI_Video_Maker');
     console.log(`  UI:      http://${CONFIG.host}:${CONFIG.port}`);
     console.log(`  API:     http://${CONFIG.host}:${CONFIG.port}/api/health`);
+    console.log(`  Cursos:  http://${CONFIG.host}:${CONFIG.port}/course-production.html`);
     console.log(`  FFmpeg:  ${ff.available ? ff.ffmpeg : 'NO DISPONIBLE -> npm run doctor'}`);
     console.log(`  LLM:     ${CONFIG.llm.provider}   TTS: ${CONFIG.tts.provider}`);
     console.log('');

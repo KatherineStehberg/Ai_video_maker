@@ -4,6 +4,7 @@ data/jobs/
 data/studio-imports/
 data/video-edits/
 data/video-generation/
+data/course-production/
 .env
 .env.local
 *.key

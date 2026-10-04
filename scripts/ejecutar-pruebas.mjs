@@ -28,6 +28,7 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const entorno = {
   ...process.env,
+  COURSE_PRODUCTION_ENABLED: '0',
   AIVM_PROJECTS_DIR: path.join(raiz, '.tmp', 'test-data', 'projects'),
   AIVM_OUTPUT_DIR: path.join(raiz, '.tmp', 'test-data', 'output'),
   AIVM_JOBS_DIR: path.join(raiz, '.tmp', 'test-data', 'video-generation'),

@@ -6,6 +6,7 @@ import { buildNarrationTrack } from '../../core/tts.js';
 import { draftScript, escenasAGuion } from '../../generation/script.js';
 import { contarPalabras, WPM_POR_DEFECTO, formatearDuracion } from '../../generation/segmenter.js';
 import { vozDisponible } from '../../generation/voice.js';
+import { listAllVoices } from '../tts/index.js';
 import { abs } from '../../lib/paths.js';
 import { ffmpegRun, probeDuration } from '../../lib/ffmpeg.js';
 import { ASPECTS } from '../../config.js';
@@ -186,13 +187,22 @@ export const pipelineProvider = {
 
     // Voz: se busca una española entre las instaladas. Si no hay, se avisa y
     // se narra igualmente, pero nunca en silencio sobre el problema.
-    const voz = await vozDisponible();
+    let voz = await vozDisponible();
     const vozPedida = spec.voice || null;
+    if (vozPedida?.name && vozPedida.enabled !== false) {
+      const selected = (await listAllVoices()).find(v => v.name === vozPedida.name &&
+        (!vozPedida.provider || vozPedida.provider === 'auto' || v.provider === vozPedida.provider));
+      if (selected) voz = { ...voz, nombre: selected.name, provider: selected.provider,
+        etiqueta: selected.language, esEspanol: /^es/i.test(selected.language || ''), aviso: null };
+    }
     const musica = spec.musicTrack || null;
     const subtitulos = spec.subtitles || { enabled: true, burnIn: true };
 
     const project = previo || makeProject({
       title: spec.title || borrador.tema || String(spec.prompt || '').slice(0, 60) || 'Video',
+      // Keep the project's base language aligned with the prepared narration.
+      // Otherwise resolveVoices may replace an English voice with Spanish.
+      language: subtitulos.language,
       // La marca es configuración del proyecto, no una constante del código.
       brand: spec.brandId || 'personal',
       template,

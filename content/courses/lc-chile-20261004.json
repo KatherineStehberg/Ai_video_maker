@@ -1,0 +1,1863 @@
+{
+  "version": "1.0.0",
+  "preparedAt": "2026-10-04",
+  "owner": "Katherine Stehberg",
+  "reviewGate": "final_video_edit",
+  "execution": "local_pipeline",
+  "recordingsProduced": false,
+  "items": [
+    {
+      "id": "RPM-2026-001",
+      "title": "Asynchronous Communication & Team Chat Etiquette",
+      "language": "en",
+      "script": "You send a message on Slack. Three hours later, the reply is: Which file? This lesson will help you write complete messages so a colleague can understand and act without unnecessary back and forth. Asynchronous communication means exchanging information without expecting an immediate reply. The goal is not to write more. It is to provide enough context the first time.\n\nUse five parts: greeting, context, clear request, time expectation, and next step. Listen to this example. Hi Ana. Could you send me the Q3 report? I need it by three PM today for the budget presentation. Let me know if the timing is an issue. The reader knows which report, why it matters, when it is needed, and what to do if there is a problem.\n\nDirectness depends on urgency, your relationship, hierarchy, and the situation. Send me the file may sound sharper than you intend. Could you please send me the file when you have a moment is more diplomatic. For account access, use the approved access process rather than asking someone to share a password. To request an update, say: Just checking in on the report. Could you share your estimated completion time today?\n\nA blocker prevents work from moving forward. Report it early, name what you are waiting for, and give a revised estimated completion time. Here is a simulated example. I am currently waiting on the pricing information before I can complete the proposal. My revised ETA is tomorrow afternoon. I will update you when the figures arrive. This describes the problem and the next step without blaming a colleague.\n\nETA means estimated time of arrival; in a task update it often means when you expect to finish. EOD means end of day. State a time zone when it could be unclear. OOO means out of office. WFH means working from home. FYI means for your information. Keeping someone in the loop means keeping them informed. Use these expressions only when your audience understands them.\n\nPause the video. Rewrite this message: Hi. Need the report. Add a specific report, purpose, deadline, and next step. Use a fictional workplace situation. Read your message aloud. Can the recipient act without asking which report or when? Before sending, check the purpose, context, time expectation, tone, and any blocker. Complete the matching practice lesson in the course. You can repeat the exercise at your own pace.",
+      "scriptSha256": "e1fc2607dc6d7048a739e3c7a1115101f986a730c7ee66322067c26def455ce5",
+      "sections": [
+        {
+          "heading": "The problem",
+          "narration": "You send a message on Slack. Three hours later, the reply is: Which file? This lesson will help you write complete messages so a colleague can understand and act without unnecessary back and forth. Asynchronous communication means exchanging information without expecting an immediate reply. The goal is not to write more. It is to provide enough context the first time."
+        },
+        {
+          "heading": "A complete message",
+          "narration": "Use five parts: greeting, context, clear request, time expectation, and next step. Listen to this example. Hi Ana. Could you send me the Q3 report? I need it by three PM today for the budget presentation. Let me know if the timing is an issue. The reader knows which report, why it matters, when it is needed, and what to do if there is a problem."
+        },
+        {
+          "heading": "Professional tone",
+          "narration": "Directness depends on urgency, your relationship, hierarchy, and the situation. Send me the file may sound sharper than you intend. Could you please send me the file when you have a moment is more diplomatic. For account access, use the approved access process rather than asking someone to share a password. To request an update, say: Just checking in on the report. Could you share your estimated completion time today?"
+        },
+        {
+          "heading": "Report a blocker",
+          "narration": "A blocker prevents work from moving forward. Report it early, name what you are waiting for, and give a revised estimated completion time. Here is a simulated example. I am currently waiting on the pricing information before I can complete the proposal. My revised ETA is tomorrow afternoon. I will update you when the figures arrive. This describes the problem and the next step without blaming a colleague."
+        },
+        {
+          "heading": "Useful vocabulary",
+          "narration": "ETA means estimated time of arrival; in a task update it often means when you expect to finish. EOD means end of day. State a time zone when it could be unclear. OOO means out of office. WFH means working from home. FYI means for your information. Keeping someone in the loop means keeping them informed. Use these expressions only when your audience understands them."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Pause the video. Rewrite this message: Hi. Need the report. Add a specific report, purpose, deadline, and next step. Use a fictional workplace situation. Read your message aloud. Can the recipient act without asking which report or when? Before sending, check the purpose, context, time expectation, tone, and any blocker. Complete the matching practice lesson in the course. You can repeat the exercise at your own pace."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "You send a message on Slack. Three hours later, the reply is: Which file? This lesson will help you write complete messages so a colleague can understand and act without unnecessary back and forth. Asynchronous communication means exchanging information without expecting an immediate reply. The goal is not to write more. It is to provide enough context the first time.",
+          "onScreenTitle": "The problem",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.65,
+          "seccion": "The problem"
+        },
+        {
+          "role": "point",
+          "text": "Use five parts: greeting, context, clear request, time expectation, and next step. Listen to this example. Hi Ana. Could you send me the Q3 report? I need it by three PM today for the budget presentation. Let me know if the timing is an issue. The reader knows which report, why it matters, when it is needed, and what to do if there is a problem.",
+          "onScreenTitle": "A complete message",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.78,
+          "seccion": "A complete message"
+        },
+        {
+          "role": "point",
+          "text": "Directness depends on urgency, your relationship, hierarchy, and the situation. Send me the file may sound sharper than you intend. Could you please send me the file when you have a moment is more diplomatic. For account access, use the approved access process rather than asking someone to share a password. To request an update, say: Just checking in on the report. Could you share your estimated completion time today?",
+          "onScreenTitle": "Professional tone",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 36.87,
+          "seccion": "Professional tone"
+        },
+        {
+          "role": "point",
+          "text": "A blocker prevents work from moving forward. Report it early, name what you are waiting for, and give a revised estimated completion time. Here is a simulated example. I am currently waiting on the pricing information before I can complete the proposal. My revised ETA is tomorrow afternoon. I will update you when the figures arrive. This describes the problem and the next step without blaming a colleague.",
+          "onScreenTitle": "Report a blocker",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.83,
+          "seccion": "Report a blocker"
+        },
+        {
+          "role": "point",
+          "text": "ETA means estimated time of arrival; in a task update it often means when you expect to finish. EOD means end of day. State a time zone when it could be unclear. OOO means out of office. WFH means working from home. FYI means for your information. Keeping someone in the loop means keeping them informed. Use these expressions only when your audience understands them.",
+          "onScreenTitle": "Useful vocabulary",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.26,
+          "seccion": "Useful vocabulary"
+        },
+        {
+          "role": "point",
+          "text": "Pause the video. Rewrite this message: Hi. Need the report. Add a specific report, purpose, deadline, and next step. Use a fictional workplace situation. Read your message aloud. Can the recipient act without asking which report or when? Before sending, check the purpose, context, time expectation, tone, and any blocker. Complete the matching practice lesson in the course. You can repeat the exercise at your own pace.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.31,
+          "seccion": "Pause and practise"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-001-VIDEO-SCRIPT-v01-Asynchronous-Communication-amp-Team-o027h1fc8i8rdej"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-001",
+        "moduleName": "Asynchronous Communication & Team Chat Etiquette",
+        "lessonNumber": 1,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-002",
+      "title": "Remote Work Foundations",
+      "language": "en",
+      "script": "It is your first day working remotely for an international company. Your manager sends a video call link. How do you introduce yourself with confidence? In this lesson you will describe your role, responsibilities, tools, and routine, and ask useful onboarding questions.\n\nRemote work means working outside a traditional office. A distributed team has members in different locations. Onboarding is the process of integrating a new employee. A check-in is a brief meeting or message to share updates. A deadline is when a task must be completed. A deliverable is the completed output you provide to a colleague, client, or manager.\n\nUse work as for a job title: I work as a UX designer. Use work in for a field: I work in marketing. Use work for for an employer: I work for a remote-first startup. To describe responsibilities, say: I am responsible for generating weekly reports. To describe a routine, use: I usually start work at nine and review my tasks first.\n\nListen to a fictional example. Hi everyone, nice to meet you. My name is Valentina Torres, and I am a data analyst at a fintech company based in Santiago. I work remotely with a distributed team. I am responsible for generating weekly performance reports and supporting the business intelligence team. I usually start my day by reviewing my tasks and joining a check-in with my manager. I am excited to be part of this project. Notice the sequence: name, role, company, responsibilities, routine, and positive closing.\n\nYou do not need to understand everything immediately. Ask: Could you tell me more about my responsibilities? What tools does the team use? Who should I contact if I have a question? Close with: I am looking forward to working with the team. These questions help clarify expectations while keeping a professional tone.\n\nComplete this sentence: I work blank a content writer blank a digital marketing agency. Pause before listening to the answer. The answer is: I work as a content writer for a digital marketing agency. Do not say I work in a project manager. Say I work as a project manager. Do not say responsible of. Say responsible for. With I, say I usually start, not I usually starts.\n\nWrite a short remote work profile with four parts: who you are, your responsibilities, your tools, and your daily routine. Use at least three structures from this lesson. Record yourself reading it, then check that the role and responsibilities are clear. Keep it with your course practice work. Continue through the curriculum at your own pace; no live attendance is required for this activity.",
+      "scriptSha256": "64eaabfbe0d658cfa377c9769b6b5bea30f2c450e86f7eba9c7d929a53a31a8f",
+      "sections": [
+        {
+          "heading": "Your first day",
+          "narration": "It is your first day working remotely for an international company. Your manager sends a video call link. How do you introduce yourself with confidence? In this lesson you will describe your role, responsibilities, tools, and routine, and ask useful onboarding questions."
+        },
+        {
+          "heading": "Remote vocabulary",
+          "narration": "Remote work means working outside a traditional office. A distributed team has members in different locations. Onboarding is the process of integrating a new employee. A check-in is a brief meeting or message to share updates. A deadline is when a task must be completed. A deliverable is the completed output you provide to a colleague, client, or manager."
+        },
+        {
+          "heading": "As, in, and for",
+          "narration": "Use work as for a job title: I work as a UX designer. Use work in for a field: I work in marketing. Use work for for an employer: I work for a remote-first startup. To describe responsibilities, say: I am responsible for generating weekly reports. To describe a routine, use: I usually start work at nine and review my tasks first."
+        },
+        {
+          "heading": "Model introduction",
+          "narration": "Listen to a fictional example. Hi everyone, nice to meet you. My name is Valentina Torres, and I am a data analyst at a fintech company based in Santiago. I work remotely with a distributed team. I am responsible for generating weekly performance reports and supporting the business intelligence team. I usually start my day by reviewing my tasks and joining a check-in with my manager. I am excited to be part of this project. Notice the sequence: name, role, company, responsibilities, routine, and positive closing."
+        },
+        {
+          "heading": "Onboarding questions",
+          "narration": "You do not need to understand everything immediately. Ask: Could you tell me more about my responsibilities? What tools does the team use? Who should I contact if I have a question? Close with: I am looking forward to working with the team. These questions help clarify expectations while keeping a professional tone."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Complete this sentence: I work blank a content writer blank a digital marketing agency. Pause before listening to the answer. The answer is: I work as a content writer for a digital marketing agency. Do not say I work in a project manager. Say I work as a project manager. Do not say responsible of. Say responsible for. With I, say I usually start, not I usually starts."
+        },
+        {
+          "heading": "Your profile",
+          "narration": "Write a short remote work profile with four parts: who you are, your responsibilities, your tools, and your daily routine. Use at least three structures from this lesson. Record yourself reading it, then check that the role and responsibilities are clear. Keep it with your course practice work. Continue through the curriculum at your own pace; no live attendance is required for this activity."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "It is your first day working remotely for an international company. Your manager sends a video call link. How do you introduce yourself with confidence? In this lesson you will describe your role, responsibilities, tools, and routine, and ask useful onboarding questions.",
+          "onScreenTitle": "Your first day",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 22.26,
+          "seccion": "Your first day"
+        },
+        {
+          "role": "point",
+          "text": "Remote work means working outside a traditional office. A distributed team has members in different locations. Onboarding is the process of integrating a new employee. A check-in is a brief meeting or message to share updates. A deadline is when a task must be completed. A deliverable is the completed output you provide to a colleague, client, or manager.",
+          "onScreenTitle": "Remote vocabulary",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.13,
+          "seccion": "Remote vocabulary"
+        },
+        {
+          "role": "point",
+          "text": "Use work as for a job title: I work as a UX designer. Use work in for a field: I work in marketing. Use work for for an employer: I work for a remote-first startup. To describe responsibilities, say: I am responsible for generating weekly reports. To describe a routine, use: I usually start work at nine and review my tasks first.",
+          "onScreenTitle": "As, in, and for",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 32.7,
+          "seccion": "As, in, and for"
+        },
+        {
+          "role": "point",
+          "text": "Listen to a fictional example. Hi everyone, nice to meet you. My name is Valentina Torres, and I am a data analyst at a fintech company based in Santiago. I work remotely with a distributed team. I am responsible for generating weekly performance reports and supporting the business intelligence team. I usually start my day by reviewing my tasks and joining a check-in with my manager. I am excited to be part of this project. Notice the sequence: name, role, company, responsibilities, routine, and positive closing.",
+          "onScreenTitle": "Model introduction",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 45.22,
+          "seccion": "Model introduction"
+        },
+        {
+          "role": "point",
+          "text": "You do not need to understand everything immediately. Ask: Could you tell me more about my responsibilities? What tools does the team use? Who should I contact if I have a question? Close with: I am looking forward to working with the team. These questions help clarify expectations while keeping a professional tone.",
+          "onScreenTitle": "Onboarding questions",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.0,
+          "seccion": "Onboarding questions"
+        },
+        {
+          "role": "point",
+          "text": "Complete this sentence: I work blank a content writer blank a digital marketing agency. Pause before listening to the answer. The answer is: I work as a content writer for a digital marketing agency. Do not say I work in a project manager. Say I work as a project manager. Do not say responsible of. Say responsible for. With I, say I usually start, not I usually starts.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.83,
+          "seccion": "Pause and practise"
+        },
+        {
+          "role": "point",
+          "text": "Write a short remote work profile with four parts: who you are, your responsibilities, your tools, and your daily routine. Use at least three structures from this lesson. Record yourself reading it, then check that the role and responsibilities are clear. Keep it with your course practice work. Continue through the curriculum at your own pace; no live attendance is required for this activity.",
+          "onScreenTitle": "Your profile",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.74,
+          "seccion": "Your profile"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-002-VIDEO-SCRIPT-v01-Remote-Work-Foundations-ulqt5iowo85mn48"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-002",
+        "moduleName": "Remote Work Foundations",
+        "lessonNumber": 2,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-003",
+      "title": "AI & Productivity",
+      "language": "en",
+      "script": "You have five minutes to write a status update for an international team. Could AI help you prepare a draft while keeping the message accurate? This lesson introduces vocabulary and structures for describing AI tools, writing prompts, and reviewing results. You remain responsible for the final message.\n\nA prompt is an instruction you give to an AI tool. Productivity concerns the efficiency of work output. To automate is to make a task happen with less manual effort. A workflow is the sequence of steps used to complete a task. AI-assisted means supported by AI. A draft is a first version of a text, before final review.\n\nListen to three useful patterns. I use ChatGPT to draft emails for my clients. It helps me save time on weekly reports. You can automate repetitive tasks like data entry. After I, use the base form: I use. With it, use helps. After can, use automate, not automation. Could, should, and might can help you make suggestions politely.\n\nA strong prompt gives a task, context, and format. Write an email is too vague. A stronger instruction is: Write a short, polite email to a client explaining a two-day delivery delay. Keep it under one hundred words. The task is an email, the context is a delivery delay, and the format includes tone and length. Add only information you are allowed to share.\n\nFor a simulated weekly status update, give the project name, current phase, progress, blockers, and next steps. Ask the tool to use a professional tone for an international audience. Then compare every claim with your notes. Correct dates, names, missing actions, and unsupported achievements. Ask for a revision if the output is too long or unclear. A fluent sentence is not evidence that its content is true.\n\nImprove one weak prompt: Make a report, Fix this text, or Give me ideas. Pause and use this structure: Write a type of text for an audience, about a topic, in a specified tone and length. Use a fictional example rather than confidential company data. Read the prompt again. Would another person understand the requested task and output?\n\nChoose a meeting summary, follow-up message, or task checklist. Write a prompt in English, generate a draft if you have access to an approved tool, and document one improvement you made during review. Complete the AI and Productivity practice lesson and its knowledge check. Keep both the prompt and the revised text so you can see the difference between a generated draft and your final decision.",
+      "scriptSha256": "735c54e8c1ba759d8e7d459ddb8670465e34695769628e82858660c808fbaa65",
+      "sections": [
+        {
+          "heading": "Work with AI",
+          "narration": "You have five minutes to write a status update for an international team. Could AI help you prepare a draft while keeping the message accurate? This lesson introduces vocabulary and structures for describing AI tools, writing prompts, and reviewing results. You remain responsible for the final message."
+        },
+        {
+          "heading": "Key vocabulary",
+          "narration": "A prompt is an instruction you give to an AI tool. Productivity concerns the efficiency of work output. To automate is to make a task happen with less manual effort. A workflow is the sequence of steps used to complete a task. AI-assisted means supported by AI. A draft is a first version of a text, before final review."
+        },
+        {
+          "heading": "Describe the benefit",
+          "narration": "Listen to three useful patterns. I use ChatGPT to draft emails for my clients. It helps me save time on weekly reports. You can automate repetitive tasks like data entry. After I, use the base form: I use. With it, use helps. After can, use automate, not automation. Could, should, and might can help you make suggestions politely."
+        },
+        {
+          "heading": "Task, context, format",
+          "narration": "A strong prompt gives a task, context, and format. Write an email is too vague. A stronger instruction is: Write a short, polite email to a client explaining a two-day delivery delay. Keep it under one hundred words. The task is an email, the context is a delivery delay, and the format includes tone and length. Add only information you are allowed to share."
+        },
+        {
+          "heading": "A workplace update",
+          "narration": "For a simulated weekly status update, give the project name, current phase, progress, blockers, and next steps. Ask the tool to use a professional tone for an international audience. Then compare every claim with your notes. Correct dates, names, missing actions, and unsupported achievements. Ask for a revision if the output is too long or unclear. A fluent sentence is not evidence that its content is true."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Improve one weak prompt: Make a report, Fix this text, or Give me ideas. Pause and use this structure: Write a type of text for an audience, about a topic, in a specified tone and length. Use a fictional example rather than confidential company data. Read the prompt again. Would another person understand the requested task and output?"
+        },
+        {
+          "heading": "Your challenge",
+          "narration": "Choose a meeting summary, follow-up message, or task checklist. Write a prompt in English, generate a draft if you have access to an approved tool, and document one improvement you made during review. Complete the AI and Productivity practice lesson and its knowledge check. Keep both the prompt and the revised text so you can see the difference between a generated draft and your final decision."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "You have five minutes to write a status update for an international team. Could AI help you prepare a draft while keeping the message accurate? This lesson introduces vocabulary and structures for describing AI tools, writing prompts, and reviewing results. You remain responsible for the final message.",
+          "onScreenTitle": "Work with AI",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 24.87,
+          "seccion": "Work with AI"
+        },
+        {
+          "role": "point",
+          "text": "A prompt is an instruction you give to an AI tool. Productivity concerns the efficiency of work output. To automate is to make a task happen with less manual effort. A workflow is the sequence of steps used to complete a task. AI-assisted means supported by AI. A draft is a first version of a text, before final review.",
+          "onScreenTitle": "Key vocabulary",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.13,
+          "seccion": "Key vocabulary"
+        },
+        {
+          "role": "point",
+          "text": "Listen to three useful patterns. I use ChatGPT to draft emails for my clients. It helps me save time on weekly reports. You can automate repetitive tasks like data entry. After I, use the base form: I use. With it, use helps. After can, use automate, not automation. Could, should, and might can help you make suggestions politely.",
+          "onScreenTitle": "Describe the benefit",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Describe the benefit"
+        },
+        {
+          "role": "point",
+          "text": "A strong prompt gives a task, context, and format. Write an email is too vague. A stronger instruction is: Write a short, polite email to a client explaining a two-day delivery delay. Keep it under one hundred words. The task is an email, the context is a delivery delay, and the format includes tone and length. Add only information you are allowed to share.",
+          "onScreenTitle": "Task, context, format",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.74,
+          "seccion": "Task, context, format"
+        },
+        {
+          "role": "point",
+          "text": "For a simulated weekly status update, give the project name, current phase, progress, blockers, and next steps. Ask the tool to use a professional tone for an international audience. Then compare every claim with your notes. Correct dates, names, missing actions, and unsupported achievements. Ask for a revision if the output is too long or unclear. A fluent sentence is not evidence that its content is true.",
+          "onScreenTitle": "A workplace update",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.31,
+          "seccion": "A workplace update"
+        },
+        {
+          "role": "point",
+          "text": "Improve one weak prompt: Make a report, Fix this text, or Give me ideas. Pause and use this structure: Write a type of text for an audience, about a topic, in a specified tone and length. Use a fictional example rather than confidential company data. Read the prompt again. Would another person understand the requested task and output?",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Pause and practise"
+        },
+        {
+          "role": "point",
+          "text": "Choose a meeting summary, follow-up message, or task checklist. Write a prompt in English, generate a draft if you have access to an approved tool, and document one improvement you made during review. Complete the AI and Productivity practice lesson and its knowledge check. Keep both the prompt and the revised text so you can see the difference between a generated draft and your final decision.",
+          "onScreenTitle": "Your challenge",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.78,
+          "seccion": "Your challenge"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-003-VIDEO-SCRIPT-v01-AI-Productivity-8qcv4udi2fgqn5c"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-003",
+        "moduleName": "AI & Productivity",
+        "lessonNumber": 3,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-004",
+      "title": "Professional Communication",
+      "language": "en",
+      "script": "Imagine joining a video call late while your manager is presenting. You need to join politely and clarify what you missed. This lesson covers professional emails, meeting language, updates, and diplomatic feedback. Clear communication helps the reader or listener understand the next action.\n\nAn agenda lists meeting topics. Minutes are a written summary of what was discussed. An action item is a task assigned after a meeting. A stakeholder has an interest in a project outcome. To clarify is to make something easier to understand. Diplomatic language is careful and polite. To join a discussion, try: Sorry to interrupt. Could you clarify the next action?\n\nUse a greeting, context, clear request, deadline, and polite closing. Listen to this model. Subject: Feedback on Q3 Report. Hi Carla, I hope you are doing well. I am writing to follow up on the Q3 report I shared last Friday. Would it be possible for you to review it before our meeting on Thursday? Thank you in advance for your time. Best regards, Diego. Could and would soften the request without hiding the action.\n\nIn a simulated stand-up, the team lead asks: Ana, how is the client presentation coming along? Ana replies: It is going well. I finished the first draft yesterday. I am currently waiting on the final numbers from the finance team before I can complete the last slide. My revised ETA is Wednesday. The answer covers progress, the blocker, and the revised completion time.\n\nInstead of saying This report has too many mistakes, try: I noticed a few areas we could refine. Would you like to go through them together? Instead of That is not a good idea, try: I see your point. I would like to suggest another approach we could consider. Keep feedback specific and useful. Acknowledge what works, explain the improvement, and invite the next step.\n\nRewrite: You did not attach the file. Pause the video and describe the problem without an accusation. One possible version is: I could not find the attachment. Could you please resend it? Now add a deadline if the task requires one. Check that your request stays clear; being polite does not mean removing the action or urgency.\n\nWrite five or six sentences requesting feedback, using the five-part email structure. Alternatively, record a one-minute spoken update: what you completed, what you are working on, and one blocker with a revised ETA. Listen once and revise one sentence. Complete the corresponding practice lesson. Save a phrase you can reuse in a future email or meeting.",
+      "scriptSha256": "4e6a9e72ccc8437524dae9b0b817f5bd39f8f0380112925a3b0d55319a29862b",
+      "sections": [
+        {
+          "heading": "Communicate clearly",
+          "narration": "Imagine joining a video call late while your manager is presenting. You need to join politely and clarify what you missed. This lesson covers professional emails, meeting language, updates, and diplomatic feedback. Clear communication helps the reader or listener understand the next action."
+        },
+        {
+          "heading": "Meeting vocabulary",
+          "narration": "An agenda lists meeting topics. Minutes are a written summary of what was discussed. An action item is a task assigned after a meeting. A stakeholder has an interest in a project outcome. To clarify is to make something easier to understand. Diplomatic language is careful and polite. To join a discussion, try: Sorry to interrupt. Could you clarify the next action?"
+        },
+        {
+          "heading": "Five-part email",
+          "narration": "Use a greeting, context, clear request, deadline, and polite closing. Listen to this model. Subject: Feedback on Q3 Report. Hi Carla, I hope you are doing well. I am writing to follow up on the Q3 report I shared last Friday. Would it be possible for you to review it before our meeting on Thursday? Thank you in advance for your time. Best regards, Diego. Could and would soften the request without hiding the action."
+        },
+        {
+          "heading": "Status update",
+          "narration": "In a simulated stand-up, the team lead asks: Ana, how is the client presentation coming along? Ana replies: It is going well. I finished the first draft yesterday. I am currently waiting on the final numbers from the finance team before I can complete the last slide. My revised ETA is Wednesday. The answer covers progress, the blocker, and the revised completion time."
+        },
+        {
+          "heading": "Diplomatic feedback",
+          "narration": "Instead of saying This report has too many mistakes, try: I noticed a few areas we could refine. Would you like to go through them together? Instead of That is not a good idea, try: I see your point. I would like to suggest another approach we could consider. Keep feedback specific and useful. Acknowledge what works, explain the improvement, and invite the next step."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Rewrite: You did not attach the file. Pause the video and describe the problem without an accusation. One possible version is: I could not find the attachment. Could you please resend it? Now add a deadline if the task requires one. Check that your request stays clear; being polite does not mean removing the action or urgency."
+        },
+        {
+          "heading": "Choose a challenge",
+          "narration": "Write five or six sentences requesting feedback, using the five-part email structure. Alternatively, record a one-minute spoken update: what you completed, what you are working on, and one blocker with a revised ETA. Listen once and revise one sentence. Complete the corresponding practice lesson. Save a phrase you can reuse in a future email or meeting."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Imagine joining a video call late while your manager is presenting. You need to join politely and clarify what you missed. This lesson covers professional emails, meeting language, updates, and diplomatic feedback. Clear communication helps the reader or listener understand the next action.",
+          "onScreenTitle": "Communicate clearly",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 22.78,
+          "seccion": "Communicate clearly"
+        },
+        {
+          "role": "point",
+          "text": "An agenda lists meeting topics. Minutes are a written summary of what was discussed. An action item is a task assigned after a meeting. A stakeholder has an interest in a project outcome. To clarify is to make something easier to understand. Diplomatic language is careful and polite. To join a discussion, try: Sorry to interrupt. Could you clarify the next action?",
+          "onScreenTitle": "Meeting vocabulary",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 32.7,
+          "seccion": "Meeting vocabulary"
+        },
+        {
+          "role": "point",
+          "text": "Use a greeting, context, clear request, deadline, and polite closing. Listen to this model. Subject: Feedback on Q3 Report. Hi Carla, I hope you are doing well. I am writing to follow up on the Q3 report I shared last Friday. Would it be possible for you to review it before our meeting on Thursday? Thank you in advance for your time. Best regards, Diego. Could and would soften the request without hiding the action.",
+          "onScreenTitle": "Five-part email",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 39.48,
+          "seccion": "Five-part email"
+        },
+        {
+          "role": "point",
+          "text": "In a simulated stand-up, the team lead asks: Ana, how is the client presentation coming along? Ana replies: It is going well. I finished the first draft yesterday. I am currently waiting on the final numbers from the finance team before I can complete the last slide. My revised ETA is Wednesday. The answer covers progress, the blocker, and the revised completion time.",
+          "onScreenTitle": "Status update",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.22,
+          "seccion": "Status update"
+        },
+        {
+          "role": "point",
+          "text": "Instead of saying This report has too many mistakes, try: I noticed a few areas we could refine. Would you like to go through them together? Instead of That is not a good idea, try: I see your point. I would like to suggest another approach we could consider. Keep feedback specific and useful. Acknowledge what works, explain the improvement, and invite the next step.",
+          "onScreenTitle": "Diplomatic feedback",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.26,
+          "seccion": "Diplomatic feedback"
+        },
+        {
+          "role": "point",
+          "text": "Rewrite: You did not attach the file. Pause the video and describe the problem without an accusation. One possible version is: I could not find the attachment. Could you please resend it? Now add a deadline if the task requires one. Check that your request stays clear; being polite does not mean removing the action or urgency.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.09,
+          "seccion": "Pause and practise"
+        },
+        {
+          "role": "point",
+          "text": "Write five or six sentences requesting feedback, using the five-part email structure. Alternatively, record a one-minute spoken update: what you completed, what you are working on, and one blocker with a revised ETA. Listen once and revise one sentence. Complete the corresponding practice lesson. Save a phrase you can reuse in a future email or meeting.",
+          "onScreenTitle": "Choose a challenge",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 29.57,
+          "seccion": "Choose a challenge"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-004-VIDEO-SCRIPT-v01-Professional-Communication-968s9w1bzqjz1cy"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-004",
+        "moduleName": "Professional Communication",
+        "lessonNumber": 4,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-005",
+      "title": "Remote Collaboration",
+      "language": "en",
+      "script": "Imagine a team with members in Santiago, Lisbon, and Manila. You have limited daily overlap and a client deliverable due on Friday. How do you keep work moving when everyone is not online together? This lesson focuses on ownership, channel choice, blockers, and clear hand-off notes.\n\nRemote collaboration needs clarity, the right channel, accountability, and respectful communication. State who does what and by when. Use asynchronous communication for updates and documentation. For a complex or sensitive issue, consider a conversation where people can ask questions immediately. Follow up on your commitments and describe problems without blaming colleagues.\n\nA sprint is a short, fixed period of focused work. A backlog is a list of tasks waiting to be worked on. A stand-up is a brief check-in. An owner is the person responsible for a task. A dependency is something that must be completed before another task can proceed. A hand-off passes work to another person so they can continue.\n\nListen to this consistent exchange. Could you take ownership of the client email? I will handle the report. The colleague replies: Got it. I own the client email, and you own the report. Is that correct? Repeating the allocation prevents confusion. For a blocker, say: I am currently waiting on the sales figures before I can complete the report. Describe what you need and who can help.\n\nHere is a fictional example. Hi team, I am blocked on the client report because I am waiting for the sales figures. Tomas, could you follow up with the sales team? I would like to finish by end of day if possible. Tomas replies: I will follow up now and update you within the hour. The task, blocker, request, and timeframe are all explicit.\n\nWould you discuss a sensitive disagreement about a client project in a long chat thread or in a scheduled conversation? Pause and consider complexity, sensitivity, and who needs to participate. Explain your choice. Then rewrite Can someone look at this? Name the task, owner, and deadline so a colleague can act.\n\nWrite a hand-off note covering progress, pending work, blockers, and where the information is stored. Start with: Hi Camila, handing this off to you. Here is where things stand. Include a next action and a deadline with a time zone if necessary. Read the note as if you were the next person starting work. Complete the Remote Collaboration practice lesson and keep this note for your final project.",
+      "scriptSha256": "d4dde7e25f1778916384124412f60db7aac8d0642fcbab36eed6c0a953c5ca48",
+      "sections": [
+        {
+          "heading": "Across time zones",
+          "narration": "Imagine a team with members in Santiago, Lisbon, and Manila. You have limited daily overlap and a client deliverable due on Friday. How do you keep work moving when everyone is not online together? This lesson focuses on ownership, channel choice, blockers, and clear hand-off notes."
+        },
+        {
+          "heading": "Four pillars",
+          "narration": "Remote collaboration needs clarity, the right channel, accountability, and respectful communication. State who does what and by when. Use asynchronous communication for updates and documentation. For a complex or sensitive issue, consider a conversation where people can ask questions immediately. Follow up on your commitments and describe problems without blaming colleagues."
+        },
+        {
+          "heading": "Useful task vocabulary",
+          "narration": "A sprint is a short, fixed period of focused work. A backlog is a list of tasks waiting to be worked on. A stand-up is a brief check-in. An owner is the person responsible for a task. A dependency is something that must be completed before another task can proceed. A hand-off passes work to another person so they can continue."
+        },
+        {
+          "heading": "Confirm ownership",
+          "narration": "Listen to this consistent exchange. Could you take ownership of the client email? I will handle the report. The colleague replies: Got it. I own the client email, and you own the report. Is that correct? Repeating the allocation prevents confusion. For a blocker, say: I am currently waiting on the sales figures before I can complete the report. Describe what you need and who can help."
+        },
+        {
+          "heading": "A complete blocker message",
+          "narration": "Here is a fictional example. Hi team, I am blocked on the client report because I am waiting for the sales figures. Tomas, could you follow up with the sales team? I would like to finish by end of day if possible. Tomas replies: I will follow up now and update you within the hour. The task, blocker, request, and timeframe are all explicit."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Would you discuss a sensitive disagreement about a client project in a long chat thread or in a scheduled conversation? Pause and consider complexity, sensitivity, and who needs to participate. Explain your choice. Then rewrite Can someone look at this? Name the task, owner, and deadline so a colleague can act."
+        },
+        {
+          "heading": "Your hand-off",
+          "narration": "Write a hand-off note covering progress, pending work, blockers, and where the information is stored. Start with: Hi Camila, handing this off to you. Here is where things stand. Include a next action and a deadline with a time zone if necessary. Read the note as if you were the next person starting work. Complete the Remote Collaboration practice lesson and keep this note for your final project."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Imagine a team with members in Santiago, Lisbon, and Manila. You have limited daily overlap and a client deliverable due on Friday. How do you keep work moving when everyone is not online together? This lesson focuses on ownership, channel choice, blockers, and clear hand-off notes.",
+          "onScreenTitle": "Across time zones",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 24.35,
+          "seccion": "Across time zones"
+        },
+        {
+          "role": "point",
+          "text": "Remote collaboration needs clarity, the right channel, accountability, and respectful communication. State who does what and by when. Use asynchronous communication for updates and documentation. For a complex or sensitive issue, consider a conversation where people can ask questions immediately. Follow up on your commitments and describe problems without blaming colleagues.",
+          "onScreenTitle": "Four pillars",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.96,
+          "seccion": "Four pillars"
+        },
+        {
+          "role": "point",
+          "text": "A sprint is a short, fixed period of focused work. A backlog is a list of tasks waiting to be worked on. A stand-up is a brief check-in. An owner is the person responsible for a task. A dependency is something that must be completed before another task can proceed. A hand-off passes work to another person so they can continue.",
+          "onScreenTitle": "Useful task vocabulary",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 32.18,
+          "seccion": "Useful task vocabulary"
+        },
+        {
+          "role": "point",
+          "text": "Listen to this consistent exchange. Could you take ownership of the client email? I will handle the report. The colleague replies: Got it. I own the client email, and you own the report. Is that correct? Repeating the allocation prevents confusion. For a blocker, say: I am currently waiting on the sales figures before I can complete the report. Describe what you need and who can help.",
+          "onScreenTitle": "Confirm ownership",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.31,
+          "seccion": "Confirm ownership"
+        },
+        {
+          "role": "point",
+          "text": "Here is a fictional example. Hi team, I am blocked on the client report because I am waiting for the sales figures. Tomas, could you follow up with the sales team? I would like to finish by end of day if possible. Tomas replies: I will follow up now and update you within the hour. The task, blocker, request, and timeframe are all explicit.",
+          "onScreenTitle": "A complete blocker message",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.74,
+          "seccion": "A complete blocker message"
+        },
+        {
+          "role": "point",
+          "text": "Would you discuss a sensitive disagreement about a client project in a long chat thread or in a scheduled conversation? Pause and consider complexity, sensitivity, and who needs to participate. Explain your choice. Then rewrite Can someone look at this? Name the task, owner, and deadline so a colleague can act.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.96,
+          "seccion": "Pause and practise"
+        },
+        {
+          "role": "point",
+          "text": "Write a hand-off note covering progress, pending work, blockers, and where the information is stored. Start with: Hi Camila, handing this off to you. Here is where things stand. Include a next action and a deadline with a time zone if necessary. Read the note as if you were the next person starting work. Complete the Remote Collaboration practice lesson and keep this note for your final project.",
+          "onScreenTitle": "Your hand-off",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.83,
+          "seccion": "Your hand-off"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-005-VIDEO-SCRIPT-v01-Remote-Collaboration-6ucegtm0wdvh7oq"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-005",
+        "moduleName": "Remote Collaboration",
+        "lessonNumber": 5,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-008",
+      "title": "The International Resume & Action-Oriented CV",
+      "language": "en",
+      "script": "Your resume should help a reader understand your experience and contribution quickly. This lesson focuses on relevant sections, simple formatting, truthful keywords, and action-oriented experience statements. Requirements vary by country and employer, so adapt your document to the target role.\n\nA useful structure is contact information, professional summary, key skills, work experience, education, certifications, and relevant links. Include your name, city and country, professional email, and an appropriate contact number. Add a portfolio or LinkedIn profile when relevant. Avoid unnecessary personal details such as national ID, date of birth, marital status, or full home address unless the specific application requires them.\n\nAn applicant tracking system, or ATS, helps organizations manage applications. Use standard headings, readable text, and straightforward formatting. Match role keywords only when they reflect your real experience. Your summary should explain your role, scope of experience, strengths, and contribution. A generic statement about being hardworking gives the reader less evidence than a specific description of what you can do.\n\nCompare Responsible for social media with Managed weekly company updates and responded to technical inquiries. The second statement names the action and the work. Another example is: Coordinated weekly project updates across three teams, improving visibility of deadlines and delivery blockers. Use only the numbers and outcomes you can support. A clear qualitative contribution is better than an invented metric.\n\nLeadership verbs include led, coordinated, managed, and facilitated. Improvement verbs include improved, streamlined, and reduced. Execution verbs include implemented, developed, and designed. Communication verbs include presented, documented, negotiated, and resolved. Use present tense for current responsibilities and past tense for completed work. Select the verb that accurately describes your contribution.\n\nImprove Responsible for answering customer emails. Pause and write an action-focused sentence using real evidence. One model is: Resolved customer support tickets in English and documented recurring issues. Use this model only if it describes what you actually did. If you practise with a fictional profile, label it as a simulation and never submit the invented experience as your own.\n\nPrepare a concise summary, relevant skills, and your actual experience with clear bullet points. Add education, genuine certifications, and working links. Check spelling, verb tenses, readability, and every claim. Save version one with your practice work and read it aloud. This self-paced activity does not include an automatic promise of teacher review. Use the checklist to identify one improvement before your next revision.",
+      "scriptSha256": "4dfb4bdbf0f702bac741ed1a9ecb0e4215057f37ab227af22db80515a35da969",
+      "sections": [
+        {
+          "heading": "Relevant evidence",
+          "narration": "Your resume should help a reader understand your experience and contribution quickly. This lesson focuses on relevant sections, simple formatting, truthful keywords, and action-oriented experience statements. Requirements vary by country and employer, so adapt your document to the target role."
+        },
+        {
+          "heading": "Sections and privacy",
+          "narration": "A useful structure is contact information, professional summary, key skills, work experience, education, certifications, and relevant links. Include your name, city and country, professional email, and an appropriate contact number. Add a portfolio or LinkedIn profile when relevant. Avoid unnecessary personal details such as national ID, date of birth, marital status, or full home address unless the specific application requires them."
+        },
+        {
+          "heading": "ATS and summary",
+          "narration": "An applicant tracking system, or ATS, helps organizations manage applications. Use standard headings, readable text, and straightforward formatting. Match role keywords only when they reflect your real experience. Your summary should explain your role, scope of experience, strengths, and contribution. A generic statement about being hardworking gives the reader less evidence than a specific description of what you can do."
+        },
+        {
+          "heading": "Action, scope, value",
+          "narration": "Compare Responsible for social media with Managed weekly company updates and responded to technical inquiries. The second statement names the action and the work. Another example is: Coordinated weekly project updates across three teams, improving visibility of deadlines and delivery blockers. Use only the numbers and outcomes you can support. A clear qualitative contribution is better than an invented metric."
+        },
+        {
+          "heading": "Choose a verb",
+          "narration": "Leadership verbs include led, coordinated, managed, and facilitated. Improvement verbs include improved, streamlined, and reduced. Execution verbs include implemented, developed, and designed. Communication verbs include presented, documented, negotiated, and resolved. Use present tense for current responsibilities and past tense for completed work. Select the verb that accurately describes your contribution."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Improve Responsible for answering customer emails. Pause and write an action-focused sentence using real evidence. One model is: Resolved customer support tickets in English and documented recurring issues. Use this model only if it describes what you actually did. If you practise with a fictional profile, label it as a simulation and never submit the invented experience as your own."
+        },
+        {
+          "heading": "Build version one",
+          "narration": "Prepare a concise summary, relevant skills, and your actual experience with clear bullet points. Add education, genuine certifications, and working links. Check spelling, verb tenses, readability, and every claim. Save version one with your practice work and read it aloud. This self-paced activity does not include an automatic promise of teacher review. Use the checklist to identify one improvement before your next revision."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Your resume should help a reader understand your experience and contribution quickly. This lesson focuses on relevant sections, simple formatting, truthful keywords, and action-oriented experience statements. Requirements vary by country and employer, so adapt your document to the target role.",
+          "onScreenTitle": "Relevant evidence",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 21.22,
+          "seccion": "Relevant evidence"
+        },
+        {
+          "role": "point",
+          "text": "A useful structure is contact information, professional summary, key skills, work experience, education, certifications, and relevant links. Include your name, city and country, professional email, and an appropriate contact number. Add a portfolio or LinkedIn profile when relevant. Avoid unnecessary personal details such as national ID, date of birth, marital status, or full home address unless the specific application requires them.",
+          "onScreenTitle": "Sections and privacy",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 32.18,
+          "seccion": "Sections and privacy"
+        },
+        {
+          "role": "point",
+          "text": "An applicant tracking system, or ATS, helps organizations manage applications. Use standard headings, readable text, and straightforward formatting. Match role keywords only when they reflect your real experience. Your summary should explain your role, scope of experience, strengths, and contribution. A generic statement about being hardworking gives the reader less evidence than a specific description of what you can do.",
+          "onScreenTitle": "ATS and summary",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.65,
+          "seccion": "ATS and summary"
+        },
+        {
+          "role": "point",
+          "text": "Compare Responsible for social media with Managed weekly company updates and responded to technical inquiries. The second statement names the action and the work. Another example is: Coordinated weekly project updates across three teams, improving visibility of deadlines and delivery blockers. Use only the numbers and outcomes you can support. A clear qualitative contribution is better than an invented metric.",
+          "onScreenTitle": "Action, scope, value",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.65,
+          "seccion": "Action, scope, value"
+        },
+        {
+          "role": "point",
+          "text": "Leadership verbs include led, coordinated, managed, and facilitated. Improvement verbs include improved, streamlined, and reduced. Execution verbs include implemented, developed, and designed. Communication verbs include presented, documented, negotiated, and resolved. Use present tense for current responsibilities and past tense for completed work. Select the verb that accurately describes your contribution.",
+          "onScreenTitle": "Choose a verb",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.44,
+          "seccion": "Choose a verb"
+        },
+        {
+          "role": "point",
+          "text": "Improve Responsible for answering customer emails. Pause and write an action-focused sentence using real evidence. One model is: Resolved customer support tickets in English and documented recurring issues. Use this model only if it describes what you actually did. If you practise with a fictional profile, label it as a simulation and never submit the invented experience as your own.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.65,
+          "seccion": "Pause and practise"
+        },
+        {
+          "role": "point",
+          "text": "Prepare a concise summary, relevant skills, and your actual experience with clear bullet points. Add education, genuine certifications, and working links. Check spelling, verb tenses, readability, and every claim. Save version one with your practice work and read it aloud. This self-paced activity does not include an automatic promise of teacher review. Use the checklist to identify one improvement before your next revision.",
+          "onScreenTitle": "Build version one",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.22,
+          "seccion": "Build version one"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-008-VIDEO-SCRIPT-v01-The-International-Resume-Action-Ori-wxf1qr2g39bsgiu"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-008",
+        "moduleName": "The International Resume & Action-Oriented CV",
+        "lessonNumber": 6,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-007",
+      "title": "Final Project Orientation",
+      "language": "en",
+      "script": "This is your chance to connect the communication and productivity skills you have practised. Work individually and imagine a small distributed team at the fictional company BrightPath Digital. Your client needs a remote employee onboarding guide. Your task is to plan the work, communicate clearly, respond to a blocker, and present progress.\n\nPrepare five connected deliverables: a professional email or message, a coordination plan, a status update, a short client presentation, and a course reflection. Keep them about the same project. The coordination plan is a simple table with task, owner, deadline, and dependency. Choose three or four tasks for the onboarding guide and assign fictional owners.\n\nWrite a four-to-six-sentence message based on one need in your plan. Include greeting, context, request, deadline, and closing. Now imagine that two days before the presentation a teammate cannot finish the checklist because they are waiting on HR. Report the blocker without blame and propose one realistic next action. Update your plan so the message and timeline agree.\n\nUse an approved AI tool to help draft one deliverable, or describe how you would organize the project with a task board. Review any generated output. Write a three-to-four-sentence status update covering completed work, work in progress, the blocker, and your proposed solution. Keep a note of what the tool helped with and what you changed yourself.\n\nRecord a one-to-two-minute client presentation. Introduce yourself, summarize progress, describe the challenge and response, and explain next steps. Include an achievement sentence using action, work, and result. A fictional example is: I coordinated the checklist draft and resolved a scheduling blocker, keeping the project on track for Friday. Make clear that this is your course simulation, not a claim about employment.\n\nPause and check: Are all five deliverables present? Do they describe the same scenario? Does the email have the five parts? Does the update explain the blocker and response? Does the presentation have a clear structure and an achievement sentence? Read everything aloud once. Answer one follow-up question: What would you do differently next time? You can record your response without needing a live partner.\n\nFinish your reflection by answering: Which skill feels strongest? Where could you use it at work? What do you want to keep practising? Identify one specific improvement for the plan, message, or presentation. Keep the final files with your course work. Completing this practice video does not by itself establish course completion or certification; consult the final course requirements when they are available.",
+      "scriptSha256": "671342c1aea366296b3bd62420ed409d12adb5fb067e701d3295f43c78e0157f",
+      "sections": [
+        {
+          "heading": "One connected project",
+          "narration": "This is your chance to connect the communication and productivity skills you have practised. Work individually and imagine a small distributed team at the fictional company BrightPath Digital. Your client needs a remote employee onboarding guide. Your task is to plan the work, communicate clearly, respond to a blocker, and present progress."
+        },
+        {
+          "heading": "Five deliverables",
+          "narration": "Prepare five connected deliverables: a professional email or message, a coordination plan, a status update, a short client presentation, and a course reflection. Keep them about the same project. The coordination plan is a simple table with task, owner, deadline, and dependency. Choose three or four tasks for the onboarding guide and assign fictional owners."
+        },
+        {
+          "heading": "Communication and blocker",
+          "narration": "Write a four-to-six-sentence message based on one need in your plan. Include greeting, context, request, deadline, and closing. Now imagine that two days before the presentation a teammate cannot finish the checklist because they are waiting on HR. Report the blocker without blame and propose one realistic next action. Update your plan so the message and timeline agree."
+        },
+        {
+          "heading": "Productivity and update",
+          "narration": "Use an approved AI tool to help draft one deliverable, or describe how you would organize the project with a task board. Review any generated output. Write a three-to-four-sentence status update covering completed work, work in progress, the blocker, and your proposed solution. Keep a note of what the tool helped with and what you changed yourself."
+        },
+        {
+          "heading": "Presentation",
+          "narration": "Record a one-to-two-minute client presentation. Introduce yourself, summarize progress, describe the challenge and response, and explain next steps. Include an achievement sentence using action, work, and result. A fictional example is: I coordinated the checklist draft and resolved a scheduling blocker, keeping the project on track for Friday. Make clear that this is your course simulation, not a claim about employment."
+        },
+        {
+          "heading": "Self-check",
+          "narration": "Pause and check: Are all five deliverables present? Do they describe the same scenario? Does the email have the five parts? Does the update explain the blocker and response? Does the presentation have a clear structure and an achievement sentence? Read everything aloud once. Answer one follow-up question: What would you do differently next time? You can record your response without needing a live partner."
+        },
+        {
+          "heading": "Reflection and next step",
+          "narration": "Finish your reflection by answering: Which skill feels strongest? Where could you use it at work? What do you want to keep practising? Identify one specific improvement for the plan, message, or presentation. Keep the final files with your course work. Completing this practice video does not by itself establish course completion or certification; consult the final course requirements when they are available."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "This is your chance to connect the communication and productivity skills you have practised. Work individually and imagine a small distributed team at the fictional company BrightPath Digital. Your client needs a remote employee onboarding guide. Your task is to plan the work, communicate clearly, respond to a blocker, and present progress.",
+          "onScreenTitle": "One connected project",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 27.48,
+          "seccion": "One connected project"
+        },
+        {
+          "role": "point",
+          "text": "Prepare five connected deliverables: a professional email or message, a coordination plan, a status update, a short client presentation, and a course reflection. Keep them about the same project. The coordination plan is a simple table with task, owner, deadline, and dependency. Choose three or four tasks for the onboarding guide and assign fictional owners.",
+          "onScreenTitle": "Five deliverables",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 29.05,
+          "seccion": "Five deliverables"
+        },
+        {
+          "role": "point",
+          "text": "Write a four-to-six-sentence message based on one need in your plan. Include greeting, context, request, deadline, and closing. Now imagine that two days before the presentation a teammate cannot finish the checklist because they are waiting on HR. Report the blocker without blame and propose one realistic next action. Update your plan so the message and timeline agree.",
+          "onScreenTitle": "Communication and blocker",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Communication and blocker"
+        },
+        {
+          "role": "point",
+          "text": "Use an approved AI tool to help draft one deliverable, or describe how you would organize the project with a task board. Review any generated output. Write a three-to-four-sentence status update covering completed work, work in progress, the blocker, and your proposed solution. Keep a note of what the tool helped with and what you changed yourself.",
+          "onScreenTitle": "Productivity and update",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.09,
+          "seccion": "Productivity and update"
+        },
+        {
+          "role": "point",
+          "text": "Record a one-to-two-minute client presentation. Introduce yourself, summarize progress, describe the challenge and response, and explain next steps. Include an achievement sentence using action, work, and result. A fictional example is: I coordinated the checklist draft and resolved a scheduling blocker, keeping the project on track for Friday. Make clear that this is your course simulation, not a claim about employment.",
+          "onScreenTitle": "Presentation",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 32.18,
+          "seccion": "Presentation"
+        },
+        {
+          "role": "point",
+          "text": "Pause and check: Are all five deliverables present? Do they describe the same scenario? Does the email have the five parts? Does the update explain the blocker and response? Does the presentation have a clear structure and an achievement sentence? Read everything aloud once. Answer one follow-up question: What would you do differently next time? You can record your response without needing a live partner.",
+          "onScreenTitle": "Self-check",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.26,
+          "seccion": "Self-check"
+        },
+        {
+          "role": "point",
+          "text": "Finish your reflection by answering: Which skill feels strongest? Where could you use it at work? What do you want to keep practising? Identify one specific improvement for the plan, message, or presentation. Keep the final files with your course work. Completing this practice video does not by itself establish course completion or certification; consult the final course requirements when they are available.",
+          "onScreenTitle": "Reflection and next step",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.22,
+          "seccion": "Reflection and next step"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-007-VIDEO-SCRIPT-v01-Final-Project-Orientation-7mdzj755g2e6to5"
+      ],
+      "adaptation": "Source-adapted narration: LMS references, individual practice, corrected ownership example, no automatic course completion/teacher review claims. Fictional examples labelled; unsupported ATS timing claims removed.",
+      "course": {
+        "courseId": "56397",
+        "courseName": "English for Remote Work B1–B2",
+        "moduleId": "RPM-2026-007",
+        "moduleName": "Final Project Orientation",
+        "lessonNumber": 7,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M01",
+      "title": "Business Communication",
+      "language": "en",
+      "script": "Welcome to Corporate English and AI. In this module you will introduce yourself and adapt a short message to a professional audience. You can complete each activity individually. Start with a workplace situation: a colleague in another office needs to understand who you are, what you do, and why you are contacting them.\n\nA brief introduction can include your name, role, company, and function. Use I work as for a role, I work in for an area, and I work for for an organization. For responsibilities, use I am responsible for, followed by a task. Your purpose should be clear enough that the other person understands how you can work together.\n\nHere is a fictional model. Hello, my name is Sofia. I work as an operations coordinator for a logistics company. I am responsible for preparing weekly delivery updates and coordinating information between our offices. I will be your contact for the project schedule. I look forward to working with you. Notice that the model explains a function rather than listing every detail of the job.\n\nProfessional communication can be formal, semiformal, or informal depending on the relationship and channel. For a colleague you know, Hi Sofia may fit. For a new external contact, Hello or Dear followed by the name may be more appropriate. Keep the request specific: Could you confirm the delivery date by Thursday? Polite language should still tell the reader what action is needed.\n\nPause and write a four-sentence introduction using your real role, or a clearly labelled fictional role. Include your function and one reason for contacting the other person. Read it aloud. Then imagine sending it to a new client. Would you change the greeting, level of detail, or closing? Make one revision and explain why.\n\nRecord your introduction once and listen back. Check the role, responsibility, purpose, and tone. Keep the written version and your revision in your learning folder. Reflect on one situation where you need to introduce yourself or your team in English. You will reuse this introduction in your presentation and final project.",
+      "scriptSha256": "2bfba319bb6ebbb1c71f0cfca97b29b9ad16841cc38ddc7bcb072cffc4c892c1",
+      "sections": [
+        {
+          "heading": "A professional introduction",
+          "narration": "Welcome to Corporate English and AI. In this module you will introduce yourself and adapt a short message to a professional audience. You can complete each activity individually. Start with a workplace situation: a colleague in another office needs to understand who you are, what you do, and why you are contacting them."
+        },
+        {
+          "heading": "Role and purpose",
+          "narration": "A brief introduction can include your name, role, company, and function. Use I work as for a role, I work in for an area, and I work for for an organization. For responsibilities, use I am responsible for, followed by a task. Your purpose should be clear enough that the other person understands how you can work together."
+        },
+        {
+          "heading": "Model introduction",
+          "narration": "Here is a fictional model. Hello, my name is Sofia. I work as an operations coordinator for a logistics company. I am responsible for preparing weekly delivery updates and coordinating information between our offices. I will be your contact for the project schedule. I look forward to working with you. Notice that the model explains a function rather than listing every detail of the job."
+        },
+        {
+          "heading": "Adjust the register",
+          "narration": "Professional communication can be formal, semiformal, or informal depending on the relationship and channel. For a colleague you know, Hi Sofia may fit. For a new external contact, Hello or Dear followed by the name may be more appropriate. Keep the request specific: Could you confirm the delivery date by Thursday? Polite language should still tell the reader what action is needed."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Pause and write a four-sentence introduction using your real role, or a clearly labelled fictional role. Include your function and one reason for contacting the other person. Read it aloud. Then imagine sending it to a new client. Would you change the greeting, level of detail, or closing? Make one revision and explain why."
+        },
+        {
+          "heading": "Review and continue",
+          "narration": "Record your introduction once and listen back. Check the role, responsibility, purpose, and tone. Keep the written version and your revision in your learning folder. Reflect on one situation where you need to introduce yourself or your team in English. You will reuse this introduction in your presentation and final project."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Welcome to Corporate English and AI. In this module you will introduce yourself and adapt a short message to a professional audience. You can complete each activity individually. Start with a workplace situation: a colleague in another office needs to understand who you are, what you do, and why you are contacting them.",
+          "onScreenTitle": "A professional introduction",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.0,
+          "seccion": "A professional introduction"
+        },
+        {
+          "role": "point",
+          "text": "A brief introduction can include your name, role, company, and function. Use I work as for a role, I work in for an area, and I work for for an organization. For responsibilities, use I am responsible for, followed by a task. Your purpose should be clear enough that the other person understands how you can work together.",
+          "onScreenTitle": "Role and purpose",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Role and purpose"
+        },
+        {
+          "role": "point",
+          "text": "Here is a fictional model. Hello, my name is Sofia. I work as an operations coordinator for a logistics company. I am responsible for preparing weekly delivery updates and coordinating information between our offices. I will be your contact for the project schedule. I look forward to working with you. Notice that the model explains a function rather than listing every detail of the job.",
+          "onScreenTitle": "Model introduction",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.26,
+          "seccion": "Model introduction"
+        },
+        {
+          "role": "point",
+          "text": "Professional communication can be formal, semiformal, or informal depending on the relationship and channel. For a colleague you know, Hi Sofia may fit. For a new external contact, Hello or Dear followed by the name may be more appropriate. Keep the request specific: Could you confirm the delivery date by Thursday? Polite language should still tell the reader what action is needed.",
+          "onScreenTitle": "Adjust the register",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 32.7,
+          "seccion": "Adjust the register"
+        },
+        {
+          "role": "point",
+          "text": "Pause and write a four-sentence introduction using your real role, or a clearly labelled fictional role. Include your function and one reason for contacting the other person. Read it aloud. Then imagine sending it to a new client. Would you change the greeting, level of detail, or closing? Make one revision and explain why.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.52,
+          "seccion": "Pause and practise"
+        },
+        {
+          "role": "point",
+          "text": "Record your introduction once and listen back. Check the role, responsibility, purpose, and tone. Keep the written version and your revision in your learning folder. Reflect on one situation where you need to introduce yourself or your team in English. You will reuse this introduction in your presentation and final project.",
+          "onScreenTitle": "Review and continue",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.96,
+          "seccion": "Review and continue"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M01",
+        "moduleName": "Business Communication",
+        "lessonNumber": 1,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M02",
+      "title": "Meetings and Speaking",
+      "language": "en",
+      "script": "A useful meeting has a clear purpose, an agenda, and agreed next steps. In this module you will practise opening, guiding, and closing a short meeting in English. You can simulate both the chair and a participant by recording two short speaking turns.\n\nPrepare three points: progress, blockers, and next steps. Open with: Thank you for joining. Today we will review progress, discuss blockers, and agree on next actions. Does anyone need to add an item? This tells participants why they are meeting and gives them a chance to clarify the agenda.\n\nUse I would like to suggest to make a proposal. Use Could I add one point to enter the discussion. To clarify, ask: Could you explain what you mean by that? To confirm agreement, say: So we agree that the draft is due on Thursday. Is that correct? Give others time to answer instead of assuming silence means agreement.\n\nImagine a project update. The chair says: Let us start with progress. The participant replies: The first draft is complete, but the final figures are still pending. The chair asks: What do you need to move forward? The participant answers: Confirmation from finance by Wednesday. The chair concludes: Please follow up with finance today and update the team tomorrow. Notice the movement from progress to blocker to a named action.\n\nAt the end, summarize the action, owner, and deadline. For example: Sofia will contact finance today. Daniel will update the draft on Thursday. We will review the final version on Friday. Check whether the timing is realistic and specify the time zone when necessary. A meeting is easier to follow when decisions become concrete actions.\n\nWrite your own three-point agenda for a real or simulated work topic. Record an opening, one clarification question, and a closing summary. Play it back and check that a listener could identify the purpose, decision, owner, and deadline. Save the agenda and recording for the final project. Repeat with a different role if you want more speaking practice.",
+      "scriptSha256": "592349544880dcea0922dce7edcd42c84dcac0565bacdb62f5fe2aca5a0eda92",
+      "sections": [
+        {
+          "heading": "Lead a short meeting",
+          "narration": "A useful meeting has a clear purpose, an agenda, and agreed next steps. In this module you will practise opening, guiding, and closing a short meeting in English. You can simulate both the chair and a participant by recording two short speaking turns."
+        },
+        {
+          "heading": "Open with an agenda",
+          "narration": "Prepare three points: progress, blockers, and next steps. Open with: Thank you for joining. Today we will review progress, discuss blockers, and agree on next actions. Does anyone need to add an item? This tells participants why they are meeting and gives them a chance to clarify the agenda."
+        },
+        {
+          "heading": "Contribute politely",
+          "narration": "Use I would like to suggest to make a proposal. Use Could I add one point to enter the discussion. To clarify, ask: Could you explain what you mean by that? To confirm agreement, say: So we agree that the draft is due on Thursday. Is that correct? Give others time to answer instead of assuming silence means agreement."
+        },
+        {
+          "heading": "Worked simulation",
+          "narration": "Imagine a project update. The chair says: Let us start with progress. The participant replies: The first draft is complete, but the final figures are still pending. The chair asks: What do you need to move forward? The participant answers: Confirmation from finance by Wednesday. The chair concludes: Please follow up with finance today and update the team tomorrow. Notice the movement from progress to blocker to a named action."
+        },
+        {
+          "heading": "Close with ownership",
+          "narration": "At the end, summarize the action, owner, and deadline. For example: Sofia will contact finance today. Daniel will update the draft on Thursday. We will review the final version on Friday. Check whether the timing is realistic and specify the time zone when necessary. A meeting is easier to follow when decisions become concrete actions."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Write your own three-point agenda for a real or simulated work topic. Record an opening, one clarification question, and a closing summary. Play it back and check that a listener could identify the purpose, decision, owner, and deadline. Save the agenda and recording for the final project. Repeat with a different role if you want more speaking practice."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "A useful meeting has a clear purpose, an agenda, and agreed next steps. In this module you will practise opening, guiding, and closing a short meeting in English. You can simulate both the chair and a participant by recording two short speaking turns.",
+          "onScreenTitle": "Lead a short meeting",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 22.78,
+          "seccion": "Lead a short meeting"
+        },
+        {
+          "role": "point",
+          "text": "Prepare three points: progress, blockers, and next steps. Open with: Thank you for joining. Today we will review progress, discuss blockers, and agree on next actions. Does anyone need to add an item? This tells participants why they are meeting and gives them a chance to clarify the agenda.",
+          "onScreenTitle": "Open with an agenda",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 25.92,
+          "seccion": "Open with an agenda"
+        },
+        {
+          "role": "point",
+          "text": "Use I would like to suggest to make a proposal. Use Could I add one point to enter the discussion. To clarify, ask: Could you explain what you mean by that? To confirm agreement, say: So we agree that the draft is due on Thursday. Is that correct? Give others time to answer instead of assuming silence means agreement.",
+          "onScreenTitle": "Contribute politely",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.13,
+          "seccion": "Contribute politely"
+        },
+        {
+          "role": "point",
+          "text": "Imagine a project update. The chair says: Let us start with progress. The participant replies: The first draft is complete, but the final figures are still pending. The chair asks: What do you need to move forward? The participant answers: Confirmation from finance by Wednesday. The chair concludes: Please follow up with finance today and update the team tomorrow. Notice the movement from progress to blocker to a named action.",
+          "onScreenTitle": "Worked simulation",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 36.87,
+          "seccion": "Worked simulation"
+        },
+        {
+          "role": "point",
+          "text": "At the end, summarize the action, owner, and deadline. For example: Sofia will contact finance today. Daniel will update the draft on Thursday. We will review the final version on Friday. Check whether the timing is realistic and specify the time zone when necessary. A meeting is easier to follow when decisions become concrete actions.",
+          "onScreenTitle": "Close with ownership",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 29.05,
+          "seccion": "Close with ownership"
+        },
+        {
+          "role": "point",
+          "text": "Write your own three-point agenda for a real or simulated work topic. Record an opening, one clarification question, and a closing summary. Play it back and check that a listener could identify the purpose, decision, owner, and deadline. Save the agenda and recording for the final project. Repeat with a different role if you want more speaking practice.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Pause and practise"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M02",
+        "moduleName": "Meetings and Speaking",
+        "lessonNumber": 2,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M03",
+      "title": "Emails and Reports",
+      "language": "en",
+      "script": "A professional email or executive report helps someone understand a situation and decide what to do next. This module focuses on structure, clarity, and tone. Start by identifying the reader, your purpose, and the action or information they need.\n\nUse a specific subject, greeting, context, request, closing, and signature. A subject such as Q3 report: confirmation requested is clearer than Hello. Keep related information together. If you need a reply by a particular time, state the deadline and explain the reason rather than relying on urgent or ASAP.\n\nCompare this message: Hey, just wanted to check if you got my last email about the report. Let me know ASAP. Now hear a revised version: Dear Ana, I am following up on my previous email regarding the Q3 report. Could you please confirm receipt by Thursday afternoon so I can prepare the meeting materials? Thank you. Best regards, Sofia. The deadline is a teaching example; choose a realistic one for your own situation.\n\nOrganize a brief report around the situation, progress, issue, and proposed next step. A fictional example is: The draft is complete. Two figures are awaiting confirmation from finance. This may affect the planned review date. I recommend confirming the figures by Wednesday and circulating the revised version on Thursday. Distinguish facts from a recommendation; do not present an estimate as a confirmed result.\n\nPause and rewrite an informal message in a professional form. Remove any confidential details and use fictional names if necessary. Add a useful subject, context, clear action, and closing. Then write a short report about the same situation. Does the report agree with the email about dates, progress, and responsibilities?\n\nRead both texts as the recipient. Can you identify the purpose without rereading? Is the request polite and specific? Are the dates and figures supported by your notes? Correct one unclear sentence. Keep the first and revised versions in your learning folder. You will use this comparison when reflecting on your final project.",
+      "scriptSha256": "b5cbc977f6bf4064a7dd04084ea29e2cf8e91723ed6fdd4f58c57731490d92f3",
+      "sections": [
+        {
+          "heading": "Write for action",
+          "narration": "A professional email or executive report helps someone understand a situation and decide what to do next. This module focuses on structure, clarity, and tone. Start by identifying the reader, your purpose, and the action or information they need."
+        },
+        {
+          "heading": "Email structure",
+          "narration": "Use a specific subject, greeting, context, request, closing, and signature. A subject such as Q3 report: confirmation requested is clearer than Hello. Keep related information together. If you need a reply by a particular time, state the deadline and explain the reason rather than relying on urgent or ASAP."
+        },
+        {
+          "heading": "From informal to professional",
+          "narration": "Compare this message: Hey, just wanted to check if you got my last email about the report. Let me know ASAP. Now hear a revised version: Dear Ana, I am following up on my previous email regarding the Q3 report. Could you please confirm receipt by Thursday afternoon so I can prepare the meeting materials? Thank you. Best regards, Sofia. The deadline is a teaching example; choose a realistic one for your own situation."
+        },
+        {
+          "heading": "A short executive report",
+          "narration": "Organize a brief report around the situation, progress, issue, and proposed next step. A fictional example is: The draft is complete. Two figures are awaiting confirmation from finance. This may affect the planned review date. I recommend confirming the figures by Wednesday and circulating the revised version on Thursday. Distinguish facts from a recommendation; do not present an estimate as a confirmed result."
+        },
+        {
+          "heading": "Pause and rewrite",
+          "narration": "Pause and rewrite an informal message in a professional form. Remove any confidential details and use fictional names if necessary. Add a useful subject, context, clear action, and closing. Then write a short report about the same situation. Does the report agree with the email about dates, progress, and responsibilities?"
+        },
+        {
+          "heading": "Self-check",
+          "narration": "Read both texts as the recipient. Can you identify the purpose without rereading? Is the request polite and specific? Are the dates and figures supported by your notes? Correct one unclear sentence. Keep the first and revised versions in your learning folder. You will use this comparison when reflecting on your final project."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "A professional email or executive report helps someone understand a situation and decide what to do next. This module focuses on structure, clarity, and tone. Start by identifying the reader, your purpose, and the action or information they need.",
+          "onScreenTitle": "Write for action",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 20.7,
+          "seccion": "Write for action"
+        },
+        {
+          "role": "point",
+          "text": "Use a specific subject, greeting, context, request, closing, and signature. A subject such as Q3 report: confirmation requested is clearer than Hello. Keep related information together. If you need a reply by a particular time, state the deadline and explain the reason rather than relying on urgent or ASAP.",
+          "onScreenTitle": "Email structure",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 25.92,
+          "seccion": "Email structure"
+        },
+        {
+          "role": "point",
+          "text": "Compare this message: Hey, just wanted to check if you got my last email about the report. Let me know ASAP. Now hear a revised version: Dear Ana, I am following up on my previous email regarding the Q3 report. Could you please confirm receipt by Thursday afternoon so I can prepare the meeting materials? Thank you. Best regards, Sofia. The deadline is a teaching example; choose a realistic one for your own situation.",
+          "onScreenTitle": "From informal to professional",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 38.96,
+          "seccion": "From informal to professional"
+        },
+        {
+          "role": "point",
+          "text": "Organize a brief report around the situation, progress, issue, and proposed next step. A fictional example is: The draft is complete. Two figures are awaiting confirmation from finance. This may affect the planned review date. I recommend confirming the figures by Wednesday and circulating the revised version on Thursday. Distinguish facts from a recommendation; do not present an estimate as a confirmed result.",
+          "onScreenTitle": "A short executive report",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.22,
+          "seccion": "A short executive report"
+        },
+        {
+          "role": "point",
+          "text": "Pause and rewrite an informal message in a professional form. Remove any confidential details and use fictional names if necessary. Add a useful subject, context, clear action, and closing. Then write a short report about the same situation. Does the report agree with the email about dates, progress, and responsibilities?",
+          "onScreenTitle": "Pause and rewrite",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.44,
+          "seccion": "Pause and rewrite"
+        },
+        {
+          "role": "point",
+          "text": "Read both texts as the recipient. Can you identify the purpose without rereading? Is the request polite and specific? Are the dates and figures supported by your notes? Correct one unclear sentence. Keep the first and revised versions in your learning folder. You will use this comparison when reflecting on your final project.",
+          "onScreenTitle": "Self-check",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.0,
+          "seccion": "Self-check"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M03",
+        "moduleName": "Emails and Reports",
+        "lessonNumber": 3,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M04",
+      "title": "Professional Presentations",
+      "language": "en",
+      "script": "A professional presentation needs an opening, a structured body, a closing, and a way to handle questions. Your practice task is a two-to-three-minute presentation about your area of work. Select one idea your audience should remember, rather than trying to explain everything.\n\nOpen with your topic and purpose. For example: Today I will explain our proposed reporting process and the next steps for the team. Then show the structure: First, I will describe the current situation. Next, I will explain the proposed change. Finally, I will summarize the actions. These signposts help the listener follow the argument.\n\nUse one main point at a time and support it with a clear example. In a fictional scenario, a team receives updates in several separate messages. A proposed improvement is a shared weekly summary. Explain the benefit cautiously: This could make deadlines easier to track. Do not claim measured time savings unless you have actually measured them.\n\nSummarize the idea and requested next action. Try: To summarize, we propose one weekly update with progress, blockers, and next steps. The next action is to test the format on one project. Thank you for your time. I am happy to answer questions. The closing connects the presentation to a decision or practical activity.\n\nListen fully before answering. You can say: Thank you for the question. Could you clarify which part you mean? If you do not know, say: I do not have that information yet. I will check it. A clear admission is better than inventing an answer. For individual practice, write two likely audience questions and record your replies.\n\nPrepare your opening, two or three main points, and closing. Record a two-to-three-minute presentation, then listen once without reading your notes. Check structure, pace, transitions, and whether the requested action is clear. Revise one section and record it again. Save the improved version and your two question responses for your final project.",
+      "scriptSha256": "333e04a0c11594b9eca30ba6e243a80064683bf9d5d9c0072cd617422551f25a",
+      "sections": [
+        {
+          "heading": "Present one clear idea",
+          "narration": "A professional presentation needs an opening, a structured body, a closing, and a way to handle questions. Your practice task is a two-to-three-minute presentation about your area of work. Select one idea your audience should remember, rather than trying to explain everything."
+        },
+        {
+          "heading": "Opening and structure",
+          "narration": "Open with your topic and purpose. For example: Today I will explain our proposed reporting process and the next steps for the team. Then show the structure: First, I will describe the current situation. Next, I will explain the proposed change. Finally, I will summarize the actions. These signposts help the listener follow the argument."
+        },
+        {
+          "heading": "Develop the message",
+          "narration": "Use one main point at a time and support it with a clear example. In a fictional scenario, a team receives updates in several separate messages. A proposed improvement is a shared weekly summary. Explain the benefit cautiously: This could make deadlines easier to track. Do not claim measured time savings unless you have actually measured them."
+        },
+        {
+          "heading": "Close and invite questions",
+          "narration": "Summarize the idea and requested next action. Try: To summarize, we propose one weekly update with progress, blockers, and next steps. The next action is to test the format on one project. Thank you for your time. I am happy to answer questions. The closing connects the presentation to a decision or practical activity."
+        },
+        {
+          "heading": "Handle a question",
+          "narration": "Listen fully before answering. You can say: Thank you for the question. Could you clarify which part you mean? If you do not know, say: I do not have that information yet. I will check it. A clear admission is better than inventing an answer. For individual practice, write two likely audience questions and record your replies."
+        },
+        {
+          "heading": "Pause and record",
+          "narration": "Prepare your opening, two or three main points, and closing. Record a two-to-three-minute presentation, then listen once without reading your notes. Check structure, pace, transitions, and whether the requested action is clear. Revise one section and record it again. Save the improved version and your two question responses for your final project."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "A professional presentation needs an opening, a structured body, a closing, and a way to handle questions. Your practice task is a two-to-three-minute presentation about your area of work. Select one idea your audience should remember, rather than trying to explain everything.",
+          "onScreenTitle": "Present one clear idea",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 22.26,
+          "seccion": "Present one clear idea"
+        },
+        {
+          "role": "point",
+          "text": "Open with your topic and purpose. For example: Today I will explain our proposed reporting process and the next steps for the team. Then show the structure: First, I will describe the current situation. Next, I will explain the proposed change. Finally, I will summarize the actions. These signposts help the listener follow the argument.",
+          "onScreenTitle": "Opening and structure",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 29.05,
+          "seccion": "Opening and structure"
+        },
+        {
+          "role": "point",
+          "text": "Use one main point at a time and support it with a clear example. In a fictional scenario, a team receives updates in several separate messages. A proposed improvement is a shared weekly summary. Explain the benefit cautiously: This could make deadlines easier to track. Do not claim measured time savings unless you have actually measured them.",
+          "onScreenTitle": "Develop the message",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.09,
+          "seccion": "Develop the message"
+        },
+        {
+          "role": "point",
+          "text": "Summarize the idea and requested next action. Try: To summarize, we propose one weekly update with progress, blockers, and next steps. The next action is to test the format on one project. Thank you for your time. I am happy to answer questions. The closing connects the presentation to a decision or practical activity.",
+          "onScreenTitle": "Close and invite questions",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.52,
+          "seccion": "Close and invite questions"
+        },
+        {
+          "role": "point",
+          "text": "Listen fully before answering. You can say: Thank you for the question. Could you clarify which part you mean? If you do not know, say: I do not have that information yet. I will check it. A clear admission is better than inventing an answer. For individual practice, write two likely audience questions and record your replies.",
+          "onScreenTitle": "Handle a question",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.09,
+          "seccion": "Handle a question"
+        },
+        {
+          "role": "point",
+          "text": "Prepare your opening, two or three main points, and closing. Record a two-to-three-minute presentation, then listen once without reading your notes. Check structure, pace, transitions, and whether the requested action is clear. Revise one section and record it again. Save the improved version and your two question responses for your final project.",
+          "onScreenTitle": "Pause and record",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 27.48,
+          "seccion": "Pause and record"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M04",
+        "moduleName": "Professional Presentations",
+        "lessonNumber": 4,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M05",
+      "title": "AI for Productivity",
+      "language": "en",
+      "script": "AI can support drafting, summarizing, translating, and revising workplace text. In this module you will choose one task, write a clear instruction, review the result, and record what improved. This is a practice workflow, not a promise that every AI output will be accurate or save time.\n\nStart with a fictional document or material you are authorized to use. Decide what the tool should produce and for whom. For example, you might need a short team update from meeting notes. Do not include private client, employee, or company information unless your approved process permits it.\n\nGive a task, context, and format. Here is a model: Summarize these fictional meeting notes for an international operations team. Use five bullet points covering decisions, owners, and deadlines. Do not add facts that are missing from the notes. This instruction is more useful than Summarize this because it tells the tool what to prioritize.\n\nCompare the output with the input. Check names, dates, figures, action owners, and any unsupported claim. If the result says the team approved a decision that was only discussed, correct it. If the tone is too formal or vague, ask for a specific revision. Keep responsibility for the final message instead of assuming polished language means reliable information.\n\nUse these structures: I used an AI tool to prepare a first draft. I checked the dates against the original notes. I revised the message for our audience. The tool helped organize the information. If you measure time, include the time spent reviewing and correcting. Do not invent a productivity percentage.\n\nChoose a small drafting or summarizing task. Save your input, prompt, generated draft, and revised version. Write one sentence about what improved and one about what you had to correct. You can complete the task as a simulation if no approved tool is available. Keep this evidence for your final project and reflect on which recurring task might benefit from the same workflow.",
+      "scriptSha256": "4480e7e7437b8cac1517dd605963fb46875ad58d9adabce5e8c0a1d8778e5842",
+      "sections": [
+        {
+          "heading": "Support a work task",
+          "narration": "AI can support drafting, summarizing, translating, and revising workplace text. In this module you will choose one task, write a clear instruction, review the result, and record what improved. This is a practice workflow, not a promise that every AI output will be accurate or save time."
+        },
+        {
+          "heading": "Choose safe material",
+          "narration": "Start with a fictional document or material you are authorized to use. Decide what the tool should produce and for whom. For example, you might need a short team update from meeting notes. Do not include private client, employee, or company information unless your approved process permits it."
+        },
+        {
+          "heading": "A structured prompt",
+          "narration": "Give a task, context, and format. Here is a model: Summarize these fictional meeting notes for an international operations team. Use five bullet points covering decisions, owners, and deadlines. Do not add facts that are missing from the notes. This instruction is more useful than Summarize this because it tells the tool what to prioritize."
+        },
+        {
+          "heading": "Review before using",
+          "narration": "Compare the output with the input. Check names, dates, figures, action owners, and any unsupported claim. If the result says the team approved a decision that was only discussed, correct it. If the tone is too formal or vague, ask for a specific revision. Keep responsibility for the final message instead of assuming polished language means reliable information."
+        },
+        {
+          "heading": "Describe the activity in English",
+          "narration": "Use these structures: I used an AI tool to prepare a first draft. I checked the dates against the original notes. I revised the message for our audience. The tool helped organize the information. If you measure time, include the time spent reviewing and correcting. Do not invent a productivity percentage."
+        },
+        {
+          "heading": "Pause and practise",
+          "narration": "Choose a small drafting or summarizing task. Save your input, prompt, generated draft, and revised version. Write one sentence about what improved and one about what you had to correct. You can complete the task as a simulation if no approved tool is available. Keep this evidence for your final project and reflect on which recurring task might benefit from the same workflow."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "AI can support drafting, summarizing, translating, and revising workplace text. In this module you will choose one task, write a clear instruction, review the result, and record what improved. This is a practice workflow, not a promise that every AI output will be accurate or save time.",
+          "onScreenTitle": "Support a work task",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 24.87,
+          "seccion": "Support a work task"
+        },
+        {
+          "role": "point",
+          "text": "Start with a fictional document or material you are authorized to use. Decide what the tool should produce and for whom. For example, you might need a short team update from meeting notes. Do not include private client, employee, or company information unless your approved process permits it.",
+          "onScreenTitle": "Choose safe material",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 25.39,
+          "seccion": "Choose safe material"
+        },
+        {
+          "role": "point",
+          "text": "Give a task, context, and format. Here is a model: Summarize these fictional meeting notes for an international operations team. Use five bullet points covering decisions, owners, and deadlines. Do not add facts that are missing from the notes. This instruction is more useful than Summarize this because it tells the tool what to prioritize.",
+          "onScreenTitle": "A structured prompt",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 29.05,
+          "seccion": "A structured prompt"
+        },
+        {
+          "role": "point",
+          "text": "Compare the output with the input. Check names, dates, figures, action owners, and any unsupported claim. If the result says the team approved a decision that was only discussed, correct it. If the tone is too formal or vague, ask for a specific revision. Keep responsibility for the final message instead of assuming polished language means reliable information.",
+          "onScreenTitle": "Review before using",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Review before using"
+        },
+        {
+          "role": "point",
+          "text": "Use these structures: I used an AI tool to prepare a first draft. I checked the dates against the original notes. I revised the message for our audience. The tool helped organize the information. If you measure time, include the time spent reviewing and correcting. Do not invent a productivity percentage.",
+          "onScreenTitle": "Describe the activity in English",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.96,
+          "seccion": "Describe the activity in English"
+        },
+        {
+          "role": "point",
+          "text": "Choose a small drafting or summarizing task. Save your input, prompt, generated draft, and revised version. Write one sentence about what improved and one about what you had to correct. You can complete the task as a simulation if no approved tool is available. Keep this evidence for your final project and reflect on which recurring task might benefit from the same workflow.",
+          "onScreenTitle": "Pause and practise",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 33.22,
+          "seccion": "Pause and practise"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M05",
+        "moduleName": "AI for Productivity",
+        "lessonNumber": 5,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M06",
+      "title": "Automation in Companies",
+      "language": "en",
+      "script": "Automation can help with repetitive processes, but first you need to understand the process. This module is a planning exercise. You will identify a recurring task, describe its steps, and propose where automation could help. The example you develop will feed your final corporate project.\n\nImagine a fictional team receiving project updates by email, copying them into a register, and preparing a weekly summary. Map the trigger, input, steps, output, and owner. The trigger is the arrival of an update. The input is the update information. The output is a register entry and a summary. Identify what changes each time and what stays consistent.\n\nA predictable copy or formatting step may be a candidate for automation. A decision requiring context may still need a person. In the example, structured updates could become draft register entries, while a team member checks the content before it is used. Do not describe this as an implemented system unless you have actually built and tested it.\n\nUse this language: The process starts when an update arrives. The system could create a draft entry. A team member would review missing information. The approved entry would feed the weekly summary. Could and would make clear that this is a proposed workflow, not evidence of a live integration.\n\nWhat happens if an update has no deadline or names the wrong project? State who reviews the exception and where it is recorded. Choose a small test case and a way to compare the output with the original. A useful proposal includes the normal path and the response when information is incomplete.\n\nIdentify one repetitive process in your work or use a fictional one. Write its steps, frequency, owner, and estimated effort. Mark the step you would automate and the decision you would keep for review. Save a simple diagram or numbered list, plus one exception case. These are planning assets for the final project; this video does not claim to install an automation for your company.",
+      "scriptSha256": "e5a4b0a7b002124d1c7879fb6f59989e34824637bf6e7aac9005858a2d04c61f",
+      "sections": [
+        {
+          "heading": "Map before automating",
+          "narration": "Automation can help with repetitive processes, but first you need to understand the process. This module is a planning exercise. You will identify a recurring task, describe its steps, and propose where automation could help. The example you develop will feed your final corporate project."
+        },
+        {
+          "heading": "A simple workflow",
+          "narration": "Imagine a fictional team receiving project updates by email, copying them into a register, and preparing a weekly summary. Map the trigger, input, steps, output, and owner. The trigger is the arrival of an update. The input is the update information. The output is a register entry and a summary. Identify what changes each time and what stays consistent."
+        },
+        {
+          "heading": "Choose the repetitive step",
+          "narration": "A predictable copy or formatting step may be a candidate for automation. A decision requiring context may still need a person. In the example, structured updates could become draft register entries, while a team member checks the content before it is used. Do not describe this as an implemented system unless you have actually built and tested it."
+        },
+        {
+          "heading": "Explain the proposal",
+          "narration": "Use this language: The process starts when an update arrives. The system could create a draft entry. A team member would review missing information. The approved entry would feed the weekly summary. Could and would make clear that this is a proposed workflow, not evidence of a live integration."
+        },
+        {
+          "heading": "Plan exceptions",
+          "narration": "What happens if an update has no deadline or names the wrong project? State who reviews the exception and where it is recorded. Choose a small test case and a way to compare the output with the original. A useful proposal includes the normal path and the response when information is incomplete."
+        },
+        {
+          "heading": "Pause and document",
+          "narration": "Identify one repetitive process in your work or use a fictional one. Write its steps, frequency, owner, and estimated effort. Mark the step you would automate and the decision you would keep for review. Save a simple diagram or numbered list, plus one exception case. These are planning assets for the final project; this video does not claim to install an automation for your company."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Automation can help with repetitive processes, but first you need to understand the process. This module is a planning exercise. You will identify a recurring task, describe its steps, and propose where automation could help. The example you develop will feed your final corporate project.",
+          "onScreenTitle": "Map before automating",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 23.83,
+          "seccion": "Map before automating"
+        },
+        {
+          "role": "point",
+          "text": "Imagine a fictional team receiving project updates by email, copying them into a register, and preparing a weekly summary. Map the trigger, input, steps, output, and owner. The trigger is the arrival of an update. The input is the update information. The output is a register entry and a summary. Identify what changes each time and what stays consistent.",
+          "onScreenTitle": "A simple workflow",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.13,
+          "seccion": "A simple workflow"
+        },
+        {
+          "role": "point",
+          "text": "A predictable copy or formatting step may be a candidate for automation. A decision requiring context may still need a person. In the example, structured updates could become draft register entries, while a team member checks the content before it is used. Do not describe this as an implemented system unless you have actually built and tested it.",
+          "onScreenTitle": "Choose the repetitive step",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 30.61,
+          "seccion": "Choose the repetitive step"
+        },
+        {
+          "role": "point",
+          "text": "Use this language: The process starts when an update arrives. The system could create a draft entry. A team member would review missing information. The approved entry would feed the weekly summary. Could and would make clear that this is a proposed workflow, not evidence of a live integration.",
+          "onScreenTitle": "Explain the proposal",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 25.92,
+          "seccion": "Explain the proposal"
+        },
+        {
+          "role": "point",
+          "text": "What happens if an update has no deadline or names the wrong project? State who reviews the exception and where it is recorded. Choose a small test case and a way to compare the output with the original. A useful proposal includes the normal path and the response when information is incomplete.",
+          "onScreenTitle": "Plan exceptions",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 27.48,
+          "seccion": "Plan exceptions"
+        },
+        {
+          "role": "point",
+          "text": "Identify one repetitive process in your work or use a fictional one. Write its steps, frequency, owner, and estimated effort. Mark the step you would automate and the decision you would keep for review. Save a simple diagram or numbered list, plus one exception case. These are planning assets for the final project; this video does not claim to install an automation for your company.",
+          "onScreenTitle": "Pause and document",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 34.26,
+          "seccion": "Pause and document"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M06",
+        "moduleName": "Automation in Companies",
+        "lessonNumber": 6,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M07",
+      "title": "Negotiation and Teamwork",
+      "language": "en",
+      "script": "Negotiation language helps you propose, respond, make a concession, and confirm an agreement. In this module you will simulate a workplace conversation. You can record both sides individually. Choose a realistic topic such as a deadline, division of work, or meeting schedule.\n\nUse I would like to suggest, What if we, or Our proposal is. For example: I would like to suggest delivering the first draft on Thursday and the final version on Monday. Give a reason so the other person can evaluate the proposal. Keep your request specific enough to discuss.\n\nTo acknowledge a point, say: I understand your concern. To offer a concession, say: We could consider a shorter first draft. To explain a limit, say: We cannot confirm Monday until the figures are available. A courteous response can still communicate a clear boundary.\n\nImagine two fictional teams discussing a report. Team A says: Our proposal is to deliver the final report on Friday. Team B replies: I understand your point, but we need time to check the figures. What if we share a preliminary summary on Friday and the checked report on Monday? Team A responds: That works for us, provided the summary clearly labels unconfirmed figures. Team B concludes: Agreed. We will send the summary Friday and the checked report Monday.\n\nAfter agreeing, summarize scope, owner, deadline, and any condition. Use We agree on or Let us move forward with. Make sure both sides understand whether the deliverable is a draft or final version. Write a short confirmation message so the agreement does not depend on memory alone.\n\nWrite a proposal, one concern, a concession, and a final agreement for your scenario. Record both roles and listen back. Did you acknowledge the other position? Is the final action realistic and clear? Save a four-sentence agreement summary. Reflect on which phrase helped you respond politely without losing the purpose of the negotiation.",
+      "scriptSha256": "53f2d1e3958fff457ac1d5a2b65641f5fe478d4f7e4684599d696f894f93c196",
+      "sections": [
+        {
+          "heading": "Work towards agreement",
+          "narration": "Negotiation language helps you propose, respond, make a concession, and confirm an agreement. In this module you will simulate a workplace conversation. You can record both sides individually. Choose a realistic topic such as a deadline, division of work, or meeting schedule."
+        },
+        {
+          "heading": "Make a proposal",
+          "narration": "Use I would like to suggest, What if we, or Our proposal is. For example: I would like to suggest delivering the first draft on Thursday and the final version on Monday. Give a reason so the other person can evaluate the proposal. Keep your request specific enough to discuss."
+        },
+        {
+          "heading": "Acknowledge and respond",
+          "narration": "To acknowledge a point, say: I understand your concern. To offer a concession, say: We could consider a shorter first draft. To explain a limit, say: We cannot confirm Monday until the figures are available. A courteous response can still communicate a clear boundary."
+        },
+        {
+          "heading": "Worked dialogue",
+          "narration": "Imagine two fictional teams discussing a report. Team A says: Our proposal is to deliver the final report on Friday. Team B replies: I understand your point, but we need time to check the figures. What if we share a preliminary summary on Friday and the checked report on Monday? Team A responds: That works for us, provided the summary clearly labels unconfirmed figures. Team B concludes: Agreed. We will send the summary Friday and the checked report Monday."
+        },
+        {
+          "heading": "Confirm the agreement",
+          "narration": "After agreeing, summarize scope, owner, deadline, and any condition. Use We agree on or Let us move forward with. Make sure both sides understand whether the deliverable is a draft or final version. Write a short confirmation message so the agreement does not depend on memory alone."
+        },
+        {
+          "heading": "Pause and roleplay",
+          "narration": "Write a proposal, one concern, a concession, and a final agreement for your scenario. Record both roles and listen back. Did you acknowledge the other position? Is the final action realistic and clear? Save a four-sentence agreement summary. Reflect on which phrase helped you respond politely without losing the purpose of the negotiation."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Negotiation language helps you propose, respond, make a concession, and confirm an agreement. In this module you will simulate a workplace conversation. You can record both sides individually. Choose a realistic topic such as a deadline, division of work, or meeting schedule.",
+          "onScreenTitle": "Work towards agreement",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 22.26,
+          "seccion": "Work towards agreement"
+        },
+        {
+          "role": "point",
+          "text": "Use I would like to suggest, What if we, or Our proposal is. For example: I would like to suggest delivering the first draft on Thursday and the final version on Monday. Give a reason so the other person can evaluate the proposal. Keep your request specific enough to discuss.",
+          "onScreenTitle": "Make a proposal",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.44,
+          "seccion": "Make a proposal"
+        },
+        {
+          "role": "point",
+          "text": "To acknowledge a point, say: I understand your concern. To offer a concession, say: We could consider a shorter first draft. To explain a limit, say: We cannot confirm Monday until the figures are available. A courteous response can still communicate a clear boundary.",
+          "onScreenTitle": "Acknowledge and respond",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 23.31,
+          "seccion": "Acknowledge and respond"
+        },
+        {
+          "role": "point",
+          "text": "Imagine two fictional teams discussing a report. Team A says: Our proposal is to deliver the final report on Friday. Team B replies: I understand your point, but we need time to check the figures. What if we share a preliminary summary on Friday and the checked report on Monday? Team A responds: That works for us, provided the summary clearly labels unconfirmed figures. Team B concludes: Agreed. We will send the summary Friday and the checked report Monday.",
+          "onScreenTitle": "Worked dialogue",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 41.57,
+          "seccion": "Worked dialogue"
+        },
+        {
+          "role": "point",
+          "text": "After agreeing, summarize scope, owner, deadline, and any condition. Use We agree on or Let us move forward with. Make sure both sides understand whether the deliverable is a draft or final version. Write a short confirmation message so the agreement does not depend on memory alone.",
+          "onScreenTitle": "Confirm the agreement",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 24.87,
+          "seccion": "Confirm the agreement"
+        },
+        {
+          "role": "point",
+          "text": "Write a proposal, one concern, a concession, and a final agreement for your scenario. Record both roles and listen back. Did you acknowledge the other position? Is the final action realistic and clear? Save a four-sentence agreement summary. Reflect on which phrase helped you respond politely without losing the purpose of the negotiation.",
+          "onScreenTitle": "Pause and roleplay",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.0,
+          "seccion": "Pause and roleplay"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M07",
+        "moduleName": "Negotiation and Teamwork",
+        "lessonNumber": 7,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-2026-016-M08",
+      "title": "Corporate Project",
+      "language": "en",
+      "script": "Your final practice project connects professional English and an AI or automation proposal with one workplace challenge. Work individually using your real role with non-confidential information, or a clearly labelled fictional scenario. Reuse your communication, presentation, and workflow activities from earlier modules.\n\nDescribe the current situation, the people involved, and what you want to improve. Choose a manageable problem, such as preparing consistent weekly updates. State the boundary: what is included in your proposal and what is outside it. Keep a list of facts, assumptions, and questions so your presentation does not treat guesses as evidence.\n\nPrepare a professional introduction, a short email or report, and a three-point meeting agenda about the same scenario. Check that dates, responsibilities, and terminology agree across the documents. Add a brief negotiation or clarification exchange if the project requires a decision from another person.\n\nInclude one AI-assisted drafting activity with its prompt and your reviewed output, or the process map and automation proposal from module six. Explain what the tool supports and what a person still reviews. If you have only planned the workflow, describe it as a proposal. If you tested it, report the actual test and limitation rather than invented results.\n\nPrepare a two-to-three-minute presentation with an opening, main points, and closing. Introduce the challenge, explain your proposed response, show one example, and state a next step. Record your presentation and two likely question responses. Use phrases such as Our proposal is, The next action is, and We still need to confirm.\n\nPause and review the full project. Is the communication professional and clear? Do the assets describe the same challenge? Can you explain every claim? Is the AI or automation contribution documented? Is the presentation organized? Identify your strongest skill and one improvement. Save the final files for review. This self-paced adaptation does not promise a live presentation, automatic grading, or a certificate before the course terms are confirmed.",
+      "scriptSha256": "cbc34b87b2b25eecc512c0e8ac5cf6d065c585b166e876f3b0fab7e7d7504b93",
+      "sections": [
+        {
+          "heading": "Bring the modules together",
+          "narration": "Your final practice project connects professional English and an AI or automation proposal with one workplace challenge. Work individually using your real role with non-confidential information, or a clearly labelled fictional scenario. Reuse your communication, presentation, and workflow activities from earlier modules."
+        },
+        {
+          "heading": "Define the challenge",
+          "narration": "Describe the current situation, the people involved, and what you want to improve. Choose a manageable problem, such as preparing consistent weekly updates. State the boundary: what is included in your proposal and what is outside it. Keep a list of facts, assumptions, and questions so your presentation does not treat guesses as evidence."
+        },
+        {
+          "heading": "Communication assets",
+          "narration": "Prepare a professional introduction, a short email or report, and a three-point meeting agenda about the same scenario. Check that dates, responsibilities, and terminology agree across the documents. Add a brief negotiation or clarification exchange if the project requires a decision from another person."
+        },
+        {
+          "heading": "AI or automation evidence",
+          "narration": "Include one AI-assisted drafting activity with its prompt and your reviewed output, or the process map and automation proposal from module six. Explain what the tool supports and what a person still reviews. If you have only planned the workflow, describe it as a proposal. If you tested it, report the actual test and limitation rather than invented results."
+        },
+        {
+          "heading": "Your presentation",
+          "narration": "Prepare a two-to-three-minute presentation with an opening, main points, and closing. Introduce the challenge, explain your proposed response, show one example, and state a next step. Record your presentation and two likely question responses. Use phrases such as Our proposal is, The next action is, and We still need to confirm."
+        },
+        {
+          "heading": "Self-review and reflection",
+          "narration": "Pause and review the full project. Is the communication professional and clear? Do the assets describe the same challenge? Can you explain every claim? Is the AI or automation contribution documented? Is the presentation organized? Identify your strongest skill and one improvement. Save the final files for review. This self-paced adaptation does not promise a live presentation, automatic grading, or a certificate before the course terms are confirmed."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "Your final practice project connects professional English and an AI or automation proposal with one workplace challenge. Work individually using your real role with non-confidential information, or a clearly labelled fictional scenario. Reuse your communication, presentation, and workflow activities from earlier modules.",
+          "onScreenTitle": "Bring the modules together",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 22.26,
+          "seccion": "Bring the modules together"
+        },
+        {
+          "role": "point",
+          "text": "Describe the current situation, the people involved, and what you want to improve. Choose a manageable problem, such as preparing consistent weekly updates. State the boundary: what is included in your proposal and what is outside it. Keep a list of facts, assumptions, and questions so your presentation does not treat guesses as evidence.",
+          "onScreenTitle": "Define the challenge",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 28.52,
+          "seccion": "Define the challenge"
+        },
+        {
+          "role": "point",
+          "text": "Prepare a professional introduction, a short email or report, and a three-point meeting agenda about the same scenario. Check that dates, responsibilities, and terminology agree across the documents. Add a brief negotiation or clarification exchange if the project requires a decision from another person.",
+          "onScreenTitle": "Communication assets",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 23.31,
+          "seccion": "Communication assets"
+        },
+        {
+          "role": "point",
+          "text": "Include one AI-assisted drafting activity with its prompt and your reviewed output, or the process map and automation proposal from module six. Explain what the tool supports and what a person still reviews. If you have only planned the workflow, describe it as a proposal. If you tested it, report the actual test and limitation rather than invented results.",
+          "onScreenTitle": "AI or automation evidence",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 31.13,
+          "seccion": "AI or automation evidence"
+        },
+        {
+          "role": "point",
+          "text": "Prepare a two-to-three-minute presentation with an opening, main points, and closing. Introduce the challenge, explain your proposed response, show one example, and state a next step. Record your presentation and two likely question responses. Use phrases such as Our proposal is, The next action is, and We still need to confirm.",
+          "onScreenTitle": "Your presentation",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 26.96,
+          "seccion": "Your presentation"
+        },
+        {
+          "role": "point",
+          "text": "Pause and review the full project. Is the communication professional and clear? Do the assets describe the same challenge? Can you explain every claim? Is the AI or automation contribution documented? Is the presentation organized? Identify your strongest skill and one improvement. Save the final files for review. This self-paced adaptation does not promise a live presentation, automatic grading, or a certificate before the course terms are confirmed.",
+          "onScreenTitle": "Self-review and reflection",
+          "showOnScreenText": false,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "White background, navy #003366, simple professional training visual, no red, no logos",
+          "duration": 35.83,
+          "seccion": "Self-review and reflection"
+        }
+      ],
+      "sources": [
+        "https://gamma.app/docs/RPM-2026-016-SLIDE-DECK-ACADEMICO-v01-Corporate-English-AI-knch32djnwjhqov",
+        "https://gamma.app/docs/RPM-2026-016-STUDENT-WORKBOOK-v01-Corporate-English-AI-23w1qoycxfdfdih"
+      ],
+      "adaptation": "New narration expanded from source outlines; worked examples are explicitly fictional. Live/group activities adapted to individual recording and self-review; certification terms excluded.",
+      "course": {
+        "courseId": "56401",
+        "courseName": "Corporate English + AI",
+        "moduleId": "RPM-2026-016-M08",
+        "moduleName": "Corporate Project",
+        "lessonNumber": 8,
+        "tags": [
+          "self-paced",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    }
+  ]
+}

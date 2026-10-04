@@ -15,6 +15,8 @@
     "dev": "node --watch src/server.js",
     "cli": "node src/cli.js",
     "doctor": "node src/cli.js doctor",
+    "courses:check": "node scripts/course-production-check.mjs",
+    "courses:test": "node scripts/test.mjs tests/course-production.test.js tests/course-production-contract.test.js tests/course-production-http.test.js",
     "demo": "node src/cli.js demo",
     "test": "node scripts/ejecutar-pruebas.mjs"
   },
