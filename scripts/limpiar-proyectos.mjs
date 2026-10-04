@@ -1,80 +1,126 @@
 /**
- * Quita de data/projects los proyectos que dejaron las PRUEBAS.
+ * Deja el equipo con los proyectos que valen y quita el resto.
  *
- * Las pruebas creaban proyectos de verdad en la carpeta real (ya no: ver
- * scripts/test.mjs). Los que quedaron de antes entierran el trabajo de verdad
- * en la lista del editor, que ordena por fecha.
+ * De 260 proyectos, 215 tenian un MP4 exportado, pero casi todos eran renders
+ * de prueba de 1-4 MB: las pruebas automaticas escribian en las carpetas reales
+ * (ya no; ver scripts/test.mjs). Con tanto ruido, encontrar un video de verdad
+ * en el inicio era imposible.
  *
- * NO BORRA NADA POR SU CUENTA. Sin `--confirmar` solo enseña lo que haria.
- * Y nunca toca un proyecto que tenga un MP4 exportado, aunque su titulo parezca
- * de prueba: un archivo terminado no se tira por un nombre.
+ * QUE TOCA Y QUE NO
  *
- *   node scripts/limpiar-proyectos.mjs              # ver el informe
- *   node scripts/limpiar-proyectos.mjs --confirmar  # borrar de verdad
+ *   data/projects          borra los que no estan en CONSERVAR
+ *   output/final           borra los MP4 y paquetes de esos proyectos
+ *   output/drafts          borra su cache de render (se puede rehacer)
+ *   data/video-generation  borra sus trabajos, y los intentos sin proyecto
+ *
+ *   data/analyses          NO SE TOCA: ahi estan los videos originales que
+ *                          subio la usuaria, y eso no se puede rehacer
+ *   data/assets            NO SE TOCA: imagenes, musica y efectos con licencia
+ *   data/brands            NO SE TOCA
+ *
+ * NO BORRA NADA sin `--confirmar`: sin esa bandera solo enseña el informe.
+ *
+ *   node scripts/limpiar-proyectos.mjs              # ver que haria
+ *   node scripts/limpiar-proyectos.mjs --confirmar  # hacerlo
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { PATHS } from '../src/lib/paths.js';
 
-/** Titulos que crean las pruebas automaticas. Coincidencia EXACTA, sin comodines. */
-const TITULOS_DE_PRUEBA = new Set([
-  'TEST técnico de estudio',
-  'Clase de prueba',
-  'Prueba de progreso',
-  'clases de inglés online para adultos',
-  'Editor de prueba',
-  'Smoke del editor',
-  'Smoke de foco',
-  'Transiciones',
-  'Meditación diaria',
-  'vol',
-  'diag',
+/**
+ * LOS QUE SE QUEDAN. Se listan por id, no por titulo: hay catorce proyectos
+ * llamados igual y un titulo no identifica nada.
+ */
+export const CONSERVAR = new Map([
+  ['vid_muajz54k43c23b', 'video espiritual (279 escenas)'],
+  ['vid_muaa12ir25c6d8', 'Clase de inglés: presente simple (105 escenas)'],
+  ['vid_muag4nlb11f3b2', 'Video 9:16 (20 escenas)'],
+  ['vid_mud2hliu9f5432', 'Video 16:9 (15 escenas)'],
 ]);
 
 const confirmar = process.argv.includes('--confirmar');
+const ID = /vid_[a-z0-9]+/i;
 
-const fichas = fs.readdirSync(PATHS.projects)
-  .filter(f => f.endsWith('.json'))
-  .map((f) => {
-    const file = path.join(PATHS.projects, f);
-    try {
-      const p = JSON.parse(fs.readFileSync(file, 'utf8'));
-      const exportados = Object.values(p.outputs || {}).filter(Boolean);
-      return {
-        file,
-        id: p.id,
-        titulo: p.title || '(sin título)',
-        escenas: p.scenes?.length || 0,
-        fecha: (p.updatedAt || '').slice(0, 19),
-        exportados,
-        // Un proyecto sin titulo ni escenas no es de nadie: es un resto.
-        vacio: !p.title && !(p.scenes?.length),
-      };
-    } catch { return { file, id: path.basename(f, '.json'), titulo: '(ilegible)', escenas: 0, fecha: '', exportados: [], vacio: true }; }
-  });
+const mb = b => `${(b / 1048576).toFixed(0)} MB`;
 
-const candidatos = fichas.filter(x => (TITULOS_DE_PRUEBA.has(x.titulo) || x.vacio) && !x.exportados.length);
-const protegidos = fichas.filter(x => (TITULOS_DE_PRUEBA.has(x.titulo) || x.vacio) && x.exportados.length);
-const tuyos = fichas.filter(x => !TITULOS_DE_PRUEBA.has(x.titulo) && !x.vacio);
-
-console.log(`\nEn ${path.relative(PATHS.root, PATHS.projects)} hay ${fichas.length} proyectos.\n`);
-console.log(`  ${tuyos.length} tuyos, que NO se tocan.`);
-console.log(`  ${candidatos.length} de pruebas, sin nada exportado: se pueden quitar.`);
-if (protegidos.length) console.log(`  ${protegidos.length} con nombre de prueba pero CON MP4 exportado: no se tocan.`);
-
-console.log('\nTus proyectos más recientes:');
-for (const x of tuyos.sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 12)) {
-  console.log(`  ${x.fecha}  ${String(x.escenas).padStart(3)} esc  ${x.exportados.length ? 'MP4 ' : '    '} ${x.titulo.slice(0, 44)}  (${x.id})`);
+/** Tamaño de un archivo o de una carpeta entera. */
+function pesa(p) {
+  let total = 0;
+  const ver = (x) => {
+    let s;
+    try { s = fs.statSync(x); } catch { return; }
+    if (s.isDirectory()) { for (const f of fs.readdirSync(x)) ver(path.join(x, f)); } else total += s.size;
+  };
+  ver(p);
+  return total;
 }
 
-if (!candidatos.length) { console.log('\nNo hay nada que limpiar.\n'); process.exit(0); }
+const borrar = [];   // { ruta, bytes, zona }
+const intactos = []; // lo que se queda por no poder identificarlo
+
+/** Apunta para borrar todo lo de una carpeta cuyo id NO esté en CONSERVAR. */
+function revisar(zona, dir, idDe) {
+  if (!fs.existsSync(dir)) return;
+  for (const nombre of fs.readdirSync(dir)) {
+    const ruta = path.join(dir, nombre);
+    const id = idDe(nombre, ruta);
+    if (id && CONSERVAR.has(id)) continue;
+    // Sin id no se puede saber de quién es: se deja y se dice.
+    if (!id) { intactos.push(path.relative(PATHS.root, ruta)); continue; }
+    borrar.push({ ruta, bytes: pesa(ruta), zona });
+  }
+}
+
+revisar('proyectos', PATHS.projects, n => (n.endsWith('.json') ? n.replace(/\.json$/, '') : null));
+revisar('exportados', PATHS.final, n => n.match(ID)?.[0] || null);
+// En la cache tambien quedaron carpetas de pruebas antiguas, con nombre propio
+// en vez de id de proyecto («audio-block-test-…»).
+revisar('caché de render', PATHS.drafts, n => (ID.test(n) ? n : (/^audio-block-test/.test(n) ? 'sin-proyecto' : null)));
+revisar('trabajos', PATHS.trabajos, (n, ruta) => {
+  // Cada trabajo son dos cosas: su .json y una carpeta con el mismo nombre.
+  // La carpeta hereda el destino de su .json; si no tiene, es un resto.
+  const ficha = n.endsWith('.json') ? ruta : `${ruta}.json`;
+  if (n === '.gitkeep') return null;
+  try {
+    const j = JSON.parse(fs.readFileSync(ficha, 'utf8'));
+    // Un intento que no dejó proyecto no tiene nada que abrir: fuera.
+    return j.projectId || 'sin-proyecto';
+  } catch { return 'sin-proyecto'; }
+});
+
+// ------------------------------------------------------------------ informe
+
+const porZona = new Map();
+for (const x of borrar) {
+  const z = porZona.get(x.zona) || { n: 0, bytes: 0 };
+  z.n++; z.bytes += x.bytes;
+  porZona.set(x.zona, z);
+}
+
+console.log('\nSE CONSERVAN:');
+for (const [id, que] of CONSERVAR) console.log(`  ${id}  ${que}`);
+
+console.log('\nSE QUITAN:');
+for (const [zona, z] of porZona) console.log(`  ${String(z.n).padStart(4)} en ${zona.padEnd(16)} ${mb(z.bytes).padStart(9)}`);
+console.log(`  ${String(borrar.length).padStart(4)} en total${' '.repeat(12)}${mb(borrar.reduce((a, x) => a + x.bytes, 0)).padStart(9)}`);
+
+if (intactos.length) console.log(`\nSe dejan ${intactos.length} archivos sin identificar (sin id de proyecto en el nombre).`);
+console.log('\nNO se toca: data/analyses (tus videos subidos), data/assets, data/brands.');
+
+// Red de seguridad: si algo de los que se conservan acabó en la lista, se para.
+const error = borrar.find(x => [...CONSERVAR.keys()].some(id => x.ruta.includes(id)));
+if (error) { console.error(`\nABORTADO: se iba a borrar algo de un proyecto conservado: ${error.ruta}\n`); process.exit(1); }
 
 if (!confirmar) {
-  console.log(`\nSe quitarían ${candidatos.length} proyectos de prueba. Para hacerlo de verdad:`);
+  console.log('\nEsto es solo el informe. Para hacerlo de verdad:');
   console.log('  node scripts/limpiar-proyectos.mjs --confirmar\n');
   process.exit(0);
 }
 
 let n = 0;
-for (const x of candidatos) { fs.unlinkSync(x.file); n++; }
-console.log(`\nQuitados ${n} proyectos de prueba. Quedan ${fichas.length - n}.\n`);
+let bytes = 0;
+for (const x of borrar) {
+  try { fs.rmSync(x.ruta, { recursive: true, force: true }); n++; bytes += x.bytes; }
+  catch (e) { console.error(`  no se pudo quitar ${x.ruta}: ${e.message}`); }
+}
+console.log(`\nQuitados ${n} elementos. Liberados ${mb(bytes)}.\n`);

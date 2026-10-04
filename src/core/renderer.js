@@ -639,6 +639,7 @@ export async function renderProject(project, brand, {
     await compose(true);
   } catch (e) {
     if (!subsAbs) throw e;
+    if (project.brand === 'lc-chile-courses') throw e;
     log.warn('Fallo el quemado de subtitulos, se reintenta sin ellos:', e.message.split('\n')[0]);
     captionsBurned = false;
     await compose(false);

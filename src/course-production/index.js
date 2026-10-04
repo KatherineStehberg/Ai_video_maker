@@ -46,6 +46,8 @@ async function verify(job, item) {
   const project = loadProject(job.projectId);
   if (!project || project.scenes.map(s => s.text).join('\n\n') !== item.script) return no('La narración del proyecto no coincide con el guion preparado.');
   if (project.scenes.some(s => !s.narrationPath || !fs.existsSync(abs(s.narrationPath)))) return no('Falta la narración de una o más escenas.');
+  if (project.scenes.some(s => !s.assetPath || !fs.existsSync(abs(s.assetPath)))) return no('Falta el visual de una o más escenas.');
+  if (!project.captions?.file || !fs.existsSync(abs(project.captions.file))) return no('Falta el archivo de subtítulos.');
   if (!job.generation.spec?.subtitulos || !project.captions?.enabled || !project.captions?.burnIn) return no('No se confirmó la generación de subtítulos completos.');
   const ff = await resolveFfmpeg();
   const measured = await run(ff.ffprobe, ['-v','error','-show_streams','-show_format','-of','json',file]);
@@ -54,8 +56,11 @@ async function verify(job, item) {
   const video = media.streams.find(s => s.codec_type === 'video');
   const audio = media.streams.find(s => s.codec_type === 'audio');
   if (!audio || !video || video.width !== 1920 || video.height !== 1080 || !(Number(media.format.duration) > 0)) return no('Formato, duración o pista de audio no válidos.');
+  const decoded = await run(ff.ffmpeg, ['-hide_banner','-nostdin','-v','info','-xerror','-i',file,'-af','volumedetect','-f','null','-']);
+  const mean = Number(decoded.stderr.match(/mean_volume:\s*(-?[\d.]+) dB/)?.[1]);
+  if (decoded.code !== 0 || !Number.isFinite(mean) || mean < -55) return no('El MP4 no se decodifica completamente o la narración es inaudible.');
   return { ok: true, durationSeconds: Number(media.format.duration), bytes: fs.statSync(file).size,
-    width: video.width, height: video.height, audio: true, scriptSha256: item.scriptSha256,
+    width: video.width, height: video.height, audio: true, meanVolumeDb: mean, fullyDecoded: true, scriptSha256: item.scriptSha256,
     notes: 'Verificación técnica automática. Calidad visual, pronunciación y sincronía requieren revisión final.' };
 }
 
