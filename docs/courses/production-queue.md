@@ -34,4 +34,8 @@ Los guiones constituyen videos breves de explicación y práctica; las actividad
 
 ## Verificación
 
+`npm.cmd run courses` (alias de `courses:check`) valida los textos y muestra el progreso guardado. Los cursos usan ilustraciones didácticas originales generadas localmente con FFmpeg, blanco y azul marino, sin búsquedas externas ni APIs. Cada MP4 debe decodificarse completamente y tener señal de audio por encima de -55 dB para ofrecerse a revisión. Un fallo al incrustar subtítulos detiene el render del curso.
+
+En Windows, SAPI necesita ejecutarse con la cuenta habitual del equipo; el sandbox puede ocultar las voces instaladas. El servidor debe permanecer abierto y el equipo encendido. Los enlaces `127.0.0.1` funcionan solamente en este computador. Los MP4 se conservan en `output/final/` y el estado en `data/course-production/state.json`.
+
 `npm run courses:test` prueba secuencia, persistencia, recuperación y bloqueo ante errores. `node --test tests/course-production-contract.test.js` verifica los 15 guiones y la selección de voz inglesa. `npm test` desactiva la cola de cursos para no mezclar renders de prueba con trabajo real.
