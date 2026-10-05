@@ -18,13 +18,28 @@ try {
     await page.goto(base + ready.reviewUrl);
     await page.waitForTimeout(1500);
     assert.equal((await page.request.get(base + ready.videoUrl)).status(), 200);
-    await page.setContent('<video controls style="width:100%"></video>');
-    await page.locator('video').evaluate((v, src) => { v.src = src; v.muted = true; }, base + ready.videoUrl);
+    await page.goto(base + '/course-video.html?id=' + encodeURIComponent(ready.id));
+    await page.waitForFunction(() => !document.querySelector('#sound').disabled);
     await page.waitForFunction(() => document.querySelector('video').readyState >= 2);
-    await page.locator('video').evaluate(async v => { v.currentTime = 10; await v.play(); });
+    await page.evaluate(() => {
+      const v = document.querySelector('video'); v.currentTime = 10; v.muted = true; v.volume = 0;
+      document.querySelector('#sound').addEventListener('click', () => {
+        const ctx = new AudioContext(); const analyser = ctx.createAnalyser();
+        ctx.createMediaElementSource(v).connect(analyser); analyser.connect(ctx.destination);
+        window.__soundCheck = { ctx, analyser }; void ctx.resume();
+      }, { once: true });
+    });
+    await page.click('#sound');
     await page.waitForFunction(() => document.querySelector('video').currentTime > 10.3);
+    const peak = await page.evaluate(async () => {
+      const a = window.__soundCheck.analyser; const samples = new Float32Array(a.fftSize); let peak = 0;
+      for (let i = 0; i < 30; i++) { a.getFloatTimeDomainData(samples); for (const sample of samples) peak = Math.max(peak, Math.abs(sample)); await new Promise(r => setTimeout(r, 50)); }
+      return peak;
+    });
+    report.playing = await page.locator('video').evaluate(v => ({ width: v.videoWidth, height: v.videoHeight, duration: v.duration, currentTime: v.currentTime, decodedFrames: v.getVideoPlaybackQuality().totalVideoFrames, muted: v.muted, volume: v.volume }));
+    report.playing.audioPeak = peak;
+    assert.equal(report.playing.muted, false); assert.equal(report.playing.volume, 1); assert.ok(peak > 0.01, 'The review player must output a real audio signal');
     await page.locator('video').evaluate(v => v.pause());
-    report.playing = await page.locator('video').evaluate(v => ({ width: v.videoWidth, height: v.videoHeight, duration: v.duration, currentTime: v.currentTime, decodedFrames: v.getVideoPlaybackQuality().totalVideoFrames }));
     assert.equal(report.playing.width, 1920); assert.equal(report.playing.height, 1080);
     await page.screenshot({ path: '.tmp/course-first-playback.png' });
   }
