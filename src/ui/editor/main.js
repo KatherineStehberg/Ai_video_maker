@@ -552,6 +552,8 @@ function montarSubs(opciones) {
 }
 
 function leerFormulario() {
+  const seleccionVoz = $('gen-voice').value;
+  const [providerVoz, ...nombreVoz] = seleccionVoz.split('|');
   const dur = $('gen-duration').value;
   const wpm = Number($('gen-wpm')?.value);
   return {
@@ -566,12 +568,32 @@ function leerFormulario() {
     audience: $('gen-audience').value.trim() || null,
     platform: $('gen-platform').value.trim() || null,
     music: $('gen-tono').value.trim() || null,
+    visualMode: $('gen-visual-mode').value,
+    voice: seleccionVoz === 'none' ? { provider: 'none', enabled: false } : seleccionVoz === 'auto' ? undefined : { provider: providerVoz, name: nombreVoz.join('|'), enabled: true },
     // SUBTITULOS. Este campo faltaba: la casilla existia en la pantalla pero
     // nunca viajaba al backend, asi que desactivarla no hacia nada y el video
     // salia subtitulado igual. Ahora manda lo que diga la casilla.
-    subtitles: { enabled: $('subs-on').checked, burnIn: $('subs-on').checked, style: leerEstiloSubs() },
+    subtitles: { language: $('gen-language').value, enabled: $('subs-on').checked, burnIn: $('subs-on').checked, style: leerEstiloSubs() },
   };
 }
+
+$('gen-voice-preview').addEventListener('click', async () => {
+  const b = leerFormulario();
+  const button = $('gen-voice-preview');
+  button.disabled = true;
+  try {
+    if (b.voice?.enabled === false) throw new Error('Selecciona una voz para escucharla.');
+    const selected = b.voice || (borrador?.voz ? { provider: borrador.voz.provider, name: borrador.voz.nombre } : null);
+    if (!selected?.name) throw new Error('Elige una voz del catálogo para escuchar la muestra.');
+    const res = await fetch('/api/project-editor/preview-voice', { method: 'POST', headers: { 'content-type': 'application/json', 'x-editor-request': '1' },
+      body: JSON.stringify({ provider: selected.provider, voice: selected.name, text: selected.name.startsWith('en-') ? 'Hello. This is a sample of the voice for your video.' : 'Hola. Esta es una muestra de la voz para tu video.' }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo generar la muestra.');
+    $('gen-voice-audio').src = data.url; $('gen-voice-audio').hidden = false;
+  } catch(e) { messages.setError(e.message); }
+  finally { button.disabled = false; }
+});
+$('gen-voice').addEventListener('change', () => { $('gen-voice-audio').pause(); $('gen-voice-audio').hidden = true; });
 
 $('gen-duration').addEventListener('change', () => {
   $('wrap-duracion-custom').hidden = $('gen-duration').value !== 'custom';
@@ -897,10 +919,19 @@ try {
   const activo = config.providers.find(p => p.id === config.defaultProvider);
   $('gen-provider-hint').textContent = activo?.mock
     ? 'Se creará un video de PRUEBA, sin IA, para que puedas recorrer el flujo.'
-    : 'El guion, la voz y el montaje se hacen en este equipo, sin coste.';
+    : 'El montaje se hace en este equipo. Los clips de Pexels y las voces Edge TTS necesitan internet.';
 } catch (e) {
   $('gen-provider-hint').textContent = `No se pudo leer la configuración: ${e.message}`;
 }
+
+// El catálogo remoto no bloquea el arranque del editor.
+void (async () => { try {
+  const res = await fetch('/api/voices');
+  if (!res.ok) throw new Error('No se pudo consultar el catálogo.');
+  const voices = await res.json();
+  for (const v of voices) $('gen-voice').append(new Option(`${v.name} · ${v.language} · ${v.provider}`, `${v.provider}|${v.name}`));
+  if (!voices.length) $('gen-voice-note').textContent = 'No hay voces disponibles. Instala Python y edge-tts para voces en línea, o configura SAPI/Piper para narración local.';
+} catch (e) { $('gen-voice-note').textContent = e.message; } })();
 
 // Marcas disponibles (si el backend las expone); si no, una opción neutra.
 try {

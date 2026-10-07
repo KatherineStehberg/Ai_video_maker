@@ -5,6 +5,21 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Clips con movimiento y voces Edge TTS (2026-10-07)
+
+- Búsqueda y selección de videos Pexels por escena, con caché, autor, licencia,
+  descarga limitada y validación real con ffprobe.
+- Modos preferir clips, solo clips e imágenes en generador y editor.
+  El modo solo clips falla si faltan; la sustitución por imágenes queda advertida.
+- Los clips cortos se repiten hasta cubrir la escena; la previsualización
+  reproduce movimiento sin mezclar el audio del banco.
+- Proveedor opcional Edge TTS: catálogo real de español e inglés, muestras,
+  selección persistente y alternancia bilingüe. Python y edge-tts se instalan
+  aparte; el texto se envía al servicio en línea.
+- Guardas contra marcar como listo un video cuya voz Edge elegida falló.
+- Contrato del Orquestador ampliado con visualMode y proveedor de voz edge.
+
+
 ### Añadido — Biblioteca de imágenes y música en el editor (2026-09-22)
 
 Los recursos se eligen desde el editor, sin tener que subir un archivo cada vez.

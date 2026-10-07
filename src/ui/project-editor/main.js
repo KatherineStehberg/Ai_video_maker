@@ -154,6 +154,54 @@ const acc = {
     }
   },
 
+  async buscarVideos(consulta, pagina = 1) {
+    const q = String(consulta || '').trim();
+    const previa = s.biblioteca?.videos || {};
+    fijarBiblioteca('videos', { consulta: q, estado: 'buscando', motivo: null, ...(pagina === 1 ? { resultados: [], seleccion: null } : {}) });
+    try {
+      const visible = proyectoVisible(s);
+      const r = await api.buscarVideos(q, visible?.aspectRatio || '9:16', pagina, visible?.language || 'es');
+      const resultados = pagina > 1 ? [...(previa.resultados || []), ...r.resultados] : r.resultados;
+      fijarBiblioteca('videos', { estado: 'listo', resultados, pagina, total: r.total || resultados.length, motivo: r.motivo || null, disponible: r.disponible });
+    } catch (e) {
+      fijarBiblioteca('videos', { estado: 'error', motivo: 'No se pudo buscar ahora. Prueba de nuevo en un momento.' });
+      console.error(e);
+    }
+  },
+
+  previsualizarVideo(foto) { fijarBiblioteca('videos', { seleccion: foto }); },
+
+  /**
+   * Usa una imagen del banco en la escena. El backend la descarga a la cache
+   * local con su ficha de autor y licencia; aqui solo se apunta la escena a
+   * ese archivo. Queda como «Cambios sin guardar» hasta pulsar Guardar.
+   */
+  async usarVideo(escena, foto) {
+    fijarBiblioteca('videos', { estado: 'importando' });
+    try {
+      const r = await api.importarVideo(foto.id, s.biblioteca?.videos?.consulta || '', proyectoVisible(s)?.aspectRatio || '9:16');
+      s = { ...s, creditos: { ...(s.creditos || {}), [r.path]: r.credito } };
+      s = cambiarEscena(s, escena.id, 'assetPath', r.path);
+      fijarBiblioteca('videos', { estado: 'listo', seleccion: null });
+      mensaje('Clip elegido. Pulsa «Guardar cambios» para conservarla.');
+    } catch (e) {
+      fijarBiblioteca('videos', { estado: 'listo', motivo: e.message });
+    }
+  },
+
+  elegirVoz(nombre, provider) {
+    s = cambiar(s, 'voice', { ...proyectoVisible(s).voice, name: nombre, provider, en: '', es: '', enabled: true });
+    pintar();
+  },
+  async probarVoz() {
+    try {
+      const p = proyectoVisible(s);
+      const r = await api.probarVoz({ provider: p.voice?.provider, voice: p.voice?.name, rate: p.voice?.rate,
+        text: p.language === 'en' ? 'Hello. This is a sample of the voice for your video.' : 'Hola, esta es una muestra de la voz para tu video.' });
+      fijarBiblioteca('voz', { url: r.url, motivo: null });
+    } catch (e) { fijarBiblioteca('voz', { url: null, motivo: e.message }); }
+  },
+
   async abrirMusica() {
     const b = s.biblioteca?.musica || {};
     if (b.abierta) { fijarBiblioteca('musica', { abierta: false }); return; }

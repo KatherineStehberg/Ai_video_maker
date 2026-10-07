@@ -210,10 +210,11 @@ export const pipelineProvider = {
       exportFormats: [aspectRatio],
       brief: spec.prompt || '',
       audience: spec.audience || '',
+      visualMode: spec.visualMode || 'prefer-video',
       script: escenasAGuion(escenas),
       voice: vozPedida?.enabled === false
         ? { provider: 'none', name: '', enabled: false }
-        : { provider: vozPedida?.provider && vozPedida.provider !== 'auto' ? vozPedida.provider : (voz.provider === 'none' ? 'none' : 'auto'),
+        : { provider: vozPedida?.provider && vozPedida.provider !== 'auto' ? vozPedida.provider : (voz.provider || 'auto'),
           name: vozPedida?.name || voz.nombre || '',
           rate: vozPedida?.rate ?? 0,
           enabled: voz.provider !== 'none' },

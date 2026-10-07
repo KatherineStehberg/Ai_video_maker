@@ -32,6 +32,9 @@ async function pedir(ruta, { method = 'GET', body = null } = {}) {
 }
 
 export const api = {
+  buscarVideos: (q, aspecto, pagina = 1, idioma = 'es') => pedir(`/library/videos?q=${encodeURIComponent(q)}&aspecto=${encodeURIComponent(aspecto)}&pagina=${pagina}&idioma=${encodeURIComponent(idioma)}`),
+  importarVideo: (id, consulta, aspecto) => pedir('/library/videos/import', { method: 'POST', body: { id, consulta, aspecto } }),
+  probarVoz: body => pedir('/preview-voice', { method: 'POST', body }),
   config: () => pedir('/config'),
   proyectos: () => pedir('/projects'),
   proyecto: id => pedir(`/projects/${encodeURIComponent(id)}`),

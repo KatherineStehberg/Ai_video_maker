@@ -126,6 +126,8 @@ export function normalizeSpec(input = {}) {
   const style = input.style === undefined || input.style === null || input.style === '' ? STYLES[0] : String(input.style);
   if (!STYLES.includes(style)) throw new Error(`Estilo no admitido: ${style}. Usa ${STYLES.join(', ')}.`);
 
+  if (input.visualMode !== undefined && !['images', 'prefer-video', 'video-only'].includes(input.visualMode)) throw new Error('Modo visual no admitido.');
+
   // Campos opcionales: se guardan y se pasan al proveedor, sin interpretarlos.
   const opcional = clave => {
     const v = input[clave];
@@ -189,6 +191,7 @@ export function normalizeSpec(input = {}) {
     title: opcional('title'),
     logo: normalizeLogo(input.logo),
     voice: input.voice === undefined ? null : normalizeVoice(input.voice),
+    visualMode: ['images', 'prefer-video', 'video-only'].includes(input.visualMode) ? input.visualMode : 'prefer-video',
     musicTrack: input.musicTrack === undefined ? null : normalizeMusic(input.musicTrack),
     subtitles: input.subtitles === undefined ? null : normalizeSubtitles(input.subtitles),
     course: normalizeCourse(input.course),
@@ -285,7 +288,7 @@ export function estimarCosto(borrador = {}) {
     { pieza: 'Visuales',
       proveedor: process.env.PEXELS_API_KEY ? 'Pexels (free tier)' : 'fondos generados con FFmpeg',
       pago: false },
-    { pieza: 'Voz', proveedor: 'TTS local (SAPI/Piper)', pago: false },
+    { pieza: 'Voz', proveedor: 'SAPI/Piper local o Edge TTS en línea, según selección y disponibilidad', pago: false },
     { pieza: 'Subtítulos', proveedor: 'estimados en local', pago: false },
     { pieza: 'Montaje', proveedor: 'FFmpeg local', pago: false },
   ];
@@ -295,7 +298,7 @@ export function estimarCosto(borrador = {}) {
     tieneCostoPotencial: dePago.length > 0,
     resumen: dePago.length
       ? `Podría consumir créditos: ${dePago.map(p => `${p.pieza} (${p.proveedor})`).join(', ')}.`
-      : 'Sin coste: todo se produce en este equipo con software local.',
+      : 'Sin coste de API en estas etapas; los clips y las voces en línea pueden necesitar internet.',
   };
 }
 
