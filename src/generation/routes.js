@@ -1,4 +1,5 @@
 import { listProviders, defaultProvider } from '../providers/video-generation/index.js';
+import { wanConfig } from '../providers/video-generation/wan.js';
 import {
   createJob, getJob, publicJob, draftJob, planJob, listJobs, listHomeProjects, resumeJob, regenerateScene,
   FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX, SCRIPT_MAX_CHARS, MAX_ESCENAS,
@@ -57,6 +58,7 @@ export async function generationRoute(req, res, url) {
     if (req.method === 'GET' && parts[2] === 'config') {
       reply(res, 200, {
         providers: listProviders(), defaultProvider: defaultProvider(),
+        wan: wanConfig(),
         formats: FORMATS, styles: STYLES, duration: DURATION_LIMITS,
         durationOptions: DURATION_OPTIONS,
         // Límites técnicos REALES, publicados para que la interfaz los muestre

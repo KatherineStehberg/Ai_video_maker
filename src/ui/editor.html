@@ -221,8 +221,10 @@
             <option value="prefer-video">Preferir clips con movimiento real</option>
             <option value="video-only">Solo clips; detener si faltan</option>
             <option value="images">Imágenes</option>
+            <option value="wan">Video generado con IA · Wan</option>
           </select></label>
-          <p class="ayuda">Los clips se buscan por escena en Pexels. Si no hay un clip disponible, el modo preferir clips usa imágenes y lo avisa. No genera movimiento con IA.</p>
+          <p class="ayuda">Pexels aporta clips existentes. Wan crea clips originales cortos desde el prompt visual de cada escena; necesita un motor conectado y puede repetir el clip para cubrir la narración.</p>
+          <p class="ayuda" id="gen-wan-note">Wan: configuración pendiente.</p>
           <label>Idioma de la narración <select id="gen-language"><option value="es">Español</option><option value="en">English</option><option value="bilingual">Bilingüe: español e inglés</option></select></label>
           <label>Voz <select id="gen-voice"><option value="auto">Automática por idioma</option><option value="none">Sin narración</option></select></label>
           <button type="button" id="gen-voice-preview">Escuchar muestra</button>

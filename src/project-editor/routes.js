@@ -31,6 +31,7 @@ import { capacidades, listar, vistaEditor, guardar, regenerarEscena, exportar, e
 import { buscarImagenes, importarImagen, listarMusica, listarSfx } from './media-library.js';
 import { buscarVideos, importarVideo } from './video-library.js';
 import { previewVoice } from '../core/tts.js';
+import { checkWan } from '../providers/video-generation/wan.js';
 
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
@@ -61,6 +62,7 @@ export async function projectEditorRoute(req, res, url) {
   const seg = url.pathname.split('/').filter(Boolean).slice(2);  // ['config'|'projects', id?, accion?]
 
   try {
+    if (req.method === 'POST' && seg[0] === 'wan' && seg[1] === 'check') { send(res, 200, await checkWan()); return true; }
     if (req.method === 'GET' && seg[0] === 'config') { send(res, 200, await capacidades()); return true; }
 
     if (req.method === 'POST' && seg[0] === 'preview-voice') {

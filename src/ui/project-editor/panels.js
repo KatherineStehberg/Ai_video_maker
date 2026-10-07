@@ -356,9 +356,24 @@ export function panelRecursos({ s, acc }) {
   caja.append(campo('Usar un archivo mío', subir, 'Se guarda una copia local. Declara que tienes permiso para usarlo.'));
 
   frag.append(caja);
-  const modo = lista([['prefer-video', 'Preferir clips con movimiento'], ['video-only', 'Solo clips (detener si faltan)'], ['images', 'Imágenes']], proyectoVisible(s).visualMode || 'prefer-video');
+  const modo = lista([['prefer-video', 'Preferir clips con movimiento'], ['video-only', 'Solo clips (detener si faltan)'], ['images', 'Imágenes'], ['wan', 'Video generado con IA · Wan']], proyectoVisible(s).visualMode || 'prefer-video');
   modo.addEventListener('change', () => acc.cambiar('visualMode', modo.value));
   caja.append(campo('Recursos al generar o regenerar', modo, 'Los recursos que ya elegiste se conservan. Si cambias este modo, regenera la escena para buscar otro recurso.'));
+  caja.append(el('p', 'ayuda', 'Con Wan, la imagen actual se usa como referencia al regenerar. Describe el movimiento en el prompt visual. Se crea un clip corto; puede repetirse para cubrir la narración.'));
+  const comprobarWan = el('button', 'btn', 'Comprobar conexión Wan');
+  comprobarWan.type = 'button';
+  const estadoWan = el('p', 'ayuda', s.capacidades?.wan?.configured ? s.capacidades.wan.notice : 'Wan no está configurado. Consulta README.');
+  comprobarWan.addEventListener('click', async () => {
+    comprobarWan.disabled = true; estadoWan.textContent = 'Comprobando el motor, sin generar video…';
+    try {
+      const response = await fetch('/api/project-editor/wan/check', { method: 'POST', headers: { 'x-editor-request': '1' } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'No se pudo comprobar Wan.');
+      estadoWan.textContent = result.reason;
+    } catch (error) { estadoWan.textContent = error.message; }
+    finally { comprobarWan.disabled = false; }
+  });
+  caja.append(comprobarWan, estadoWan);
   if (e.visualWarning) caja.append(el('p', 'ayuda', e.visualWarning));
   frag.append(bancoVideos({ s, acc, e }));
   frag.append(bancoImagenes({ s, acc, e }));
@@ -384,6 +399,10 @@ function sugerenciaVisual({ e, acc }) {
 
 function atribucionImagen(c) {
   const p = el('p', 'mini atribucion');
+  if (c.proveedor === 'wan' && c.generated) {
+    p.textContent = `Video generado con ${c.model || 'Wan'} (${c.backend || 'motor configurado'}) · ${c.licencia || 'Consulta las condiciones del modelo'}`;
+    return p;
+  }
   p.append(document.createTextNode(c.kind === 'video' || c.proveedor === 'pexels-video' ? 'Video de ' : 'Foto de '));
   const autor = el('a', null, c.autor || 'autor desconocido');
   if (c.autorUrl) { autor.href = c.autorUrl; autor.target = '_blank'; autor.rel = 'noopener'; }

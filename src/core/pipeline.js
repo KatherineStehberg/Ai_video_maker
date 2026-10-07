@@ -44,6 +44,7 @@ export async function runPipeline(project, {
   formats = null,
   stopOnMissingAssets = false,
   force = {},
+  assetsSceneIds = null,
 } = {}) {
   const brand = loadBrand(project.brand);
   const template = getTemplate(project.template);
@@ -101,6 +102,7 @@ export async function runPipeline(project, {
         // muestra la interfaz («escena 34 de 105»), no un porcentaje inventado.
         onProgress: (p) => emit('assets', 25 + Math.round((p.index / p.total) * 10), `Visual ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
         force: force.assets,
+        sceneIds: assetsSceneIds,
       });
       report.steps.assets = { resolved: res.filter((r) => r.path).length, total: res.length, movingClips: project.scenes.filter(s => s.assetKind === 'video').length };
       for (const s of project.scenes) if (s.visualWarning) report.warnings.push(`Escena ${s.id}: ${s.visualWarning}`);

@@ -5,6 +5,18 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Generación de movimiento con Wan (2026-10-07)
+
+- Modo visual Wan en generador, editor y contrato del orquestador.
+- Conector local Wan2.2 TI2V-5B y adaptador opcional Gradio para un Space
+  configurado; sin descargas de modelos, compra de créditos ni reintentos.
+- Animación de la imagen elegida, cache y variantes por escena, comprobación
+  de conexión, límites por operación y procedencia del clip generado.
+- Conserva el recurso anterior si una regeneración Wan falla.
+- Pruebas de contrato, Python, cache, límites, errores, API y montaje MP4.
+  La inferencia Wan real y un Space en vivo siguen pendientes de validación.
+
+
 ### Añadido — Clips con movimiento y voces Edge TTS (2026-10-07)
 
 - Búsqueda y selección de videos Pexels por escena, con caché, autor, licencia,
