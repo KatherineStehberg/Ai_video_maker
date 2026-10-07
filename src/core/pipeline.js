@@ -102,7 +102,8 @@ export async function runPipeline(project, {
         onProgress: (p) => emit('assets', 25 + Math.round((p.index / p.total) * 10), `Visual ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
         force: force.assets,
       });
-      report.steps.assets = { resolved: res.filter((r) => r.path).length, total: res.length };
+      report.steps.assets = { resolved: res.filter((r) => r.path).length, total: res.length, movingClips: project.scenes.filter(s => s.assetKind === 'video').length };
+      for (const s of project.scenes) if (s.visualWarning) report.warnings.push(`Escena ${s.id}: ${s.visualWarning}`);
       const missing = missingAssets(project);
       if (missing.length && stopOnMissingAssets) {
         project.status = STATUS.HUMAN_REVIEW_REQUIRED;
@@ -121,6 +122,7 @@ export async function runPipeline(project, {
         onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
       });
       report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0, voice: res.voice || null, voices: res.voices || null };
+      if (project.voice?.enabled !== false && project.voice?.provider === 'edge' && (res.provider === 'none' || res.errors?.length)) throw new Error('No se pudo generar la voz Edge TTS. Revisa la instalación y la conexión; no se exportará un video silencioso como si estuviera listo.');
       // Desajuste entre idioma declarado y voz elegida: ya corregido, pero visible.
       if (res.warnings?.length) report.warnings.push(...res.warnings);
       if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {

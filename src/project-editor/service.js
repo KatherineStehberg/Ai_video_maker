@@ -40,7 +40,7 @@ import {
   normalizeOnScreenStyle, POSICIONES_DESTACADO, ANIMACIONES_DESTACADO,
   TAMANOS_DESTACADO, FONDOS_DESTACADO, PALABRAS_DESTACADO, resumenDestacados,
 } from '../core/on-screen-text.js';
-import { listAllVoices } from '../providers/tts/index.js';
+import { listAllVoices, getProvider } from '../providers/tts/index.js';
 import { LANGUAGES } from '../core/lang.js';
 import { getStorage } from './storage.js';
 import { peaks } from './waveform.js';
@@ -187,6 +187,7 @@ export function derivar(p) {
       text: s.text || '',
       caption: s.caption,
       visualPrompt: s.visualPrompt || '',
+      visualWarning: s.visualWarning || null,
       // Que buscaria el editor para ESTA escena. Se ofrece, no se aplica: el
       // campo sigue siendo de la usuaria.
       visualPromptSugerido: busquedaDeEscena(s.text || '', {
@@ -339,11 +340,12 @@ export function publico(p) {
     brand: p.brand,
     template: p.template,
     language: p.language,
+    visualMode: p.visualMode || 'prefer-video',
     aspectRatio: p.aspectRatio,
     exportFormats: p.exportFormats,
     status: p.status,
     captions: p.captions,
-    voice: { provider: p.voice?.provider, name: p.voice?.name, enabled: p.voice?.enabled !== false, gain: p.voice?.gain ?? 1 },
+    voice: { provider: p.voice?.provider, name: p.voice?.name, enabled: p.voice?.enabled !== false, gain: p.voice?.gain ?? 1, rate: p.voice?.rate ?? 0, en: p.voice?.en || '', es: p.voice?.es || '' },
     music: {
       enabled: Boolean(p.music?.enabled), path: p.music?.path || null,
       volume: p.music?.volume ?? 0.12, loop: p.music?.loop !== false, credit: p.music?.credit || null,
@@ -396,7 +398,7 @@ export async function capacidades() {
     movimientos: MOVIMIENTOS_REALES,
     almacenamiento: getStorage().describe?.() ?? { id: getStorage().id },
     // Solo un booleano: si hay banco de imagenes. Nunca la clave ni su largo.
-    biblioteca: { imagenes: imagenesDisponibles(), proveedorImagenes: 'Pexels', musica: 'local', efectos: 'local' },
+    biblioteca: { videos: imagenesDisponibles(), imagenes: imagenesDisponibles(), proveedorImagenes: 'Pexels', musica: 'local', efectos: 'local' },
     // Lo que TODAVIA no existe, declarado para que la interfaz lo deshabilite
     // en vez de fingirlo.
     pendiente: {
@@ -466,10 +468,24 @@ export async function guardar(id, patch = {}) {
     };
   }
 
+  if (patch.language !== undefined) {
+    if (!LANGUAGES.includes(patch.language)) throw new Error('Idioma de narración inválido.');
+    p.language = patch.language;
+  }
+  if (patch.visualMode !== undefined) {
+    if (!['images', 'prefer-video', 'video-only'].includes(patch.visualMode)) throw new Error('Modo visual inválido.');
+    p.visualMode = patch.visualMode;
+  }
   // ---- AUDIO ----
   if (patch.voice) {
+    if (patch.voice.provider !== undefined && patch.voice.provider !== 'auto' && !getProvider(patch.voice.provider)) throw new Error('Proveedor de voz inválido.');
     p.voice = {
       ...p.voice,
+      ...(patch.voice.provider !== undefined ? { provider: patch.voice.provider } : {}),
+      ...(patch.voice.name !== undefined ? { name: String(patch.voice.name).slice(0, 160) } : {}),
+      ...(patch.voice.en !== undefined ? { en: String(patch.voice.en).slice(0, 160) } : {}),
+      ...(patch.voice.es !== undefined ? { es: String(patch.voice.es).slice(0, 160) } : {}),
+      ...(patch.voice.rate !== undefined ? { rate: num(patch.voice.rate, -10, 10, 0) } : {}),
       ...(patch.voice.enabled !== undefined ? { enabled: Boolean(patch.voice.enabled) } : {}),
       // Ganancia de MEZCLA, no de sintesis: se aplica al montar el audio, asi
       // que cambia el volumen sin tener que regenerar la voz.
@@ -577,6 +593,8 @@ export async function guardar(id, patch = {}) {
           const file = resolveSafeAsset(cambio.assetPath);
           if (!file || !fs.existsSync(file)) throw new Error('El recurso indicado no existe.');
           vieja.assetPath = cambio.assetPath;
+          vieja.assetKind = assetKind(file);
+          vieja.visualWarning = null;
           // El credito se lee de la ficha que hay junto al archivo en disco:
           // si viniera del navegador, cualquiera podria atribuir una foto a
           // quien quisiera.

@@ -17,7 +17,7 @@ La pantalla inicial ofrece dos caminos:
 
 **1 · Crear video con un prompt o con tu guion.** Escribes tu idea —o pegas el guion ya escrito—, eliges formato y estilo, y el sistema genera el video, lo analiza y propone el montaje. Después sigue el mismo circuito: revisar, editar trozos, aprobar y exportar.
 
-> El proveedor predeterminado es **`pipeline`**: monta el video en este equipo encadenando guion → escenas → visuales → voz local → subtítulos → FFmpeg. Su contenido **sí** corresponde a lo que escribiste. Coste cero. El proveedor **`mock`** sigue disponible para pruebas rápidas y la interfaz advierte siempre cuando se usa, porque produce material de prueba que no representa el prompt. Para conectar un proveedor externo, el contrato está en [`src/providers/video-generation/index.js`](src/providers/video-generation/index.js); las claves van sólo en `.env`, nunca en el frontend.
+> El proveedor predeterminado es **`pipeline`**: monta el video en este equipo encadenando guion → escenas → visuales → voz local o en línea → subtítulos → FFmpeg. Su contenido **sí** corresponde a lo que escribiste. Coste cero. El proveedor **`mock`** sigue disponible para pruebas rápidas y la interfaz advierte siempre cuando se usa, porque produce material de prueba que no representa el prompt. Para conectar un proveedor externo, el contrato está en [`src/providers/video-generation/index.js`](src/providers/video-generation/index.js); las claves van sólo en `.env`, nunca en el frontend.
 
 ### Videos cortos y videos largos: el mismo flujo
 
@@ -329,3 +329,72 @@ node scripts/browser-smoke.mjs
 Usa Chrome instalado en su ruta habitual Windows, o establece `CHROME_PATH` para otro entorno. Genera captura, descargas y reporte en `.tmp/analysis-test/`. Esta dependencia es sólo para pruebas, no para arrancar la aplicación y **requiere Node.js 20 o superior** (Playwright no arranca en Node 18, aunque el resto del proyecto sí funciona ahí). Verifica subida, decodificación y búsqueda en la previsualización, columna de frames, sección de ritmo, descargas y el contrato de consentimiento con configuración simulada, sin llamar a Google.
 
 Consulta [ticket AVM-001](docs/tickets/AVM-001.md) e [informe de pruebas y pendientes](docs/reports/AVM-001.md).
+
+### Clips con movimiento real y voces adicionales
+
+El generador ya puede buscar **clips de video Pexels por escena**, además de
+imágenes. Esto incorpora movimiento grabado real; no es generación de video
+con IA ni un zoom sobre una foto. Usa la misma `PEXELS_API_KEY` de la biblioteca
+actual. En «Voz y recursos» puedes elegir:
+
+- **Preferir clips con movimiento real** (predeterminado para proyectos nuevos):
+  busca un clip distinto por escena; si no hay uno utilizable, usa una imagen
+  y registra el motivo en las advertencias y en la escena.
+- **Solo clips**: detiene la producción si una escena no tiene video. También
+  rechaza una imagen ya elegida; no presenta un pase de diapositivas como éxito.
+- **Imágenes**: mantiene el montaje con imágenes.
+
+Los recursos que ya elegiste se conservan; cambiar el modo de un proyecto
+existente requiere regenerar o sustituir sus recursos. En el editor visual,
+**Recursos → Clips con movimiento real · Pexels** permite buscar, reproducir la
+vista previa y elegir un clip para la escena. Guardar conserva la elección.
+Cada descarga conserva autor y licencia, se verifica con ffprobe y queda
+cacheada. Un clip corto se repite hasta cubrir su escena; su audio original no
+se mezcla con la narración. La vista previa del editor también reproduce el
+movimiento del clip, silenciado, junto a la voz y la música.
+
+**Voces:** además de SAPI y Piper, hay un proveedor opcional **Edge TTS** con
+catálogo consultado al servicio, español (Chile primero) e inglés. No aparece
+como disponible si no se puede consultar su catálogo. Requiere Python, FFmpeg
+e internet:
+
+```powershell
+python -m pip install -r requirements-voices.txt
+```
+
+Si el servidor usa otro Python, define `EDGE_TTS_PYTHON` con la ruta a su
+executable y reinícialo. No se instala nada automáticamente en el computador
+al actualizar el repo. Edge TTS es una dependencia comunitaria y un servicio
+externo: el texto se envía fuera del equipo, su disponibilidad puede cambiar y
+no hay garantía de servicio. No requiere clave de API. Las voces locales siguen
+estando disponibles.
+
+El selector de idioma y voz y **Escuchar muestra** están tanto en el generador
+como en **Audio → Narración** del editor visual. Al guardar y exportar se rehace
+la narración cuyo texto, voz o idioma cambió. Las marcas `[en]...[/en]` y
+`[es]...[/es]` alternan voces también con Edge. Si falla una voz Edge elegida,
+la producción falla con un mensaje: no declara terminado un MP4 silencioso.
+
+La API de generación y el contrato del Orquestador admiten
+`visualMode: "prefer-video" | "video-only" | "images"` y
+`voice: { provider: "edge", name: "<nombre del catálogo>", enabled: true }`.
+
+Verificación específica:
+
+```powershell
+npm test -- tests/moving-clips.test.js tests/edge-voices.test.js
+```
+
+Las pruebas de clips simulan Pexels sin claves reales, pero descargan un MP4
+real de prueba, lo verifican con ffprobe, lo montan y comprueban variación de
+frames y duración. Las pruebas de voces simulan el servicio externo, ejecutan
+Python y FFmpeg reales y verifican muestras WAV, alternancia de idiomas,
+persistencia y rechazo del éxito silencioso. No acreditan la calidad audible
+de las voces del servicio en vivo.
+
+Prueba adicional de controles DOM (no sustituye una prueba en navegador real):
+
+```powershell
+npm install --no-save --package-lock=false --prefix .tmp/dom-tools linkedom@0.18.12
+node scripts/motion-voices-dom-smoke.mjs
+```

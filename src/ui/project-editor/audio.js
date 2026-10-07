@@ -94,14 +94,15 @@ export function crearAudio({ voz, musica, video }) {
     } catch { ctx = null; nodoVoz = null; }
   }
 
+  let videoEsClip = false;
   function aplicarVolumenes() {
     const g = ganancia * escucha;
     if (nodoVoz) { nodoVoz.gain.value = g; voz.volume = 1; }
     else voz.volume = Math.min(1, g);          // sin Web Audio no se puede pasar de 1
     musica.volume = Math.min(1, volMusica * escucha);
     video.volume = escucha;
-    // NUNCA se fuerza `muted`. Silenciar es volumen 0 y se ve en la interfaz.
-    voz.muted = false; musica.muted = false; video.muted = false;
+    // El clip de banco va mudo, igual que en el render; el MP4 final conserva su audio.
+    voz.muted = false; musica.muted = false; video.muted = videoEsClip;
   }
 
   function cargar(el, url) {
@@ -147,13 +148,19 @@ export function crearAudio({ voz, musica, video }) {
       prepararGrafo();
       if (ctx?.state === 'suspended') await seguro(ctx.resume());
       aplicarVolumenes();
+      videoEsClip = modo !== 'mp4';
       if (modo === 'mp4') {
-        voz.pause(); musica.pause();
+        voz.pause(); musica.pause(); video.muted = false; video.loop = false;
         if (Math.abs(video.currentTime - t) > TOLERANCIA_SEG) video.currentTime = t;
         await seguro(video.play());
         return;
       }
-      video.pause();
+      const clip = escenas.find(e => !e.excluida && t >= e.start && t < e.end);
+      if (clip?.recurso?.kind === 'video' && clip.recurso.url) {
+        cargar(video, clip.recurso.url); video.muted = true; video.loop = true;
+        if (video.duration) video.currentTime = Math.max(0, t - clip.start) % video.duration;
+        seguro(video.play());
+      } else video.pause();
       // Al pulsar Play se coloca la voz en el segundo exacto, aunque sea la
       // misma escena que antes: Play siempre empieza donde esta el cabezal.
       colocar(vozEn(escenas, t));
@@ -182,6 +189,14 @@ export function crearAudio({ voz, musica, video }) {
      */
     sincronizar({ escenas, t }) {
       if (!sonando) return null;
+      const clip = escenas.find(e => !e.excluida && t >= e.start && t < e.end);
+      if (clip?.recurso?.kind === 'video' && clip.recurso.url) {
+        const cambio = video.getAttribute('src') !== clip.recurso.url;
+        cargar(video, clip.recurso.url); video.muted = true; video.loop = true;
+        const offset = video.duration ? Math.max(0, t - clip.start) % video.duration : 0;
+        if ((cambio || Math.abs(video.currentTime - offset) > 0.4) && video.readyState > 0) video.currentTime = offset;
+        if (video.paused) seguro(video.play());
+      } else video.pause();
       const objetivo = vozEn(escenas, t);
       if (!objetivo?.url) { if (!voz.paused) voz.pause(); return null; }
 

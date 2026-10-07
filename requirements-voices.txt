@@ -1,0 +1,2 @@
+# Optional online narration. Install with: python -m pip install -r requirements-voices.txt
+edge-tts==7.2.8

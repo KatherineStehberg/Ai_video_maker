@@ -20,7 +20,7 @@ async function init(){config=await api('config');for(const id of ['brand','edit-
     const porDefecto=config.defaultVoices?.[code];
     if(porDefecto && voces.some(v=>v.name===porDefecto))$(id).value=porDefecto;
   }
-  $('voice-note').textContent=config.voices.length?'La voz se genera en el backend. El idioma del proyecto decide la voz por defecto; las marcas [en]/[es] cambian de voz dentro de una escena.':'No hay voz local disponible. Configura SAPI/Piper; elegir sin narración produce un video silencioso o sólo con música.';
+  $('voice-note').textContent=config.voices.length?'La voz se genera en el backend. Edge TTS requiere internet y envía el texto al servicio; El idioma del proyecto decide la voz por defecto; las marcas [en]/[es] cambian de voz dentro de una escena.':'No hay voz disponible. Configura SAPI/Piper o instala Python y edge-tts; elegir sin narración produce un video silencioso o sólo con música.';
   montarSubs(config.captionStyle);
   $('projects').replaceChildren(...config.projects.map(p=>{
     const fila=document.createElement('div');fila.className='proyecto-fila';

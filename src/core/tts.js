@@ -148,6 +148,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
         rate: project.voice?.rate ?? 0,
         volume: project.voice?.volume ?? 100,
         ssml: useSsml,
+        ...(engine.supportsSegments ? { segments: plan.segments, voices: plan.voices } : {}),
       });
       // Normaliza a 48kHz estereo y recorta silencios largos de los extremos.
       await ffmpegRun([
