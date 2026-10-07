@@ -1,0 +1,2 @@
+# Optional: only for WAN_BACKEND=space. Local Wan uses its own requirements.
+gradio_client==2.7.2

@@ -398,3 +398,77 @@ Prueba adicional de controles DOM (no sustituye una prueba en navegador real):
 npm install --no-save --package-lock=false --prefix .tmp/dom-tools linkedom@0.18.12
 node scripts/motion-voices-dom-smoke.mjs
 ```
+
+## Generar movimiento original con Wan
+
+El modo **Video generado con IA · Wan** crea un clip original por escena antes
+del montaje existente de voz, subtítulos y música. Pexels sigue siendo un banco
+de clips existentes, y `mock` sigue siendo sólo una prueba. El conector Wan está
+implementado, pero necesita un motor instalado o un Space accesible: este repo
+no incluye los pesos ni una GPU, y no descarga ni compra recursos automáticamente.
+
+### Motor local, sin tarifa por generación
+
+1. Instala el [repositorio oficial Wan2.2](https://github.com/Wan-Video/Wan2.2)
+   en un entorno Python separado siguiendo sus instrucciones. Descarga los
+   pesos `Wan-AI/Wan2.2-TI2V-5B`. La configuración oficial requiere una GPU NVIDIA
+   de al menos 24 GB de VRAM; electricidad, hardware y GPU alquilada tienen costo.
+2. Configura `.env`: `WAN_ENABLED=1`, `WAN_BACKEND=local`, `WAN_PYTHON` con el
+   intérprete de ese entorno, `WAN_REPO_DIR` con el checkout y `WAN_MODEL_DIR`
+   con la carpeta de pesos (debe contener `config.json`). Usa rutas absolutas.
+3. Reinicia el servidor. En Recursos del editor, pulsa **Comprobar conexión Wan**.
+   La comprobación consulta CUDA y archivos, sin generar; no garantiza que todos
+   los pesos o dependencias de inferencia estén completos.
+4. Empieza con una escena: describe sujeto, acción, cámara y entorno en el
+   prompt visual (preferiblemente en inglés), selecciona **Video generado con IA
+   · Wan**, guarda y regenera el visual. Si la escena tiene una imagen, se usa
+   como primer fotograma. Una escena sin recurso se genera desde texto.
+5. Escucha la voz, revisa el clip y exporta. Los recursos ya elegidos se conservan
+   hasta que regeneres esa escena. Regenerar crea una variante nueva y conserva
+   el visual anterior si Wan falla antes de producir el reemplazo.
+
+### Alternativa con Hugging Face Spaces
+
+Instala `python -m pip install -r requirements-video-space.txt` en el intérprete
+indicado por `WAN_PYTHON`. Configura `WAN_ENABLED=1`, `WAN_BACKEND=space`,
+`WAN_SPACE_ID=usuario/space`, `WAN_SPACE_API_NAME=/endpoint` y `WAN_SPACE_ARGS`
+como un objeto JSON con los nombres **exactos** de parámetros mostrados por
+**Use via API** del Space. No hay un preset verificado: el demo oficial consultado
+no fue accesible desde el entorno de desarrollo.
+
+Ejemplo únicamente si la API del Space declara estos parámetros:
+
+```dotenv
+WAN_SPACE_ARGS={"prompt":"$prompt","image":"$image","duration":"$seconds","seed":"$seed"}
+```
+
+También se admiten `$width` y `$height`; parámetros extra (pasos, guidance, etc.)
+pueden darse como valores constantes en ese JSON. `HF_TOKEN` es opcional y vive
+sólo en backend. Para animar una imagen, el mapa debe incluir `$image`; de lo
+contrario falla antes de enviar la generación. Verifica que el Space realmente
+ejecute Wan y que autorice tu uso del resultado. El conector no duplica Spaces,
+no alquila GPU, no compra créditos ni usa una API comercial como reemplazo.
+Las cuotas, colas y condiciones del Space pueden impedir la generación.
+Los prompts y las imágenes se envían al Space seleccionado.
+
+### Límites y errores
+
+- `visualMode: "wan"` también está disponible en el contrato del orquestador.
+- Por defecto: hasta 8 escenas pendientes por operación y clips de aproximadamente
+  5 segundos (configurable `WAN_MAX_SCENES`, `WAN_CLIP_SECONDS`, entre 1 y 5).
+  Regenerar una escena con Wan procesa sólo su visual, sin generar otros pendientes.
+- Una sola generación Wan simultánea por proceso. Sin reintentos automáticos;
+  límite de 30 minutos por clip. Si falla, se informa y se detiene el montaje.
+- Clip y procedencia se guardan en `data/assets/images/_library/wan`. El cache
+  distingue prompt, imagen, conexión, formato y variante; exportar de nuevo
+  conserva lo ya generado. El resultado se verifica con ffprobe y máximo 150 MB.
+- El motor local genera a 720p: formato vertical/horizontal. El montaje recorta
+  1:1; una imagen de referencia puede determinar el formato de salida del modelo.
+- Si la narración dura más que el clip, el montaje lo repite; aún no hay generación
+  de múltiples tomas encadenadas ni continuidad de personajes entre escenas.
+- La integración se prueba con un motor simulado y MP4 reales. Aún falta medir
+  calidad y tiempo con el modelo Wan real y probar un Space en vivo.
+
+```bash
+node scripts/ejecutar-pruebas.mjs tests/wan-motion.test.js
+```

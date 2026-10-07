@@ -116,7 +116,7 @@ export function normalizeOrchestratorInput(input = {}) {
     targetDurationSeconds,
     platform: enumOpcional(input.platform, PLATFORMS, 'platform'),
     style,
-    visualMode: enumOpcional(input.visualMode, ['images', 'prefer-video', 'video-only'], 'visualMode') || 'prefer-video',
+    visualMode: enumOpcional(input.visualMode, ['images', 'prefer-video', 'video-only', 'wan'], 'visualMode') || 'prefer-video',
     voice: normalizeVoice(input.voice),
     music: normalizeMusic(input.music),
     subtitles: normalizeSubtitles(input.subtitles),

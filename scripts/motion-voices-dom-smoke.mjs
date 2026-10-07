@@ -21,6 +21,20 @@ assert.equal(resources.querySelector('video').src, v.vistaPrevia);
 const choose = [...resources.querySelectorAll('button')].find(b => b.textContent === 'Usar este clip');
 assert.ok(choose); choose.click(); assert.equal(calls.at(-1).name, 'usarVideo');
 assert.match(resources.textContent, /Video de Autora/);
+const visualMode = [...resources.querySelectorAll('select')].find(n => [...n.options].some(o => o.value === 'wan'));
+assert.ok(visualMode); visualMode.value = 'wan'; visualMode.dispatchEvent(new window.Event('change'));
+assert.equal(calls.at(-1).name, 'cambiar'); assert.deepEqual(calls.at(-1).args, ['visualMode', 'wan']);
+const checkWan = [...resources.querySelectorAll('button')].find(b => b.textContent === 'Comprobar conexión Wan');
+assert.ok(checkWan);
+const previousFetch = globalThis.fetch;
+let request;
+globalThis.fetch = async (url, init) => { request = { url, init }; return Response.json({ reason: 'Motor sin GPU de prueba.' }); };
+try {
+  checkWan.click(); await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(request.url, '/api/project-editor/wan/check');
+  assert.equal(request.init.headers['x-editor-request'], '1');
+  assert.match(resources.textContent, /Motor sin GPU de prueba/);
+} finally { globalThis.fetch = previousFetch; }
 const audio = document.createElement('div'); audio.append(panelAudio({ s, acc }));
 assert.ok(audio.querySelector('audio'));
 const button = [...audio.querySelectorAll('button')].find(b => b.textContent === 'Escuchar muestra de voz');
@@ -28,4 +42,4 @@ assert.ok(button); button.click(); assert.equal(calls.at(-1).name, 'probarVoz');
 const select = [...audio.querySelectorAll('select')].find(n => [...n.options].some(o => o.value.startsWith('edge|')));
 assert.ok(select); select.value = 'edge|en-US-JennyNeural'; select.dispatchEvent(new window.Event('change'));
 assert.equal(calls.at(-1).name, 'elegirVoz'); assert.deepEqual(calls.at(-1).args, ['en-US-JennyNeural', 'edge']);
-console.log('DOM smoke: clip preview, attribution, use clip, voice sample and selection passed.');
+console.log('DOM smoke: clips, voices, Wan mode and guarded connection check passed.');

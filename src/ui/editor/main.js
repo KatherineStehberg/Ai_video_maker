@@ -904,6 +904,9 @@ try {
 
 try {
   config = await api.generationConfig();
+  if ($('gen-wan-note')) $('gen-wan-note').textContent = config.wan?.configured
+    ? `Wan configurado (${config.wan.backend}); disponibilidad aún no comprobada. Máximo ${config.wan.maxScenes} escenas por operación. ${config.wan.notice}`
+    : 'Wan aún no está conectado. Configúralo según README antes de elegir video generado con IA.';
   $('gen-style').replaceChildren(...config.styles.map(s => new Option(s.charAt(0).toUpperCase() + s.slice(1), s)));
   $('gen-duration').replaceChildren(
     ...config.durationOptions.map(o => new Option(o.label, String(o.value))),

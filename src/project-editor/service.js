@@ -43,6 +43,7 @@ import {
 import { listAllVoices, getProvider } from '../providers/tts/index.js';
 import { LANGUAGES } from '../core/lang.js';
 import { getStorage } from './storage.js';
+import { wanConfig } from '../providers/video-generation/wan.js';
 import { peaks } from './waveform.js';
 import { creditoDeImagen, creditoDeMusica, creditoDeSfx, imagenesDisponibles } from './media-library.js';
 import { logger } from '../lib/logger.js';
@@ -378,6 +379,7 @@ export async function listar() {
 /** Opciones reales que la interfaz puede ofrecer. Nada inventado. */
 export async function capacidades() {
   return {
+    wan: wanConfig(),
     aspects: ASPECTS,
     brands: listBrands(),
     templates: listTemplates(),
@@ -473,7 +475,7 @@ export async function guardar(id, patch = {}) {
     p.language = patch.language;
   }
   if (patch.visualMode !== undefined) {
-    if (!['images', 'prefer-video', 'video-only'].includes(patch.visualMode)) throw new Error('Modo visual inválido.');
+    if (!['images', 'prefer-video', 'video-only', 'wan'].includes(patch.visualMode)) throw new Error('Modo visual inválido.');
     p.visualMode = patch.visualMode;
   }
   // ---- AUDIO ----
@@ -687,7 +689,18 @@ export async function regenerarEscena(id, index, { visual = true, voz = true, mo
     throw new Error(`La escena ${index} no existe: el proyecto tiene ${p.scenes.length}.`);
   }
   const escena = p.scenes[i];
-  if (visual) { escena.assetPath = null; escena.assetProvider = null; }
+  const previousVisual = { assetPath: escena.assetPath, assetProvider: escena.assetProvider, assetKind: escena.assetKind,
+    assetCredit: escena.assetCredit, wanReferencePath: escena.wanReferencePath, wanRevision: escena.wanRevision };
+  if (visual) {
+    // Reuse the chosen image as the starting frame when animating a scene.
+    if (p.visualMode === 'wan' && assetKind(escena.assetPath) === 'image') {
+      const reference = resolveSafeAsset(escena.assetPath);
+      if (!reference) throw new Error('Imagen de referencia inválida.');
+      escena.wanReferencePath = rel(reference);
+    }
+    if (p.visualMode === 'wan') escena.wanRevision = (escena.wanRevision || 0) + 1;
+    escena.assetPath = null; escena.assetProvider = null;
+  }
   if (voz) { escena.narrationPath = null; escena.narrationKey = null; }
 
   const pasos = [];
@@ -697,7 +710,11 @@ export async function regenerarEscena(id, index, { visual = true, voz = true, mo
   if (!pasos.length) throw new Error('No se pidió regenerar nada.');
 
   return enSegundoPlano(p, `regenerar-escena-${i + 1}`, async (progreso) => {
-    await runPipeline(p, { steps: pasos, onProgress: progreso });
+    try { await runPipeline(p, { steps: pasos, onProgress: progreso, assetsSceneIds: p.visualMode === 'wan' ? [escena.id] : null }); }
+    catch (error) {
+      if (visual && p.visualMode === 'wan' && !escena.assetPath) Object.assign(escena, previousVisual);
+      throw error;
+    }
     const ed = bloqueEditor(p);
     ed.revision += 1;
     if (montar) ed.exportedRevision = ed.revision;

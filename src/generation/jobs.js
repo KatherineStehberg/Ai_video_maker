@@ -126,7 +126,7 @@ export function normalizeSpec(input = {}) {
   const style = input.style === undefined || input.style === null || input.style === '' ? STYLES[0] : String(input.style);
   if (!STYLES.includes(style)) throw new Error(`Estilo no admitido: ${style}. Usa ${STYLES.join(', ')}.`);
 
-  if (input.visualMode !== undefined && !['images', 'prefer-video', 'video-only'].includes(input.visualMode)) throw new Error('Modo visual no admitido.');
+  if (input.visualMode !== undefined && !['images', 'prefer-video', 'video-only', 'wan'].includes(input.visualMode)) throw new Error('Modo visual no admitido.');
 
   // Campos opcionales: se guardan y se pasan al proveedor, sin interpretarlos.
   const opcional = clave => {
@@ -191,7 +191,7 @@ export function normalizeSpec(input = {}) {
     title: opcional('title'),
     logo: normalizeLogo(input.logo),
     voice: input.voice === undefined ? null : normalizeVoice(input.voice),
-    visualMode: ['images', 'prefer-video', 'video-only'].includes(input.visualMode) ? input.visualMode : 'prefer-video',
+    visualMode: ['images', 'prefer-video', 'video-only', 'wan'].includes(input.visualMode) ? input.visualMode : 'prefer-video',
     musicTrack: input.musicTrack === undefined ? null : normalizeMusic(input.musicTrack),
     subtitles: input.subtitles === undefined ? null : normalizeSubtitles(input.subtitles),
     course: normalizeCourse(input.course),
@@ -245,7 +245,7 @@ export async function draftJob(input) {
     duracionEstimadaLegible: formatearDuracion(duracionEstimada),
     compatibleConObjetivo: compatible,
     advertencias: avisos,
-    costo: estimarCosto(borrador),
+    costo: estimarCosto(borrador, spec),
   };
 }
 
@@ -280,14 +280,16 @@ export function planJob(input = {}) {
  * Qué usaría cada pieza y si eso cuesta dinero. Se calcula a partir de lo que
  * está realmente configurado, no de lo que podría llegar a configurarse.
  */
-export function estimarCosto(borrador = {}) {
+export function estimarCosto(borrador = {}, spec = {}) {
   const piezas = [
     { pieza: 'Guion',
       proveedor: borrador.source === 'llm' ? `modelo ${borrador.provider}` : 'plantilla local (sin IA)',
       pago: borrador.source === 'llm' && !['ollama', 'ninguno'].includes(borrador.provider) },
     { pieza: 'Visuales',
-      proveedor: process.env.PEXELS_API_KEY ? 'Pexels (free tier)' : 'fondos generados con FFmpeg',
-      pago: false },
+      proveedor: spec.visualMode === 'wan'
+        ? (process.env.WAN_BACKEND === 'space' ? 'Wan en Space externo (cuota y condiciones del Space)' : 'Wan local (requiere GPU instalada)')
+        : (process.env.PEXELS_API_KEY ? 'Pexels (free tier)' : 'fondos generados con FFmpeg'),
+      pago: spec.visualMode === 'wan' && process.env.WAN_BACKEND === 'space' },
     { pieza: 'Voz', proveedor: 'SAPI/Piper local o Edge TTS en línea, según selección y disponibilidad', pago: false },
     { pieza: 'Subtítulos', proveedor: 'estimados en local', pago: false },
     { pieza: 'Montaje', proveedor: 'FFmpeg local', pago: false },
@@ -298,7 +300,9 @@ export function estimarCosto(borrador = {}) {
     tieneCostoPotencial: dePago.length > 0,
     resumen: dePago.length
       ? `Podría consumir créditos: ${dePago.map(p => `${p.pieza} (${p.proveedor})`).join(', ')}.`
-      : 'Sin coste de API en estas etapas; los clips y las voces en línea pueden necesitar internet.',
+      : spec.visualMode === 'wan'
+        ? 'Wan local no cobra por llamada; hardware, electricidad o GPU alquilada tienen costo. Requiere un motor configurado.'
+        : 'Sin coste de API en estas etapas; los clips y las voces en línea pueden necesitar internet.',
   };
 }
 

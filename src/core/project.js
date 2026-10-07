@@ -42,6 +42,8 @@ export function makeScene(partial = {}) {
     // backend a partir de la ficha en disco, nunca el navegador.
     assetCredit: partial.assetCredit ?? null,
     visualWarning: partial.visualWarning ?? null,
+    wanReferencePath: partial.wanReferencePath ?? null,
+    wanRevision: Number.isInteger(partial.wanRevision) ? partial.wanRevision : 0,
     // Escena apagada: conserva todo pero no entra en el montaje.
     excluida: partial.excluida ?? false,
     narrationPath: partial.narrationPath ?? null,
@@ -85,7 +87,7 @@ export function makeProject(partial = {}) {
       ? partial.exportFormats.filter((a) => ASPECTS[a])
       : [aspectRatio],
     language: normalizeLanguage(partial.language),
-    visualMode: ['images', 'prefer-video', 'video-only'].includes(partial.visualMode) ? partial.visualMode : 'prefer-video',
+    visualMode: ['images', 'prefer-video', 'video-only', 'wan'].includes(partial.visualMode) ? partial.visualMode : 'prefer-video',
     brief: partial.brief || '',
     script: partial.script || '',
     studio: partial.studio ?? null,
