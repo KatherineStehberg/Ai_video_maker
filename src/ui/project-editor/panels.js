@@ -174,7 +174,7 @@ export function panelEscenas({ s, acc }) {
 
   const acciones = el('div', 'fila');
   acciones.append(
-    boton('Regenerar imagen', 'btn-mini', () => acc.regenerar(e.index, { visual: true, voz: false }), { deshabilitado: s.trabajando }),
+    boton('Regenerar recurso', 'btn-mini', () => acc.regenerar(e.index, { visual: true, voz: false }), { deshabilitado: s.trabajando }),
     boton('Regenerar voz', 'btn-mini', () => acc.regenerar(e.index, { visual: false, voz: true }), { deshabilitado: s.trabajando }),
   );
   caja.append(acciones);
@@ -344,8 +344,8 @@ export function panelRecursos({ s, acc }) {
 
   const acciones = el('div', 'fila');
   acciones.append(
-    boton('Buscar otra imagen', 'btn-mini', () => acc.regenerar(e.index, { visual: true, voz: false }), { deshabilitado: s.trabajando }),
-    boton('Quitar imagen', 'btn-mini', () => acc.cambiarEscena(e.id, 'assetPath', null), { deshabilitado: !r.path }),
+    boton('Buscar otro recurso', 'btn-mini', () => acc.regenerar(e.index, { visual: true, voz: false }), { deshabilitado: s.trabajando }),
+    boton('Quitar recurso', 'btn-mini', () => acc.cambiarEscena(e.id, 'assetPath', null), { deshabilitado: !r.path }),
   );
   caja.append(acciones);
 
@@ -356,6 +356,26 @@ export function panelRecursos({ s, acc }) {
   caja.append(campo('Usar un archivo mío', subir, 'Se guarda una copia local. Declara que tienes permiso para usarlo.'));
 
   frag.append(caja);
+  const modo = lista([['prefer-video', 'Preferir clips con movimiento'], ['video-only', 'Solo clips (detener si faltan)'], ['images', 'Imágenes'], ['wan', 'Video generado con IA · Wan']], proyectoVisible(s).visualMode || 'prefer-video');
+  modo.addEventListener('change', () => acc.cambiar('visualMode', modo.value));
+  caja.append(campo('Recursos al generar o regenerar', modo, 'Los recursos que ya elegiste se conservan. Si cambias este modo, regenera la escena para buscar otro recurso.'));
+  caja.append(el('p', 'ayuda', 'Con Wan, la imagen actual se usa como referencia al regenerar. Describe el movimiento en el prompt visual. Se crea un clip corto; puede repetirse para cubrir la narración.'));
+  const comprobarWan = el('button', 'btn', 'Comprobar conexión Wan');
+  comprobarWan.type = 'button';
+  const estadoWan = el('p', 'ayuda', s.capacidades?.wan?.configured ? s.capacidades.wan.notice : 'Wan no está configurado. Consulta README.');
+  comprobarWan.addEventListener('click', async () => {
+    comprobarWan.disabled = true; estadoWan.textContent = 'Comprobando el motor, sin generar video…';
+    try {
+      const response = await fetch('/api/project-editor/wan/check', { method: 'POST', headers: { 'x-editor-request': '1' } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'No se pudo comprobar Wan.');
+      estadoWan.textContent = result.reason;
+    } catch (error) { estadoWan.textContent = error.message; }
+    finally { comprobarWan.disabled = false; }
+  });
+  caja.append(comprobarWan, estadoWan);
+  if (e.visualWarning) caja.append(el('p', 'ayuda', e.visualWarning));
+  frag.append(bancoVideos({ s, acc, e }));
   frag.append(bancoImagenes({ s, acc, e }));
   return frag;
 }
@@ -379,11 +399,15 @@ function sugerenciaVisual({ e, acc }) {
 
 function atribucionImagen(c) {
   const p = el('p', 'mini atribucion');
-  p.append(document.createTextNode('Foto de '));
+  if (c.proveedor === 'wan' && c.generated) {
+    p.textContent = `Video generado con ${c.model || 'Wan'} (${c.backend || 'motor configurado'}) · ${c.licencia || 'Consulta las condiciones del modelo'}`;
+    return p;
+  }
+  p.append(document.createTextNode(c.kind === 'video' || c.proveedor === 'pexels-video' ? 'Video de ' : 'Foto de '));
   const autor = el('a', null, c.autor || 'autor desconocido');
   if (c.autorUrl) { autor.href = c.autorUrl; autor.target = '_blank'; autor.rel = 'noopener'; }
-  p.append(autor, document.createTextNode(c.proveedor === 'pexels' ? ' en ' : ' · '));
-  const fuente = el('a', null, c.proveedor === 'pexels' ? 'Pexels' : (c.proveedor || 'origen'));
+  p.append(autor, document.createTextNode(['pexels', 'pexels-video'].includes(c.proveedor) ? ' en ' : ' · '));
+  const fuente = el('a', null, ['pexels', 'pexels-video'].includes(c.proveedor) ? 'Pexels' : (c.proveedor || 'origen'));
   if (c.urlAtribucion) { fuente.href = c.urlAtribucion; fuente.target = '_blank'; fuente.rel = 'noopener'; }
   p.append(fuente, document.createTextNode(` · ${c.licencia || 'licencia no declarada'}`));
   return p;
@@ -451,6 +475,69 @@ function bancoImagenes({ s, acc, e }) {
     caja.append(rejilla);
     if (b.total > b.resultados.length) {
       caja.append(boton('Ver más resultados', 'btn-mini', () => acc.buscarImagenes(b.consulta, (b.pagina || 1) + 1),
+        { deshabilitado: b.estado === 'buscando' }));
+    }
+  }
+  return caja;
+}
+
+function bancoVideos({ s, acc, e }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Clips con movimiento real · Pexels'));
+
+  if (!s.capacidades?.biblioteca?.videos) {
+    caja.append(el('p', 'ayuda',
+      'La biblioteca de videos gratuitos no está disponible en este equipo. '
+      + 'Puedes usar tus propios archivos o los fondos locales.'));
+    return caja;
+  }
+
+  const b = s.biblioteca?.videos || {};
+  const q = entrada({ tipo: 'search', valor: b.consulta ?? e.visualPrompt ?? '', placeholder: 'Ej.: naturaleza espiritual' });
+  q.addEventListener('input', () => acc.fijarConsulta('videos', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarVideos(q.value); } });
+  caja.append(campo('Buscar por tema', q));
+  caja.append(boton(b.estado === 'buscando' ? 'Buscando…' : 'Buscar videos gratuitos', 'btn-mini btn-principal',
+    () => acc.buscarVideos(q.value), { deshabilitado: b.estado === 'buscando' }));
+
+  if (b.estado === 'buscando' && !b.resultados?.length) caja.append(el('p', 'mini', 'Buscando clips…'));
+  if (b.motivo) caja.append(vacio(b.motivo));
+
+  // Vista previa de la elegida, antes de usarla.
+  const sel = b.seleccion;
+  if (sel) {
+    const previa = el('div', 'biblio-previa');
+    const img = document.createElement('video');
+    img.src = sel.vistaPrevia; img.poster = sel.miniatura; img.controls = true; img.muted = true; img.preload = 'metadata'; img.style.width = '100%';
+    previa.append(img);
+    previa.append(atribucionImagen({ kind: 'video', proveedor: 'pexels-video', autor: sel.autor, autorUrl: sel.autorUrl, urlAtribucion: sel.paginaUrl, licencia: sel.licencia }));
+    previa.append(el('p', 'ayuda', 'Movimiento real. Se recorta al encuadre; si el clip es más corto que la escena se repite. El audio del banco no se mezcla con la narración.'));
+    const fila = el('div', 'fila');
+    fila.append(
+      boton(b.estado === 'importando' ? 'Descargando…' : (e.recurso?.path ? 'Reemplazar por este clip' : 'Usar este clip'),
+        'btn-mini btn-principal', () => acc.usarVideo(e, sel), { deshabilitado: b.estado === 'importando' }),
+      boton('Mantener la actual', 'btn-mini', () => acc.previsualizarVideo(null)),
+    );
+    previa.append(fila);
+    caja.append(previa);
+  }
+
+  if (b.resultados?.length) {
+    const rejilla = el('div', 'biblio-rejilla');
+    for (const f of b.resultados) {
+      const t = el('button', 'biblio-tarjeta');
+      t.type = 'button';
+      t.title = `${f.descripcion || 'Clip'} · ${f.autor}`;
+      if (sel?.id === f.id) t.setAttribute('aria-current', 'true');
+      const img = document.createElement('img');
+      img.src = f.miniatura; img.alt = f.descripcion || ''; img.loading = 'lazy';
+      t.append(img, el('span', 'biblio-autor', f.autor));
+      t.addEventListener('click', () => acc.previsualizarVideo(f));
+      rejilla.append(t);
+    }
+    caja.append(rejilla);
+    if (b.total > b.resultados.length) {
+      caja.append(boton('Ver más resultados', 'btn-mini', () => acc.buscarVideos(b.consulta, (b.pagina || 1) + 1),
         { deshabilitado: b.estado === 'buscando' }));
     }
   }
@@ -618,6 +705,26 @@ function bloqueNarracion({ s, acc, p }) {
   voz.append(el('p', 'mini', conVoz
     ? `${conVoz} escenas con voz generada · ${p.voice?.name || 'voz local'}`
     : 'Todavía no hay voz generada.'));
+
+  const idioma = lista([['es', 'Español'], ['en', 'English'], ['bilingual', 'Bilingüe: español e inglés']], p.language || 'es');
+  idioma.addEventListener('change', () => acc.cambiar('language', idioma.value));
+  voz.append(campo('Idioma de la narración', idioma));
+  const voces = s.capacidades?.voices || [];
+  const opciones = voces.map(v => [`${v.provider}|${v.name}`, `${v.name} · ${v.language} · ${v.provider}`]);
+  const actual = `${p.voice?.provider}|${p.voice?.name}`;
+  if (!opciones.some(v => v[0] === actual)) opciones.unshift([actual, p.voice?.name || 'Selecciona una voz']);
+  const selector = lista(opciones, actual);
+  selector.addEventListener('change', () => {
+    const [provider, ...nombre] = selector.value.split('|');
+    acc.elegirVoz(nombre.join('|'), provider);
+  });
+  voz.append(campo('Voz para la narración', selector));
+  voz.append(el('p', 'ayuda', 'Edge TTS envía el texto a un servicio en línea. Guardar y exportar regenera la narración con la voz elegida.'));
+  voz.append(boton('Escuchar muestra de voz', 'btn-mini', () => acc.probarVoz(), { deshabilitado: !p.voice?.name || s.trabajando }));
+  const muestra = s.biblioteca?.voz;
+  if (muestra?.url) { const audio = document.createElement('audio'); audio.src = muestra.url; audio.controls = true; audio.style.width = '100%'; voz.append(audio); }
+  if (muestra?.motivo) voz.append(el('p', 'ayuda', muestra.motivo));
+  if (!voces.length) voz.append(el('p', 'ayuda', 'No hay voces disponibles. Para Edge TTS instala Python y ejecuta python -m pip install edge-tts; después reinicia el servidor.'));
 
   const gan = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: p.voice?.gain ?? 1 });
   const ganTexto = el('span', 'mini', `${Math.round((p.voice?.gain ?? 1) * 100)} %`);

@@ -23,7 +23,7 @@ test('studio script-to-MP4, scene regeneration, render cache and approval safegu
   p=updateStudio(p.id,{revision:p.studio.revision,scenes:p.scenes.map(s=>({...s,duration:.6,onScreenTitle:'TEST técnico'})),style:'minimal',approveScript:true,references:[{kind:'drive',originalReference:'https://drive.google.com/file/d/reference-only'}]});
   assert.equal(p.studio.references[0].access,'reference-only');
   assert.throws(()=>updateStudio(p.id,{revision:0}),/cambió/);
-  assert.throws(()=>updateStudio(p.id,{revision:p.studio.revision,voice:{provider:'paid-provider'}}),/locales/);
+  assert.throws(()=>updateStudio(p.id,{revision:p.studio.revision,voice:{provider:'paid-provider'}}),/Proveedor de voz no admitido/);
   startOperation(p.id,'render');p=await done(p.id);
   const media=await probe(abs(p.outputPath));assert.equal(media.width,1080);assert.equal(media.height,1080);assert.ok(media.duration>=1.1);assert.equal(media.audio.length,0);
   assert.ok(p.studio.export.files.some(f=>f.format==='srt'));assert.ok(p.studio.export.files.some(f=>f.format==='1:1'));

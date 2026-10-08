@@ -60,7 +60,7 @@ export function updateStudio(id,input){
   if(input.aspectRatio!==undefined){if(!ASPECTS[input.aspectRatio])throw new Error('Formato inválido');p.aspectRatio=input.aspectRatio;p.exportFormats=[input.aspectRatio];}
   if(input.style!==undefined){if(!styles.includes(input.style))throw new Error('Estilo inválido');p.studio.style=input.style;}
   if(input.language!==undefined){if(!LANGUAGES.includes(input.language))throw new Error('Idioma inválido');p.language=input.language;}
-  if(input.voice){if(!['sapi','piper','none'].includes(input.voice.provider))throw new Error('Este estudio sólo permite voces locales');p.voice={provider:input.voice.provider,name:String(input.voice.name || ''),enabled:input.voice.provider!=='none',rate:Math.max(-10,Math.min(10,Number(input.voice.rate)||0)),volume:100,en:String(input.voice.en || ''),es:String(input.voice.es || '')};}
+  if(input.voice){p.studio.networkPolicy=input.voice.provider==='edge'?'online-voice':'local-only';if(!['sapi','piper','edge','none'].includes(input.voice.provider))throw new Error('Proveedor de voz no admitido');p.voice={provider:input.voice.provider,name:String(input.voice.name || ''),enabled:input.voice.provider!=='none',rate:Math.max(-10,Math.min(10,Number(input.voice.rate)||0)),volume:100,en:String(input.voice.en || ''),es:String(input.voice.es || '')};}
   if(input.references)p.studio.references=input.references.map(r=>({kind:['drive','github','other'].includes(r.kind)?r.kind:'other',originalReference:reference(r.originalReference),access:'reference-only',label:String(r.label || '').slice(0,200)}));
   if(input.scenes){
     if(!Array.isArray(input.scenes)||!input.scenes.length||input.scenes.length>40)throw new Error('Se requieren entre 1 y 40 escenas');
@@ -108,7 +108,7 @@ export function importTarget(name,kind,originalReference,authorized){
   fs.mkdirSync(importsDir,{recursive:true});const file=path.join(importsDir,randomUUID()+ext);
   return {file,manifest:{path:rel(file),name:path.basename(name),kind,authorized:true,originalReference:reference(originalReference)||`local:${path.basename(name)}`,access:'local-import',importedAt:new Date().toISOString()}};
 }
-export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,captionStyle:captionStyleOptions(),onScreen:{positions:POSICIONES_DESTACADO,animations:ANIMACIONES_DESTACADO},voices:await listAllVoices(),languages:LANGUAGES,defaultVoices:DEFAULT_VOICES,providers:{mode:'local-only',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
+export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,captionStyle:captionStyleOptions(),onScreen:{positions:POSICIONES_DESTACADO,animations:ANIMACIONES_DESTACADO},voices:await listAllVoices(),languages:LANGUAGES,defaultVoices:DEFAULT_VOICES,providers:{mode:'local-render-optional-online-voice',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
 async function background(p,task){
   try{await task();p.studio.job.status='complete';p.studio.job.progress=100;}
   catch(e){p.studio.job.status='failed';p.studio.job.error=e.message;p.status='failed';}

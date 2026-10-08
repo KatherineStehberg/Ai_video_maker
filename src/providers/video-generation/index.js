@@ -5,10 +5,10 @@ import '../../config.js';
 /**
  * Registro de proveedores de generación de video, desacoplado del resto.
  *
- * Hoy SÓLO el proveedor `mock` funciona: construye un video de prueba con
- * FFmpeg en local. Los demás son ranuras declaradas pero NO implementadas; al
- * invocarlas fallan con un mensaje que dice exactamente qué falta. No se simula
- * ninguna conexión con un servicio real.
+ * `pipeline` monta guion, recursos, voz y subtítulos. El modo visual `wan`
+ * genera clips mediante el adaptador wan.js antes del montaje. `mock` sólo
+ * construye un video de prueba. `api` y `local` siguen siendo ranuras
+ * genéricas pendientes; no son las conexiones de Wan.
  *
  * ---------------------------------------------------------------------------
  * CÓMO AÑADIR UN PROVEEDOR REAL

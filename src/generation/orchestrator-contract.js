@@ -116,6 +116,7 @@ export function normalizeOrchestratorInput(input = {}) {
     targetDurationSeconds,
     platform: enumOpcional(input.platform, PLATFORMS, 'platform'),
     style,
+    visualMode: enumOpcional(input.visualMode, ['images', 'prefer-video', 'video-only', 'wan'], 'visualMode') || 'prefer-video',
     voice: normalizeVoice(input.voice),
     music: normalizeMusic(input.music),
     subtitles: normalizeSubtitles(input.subtitles),
@@ -130,7 +131,7 @@ export function normalizeVoice(voice) {
   if (typeof voice === 'string') return { provider: 'auto', name: texto(voice, 120, 'voice'), rate: 0, enabled: true };
   const rate = Number(voice.rate ?? 0);
   return {
-    provider: enumOpcional(voice.provider, ['auto', 'sapi', 'piper', 'none'], 'voice.provider') || 'auto',
+    provider: enumOpcional(voice.provider, ['auto', 'sapi', 'piper', 'edge', 'none'], 'voice.provider') || 'auto',
     name: texto(voice.name, 120, 'voice.name'),
     rate: Number.isFinite(rate) ? Math.max(-10, Math.min(10, rate)) : 0,
     enabled: voice.enabled !== false,
@@ -210,6 +211,7 @@ export function specDesdeContrato(contrato) {
     brandId: contrato.brandId,
     title: contrato.title,
     logo: contrato.logo,
+    visualMode: contrato.visualMode,
     voice: contrato.voice,
     music: contrato.music,
     subtitles: contrato.subtitles,
