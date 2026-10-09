@@ -1,0 +1,4 @@
+interface:
+  display_name: "Animaciones didácticas LC"
+  short_description: "Crear slides animadas y MP4 para cursos LC"
+  default_prompt: "Usa $lc-course-animations para crear tres animaciones didácticas modernas para mis cursos y preparar los MP4 para MasterStudy."
