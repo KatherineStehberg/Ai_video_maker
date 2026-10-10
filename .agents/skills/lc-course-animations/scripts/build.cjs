@@ -26,7 +26,10 @@ function build(spec) {
   tokens.SPEC_JSON = JSON.stringify(spec).replace(/</g,'\\u003c');
   const seconds = Math.round(spec.duration);
   tokens.DURATION_LABEL = String(Math.floor(seconds/60)).padStart(2,'0') + ':' + String(seconds%60).padStart(2,'0');
-  tokens.LANG = spec.lang || (spec.mode === 'web' ? 'es' : 'en');
+  const lang = spec.lang || (spec.mode === 'web' ? 'es' : 'en');
+  tokens.LANG = lang;
+  tokens.PAUSE_LABEL = lang === 'es' ? 'Pausa el video y responde' : 'Pause the video and answer';
+  tokens.FOOTER_LABEL = lang === 'es' ? 'Animación didáctica · Sin narración' : 'Learning animation · No narration';
   return fs.readFileSync(path.join(__dirname,'../assets/four-step.html'),'utf8').replace(/\{\{([A-Z_0-9]+)\}\}/g, (_,key) => {
     if (!(key in tokens)) throw Error('Unknown token '+key);
     return tokens[key];
