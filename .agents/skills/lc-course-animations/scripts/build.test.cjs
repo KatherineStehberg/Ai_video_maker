@@ -19,6 +19,8 @@ test('configurable duration and Spanish interface are retained', () => {
   const s=fresh();s.duration=10;s.mode='web';s.lang='es';
   const html=build(s);assert.ok(html.includes('<html lang="es">'));
   assert.ok(html.includes('00:10 / FULL HD'));
+  assert.ok(html.includes('Pausa el video y responde'));
+  assert.ok(html.includes('Animación didáctica · Sin narración'));
   assert.ok(html.includes('"duration":10'));
   assert.ok(html.includes('window.duration=spec.duration'));
   assert.ok(html.includes('prefers-reduced-motion'));

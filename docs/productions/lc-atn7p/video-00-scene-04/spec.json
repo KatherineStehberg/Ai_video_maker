@@ -1,0 +1,29 @@
+{
+  "id": "lc_atn7p_v00_escena_04",
+  "course": "AUTOMATIZA TU NEGOCIO EN 7 PASOS",
+  "title": "Observar · ordenar · probar · medir",
+  "sub": "Un ciclo práctico para convertir una tarea repetitiva en una solución verificable",
+  "names": [
+    "Observar",
+    "Ordenar",
+    "Probar",
+    "Medir"
+  ],
+  "hints": [
+    "Describe el proceso tal como ocurre hoy",
+    "Define pasos, entradas y responsables",
+    "Ensaya una versión mínima con datos ficticios",
+    "Compara antes y después; registra evidencia"
+  ],
+  "examples": [
+    "Elige una tarea frecuente y anota dónde comienza, qué información usa y qué resultado entrega.",
+    "Separa acciones, decisiones y excepciones; deja una salida humana cuando algo no encaje.",
+    "Prueba el flujo en modo demo, sin datos reales, pagos, credenciales ni publicación.",
+    "Registra tiempo, errores y evidencia; mejora solo después de revisar el resultado."
+  ],
+  "question": "Tu turno: ¿qué proceso observarás, ordenarás, probarás y medirás primero?",
+  "tip": "Trabaja con un proceso, datos ficticios y una prueba reversible.",
+  "mode": "web",
+  "lang": "es",
+  "duration": 27
+}
