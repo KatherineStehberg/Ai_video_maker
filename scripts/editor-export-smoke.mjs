@@ -11,10 +11,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer } from '../src/server.js';
-import { createStudio } from '../src/studio/service.js';
+import { createStudio, updateStudio } from '../src/studio/service.js';
+import { listAllVoices } from '../src/providers/tts/index.js';
 import { loadProject, deleteProject } from '../src/core/project.js';
-import { abs } from '../src/lib/paths.js';
-import { probeDuration } from '../src/lib/ffmpeg.js';
+import { abs, PATHS } from '../src/lib/paths.js';
+import { probeDuration, resolveFfmpeg, run, ffmpegRun } from '../src/lib/ffmpeg.js';
 
 process.env.GEMINI_API_KEY = '';
 process.env.LLM_PROVIDER = 'none';
@@ -56,6 +57,10 @@ const resultado = {};
 
 try {
   proyecto = createStudio({ title: 'Export del editor', script: GUION, aspectRatio: '16:9', template: 'video-explicativo' });
+  const voces = await listAllVoices();
+  const voz = voces.find(v => v.language?.startsWith('es')) || voces[0];
+  assert.ok(voz, 'esta prueba requiere una voz local SAPI o Piper');
+  updateStudio(proyecto.id, { revision: proyecto.studio.revision, voice: { provider: voz.provider, name: voz.id } });
   resultado.projectId = proyecto.id;
 
   let vista = await get(`/projects/${proyecto.id}`);
@@ -116,12 +121,23 @@ try {
   assert.ok(fs.existsSync(archivo), `el MP4 no está en disco: ${archivo}`);
   const real = await probeDuration(archivo);
   assert.ok(real > 0, 'el MP4 no tiene duración');
+  const { ffprobe } = await resolveFfmpeg();
+  const probe = await run(ffprobe, ['-v', 'error', '-show_streams', '-of', 'json', archivo]);
+  const streams = JSON.parse(probe.stdout).streams;
+  assert.ok(streams.some(s => s.codec_type === 'video'), 'falta la pista de video');
+  assert.ok(streams.some(s => s.codec_type === 'audio'), 'falta la pista de audio');
+  const audio = await ffmpegRun(['-i', archivo, '-vn', '-af', 'volumedetect', '-f', 'null', '-']);
+  const peak = Number(/max_volume: (\S+) dB/.exec(audio.stderr)?.[1]);
+  assert.ok(Number.isFinite(peak) && peak > -60, `audio inaudible: ${peak} dBFS`);
+  resultado.audioPeakDbfs = peak;
   // La escena excluida NO puede estar en el montaje.
-  assert.ok(Math.abs(real - duracionEsperada) < 1.5,
-    `el MP4 dura ${real.toFixed(2)} s y la línea de tiempo dice ${duracionEsperada} s`);
+  // La síntesis ajusta las escenas a la duración medida de la voz.
+  const duracionFinal = fin.derivado.duracion;
+  assert.ok(Math.abs(real - duracionFinal) < 1.5,
+    `el MP4 dura ${real.toFixed(2)} s y la línea de tiempo final dice ${duracionFinal} s`);
 
   // Los subtítulos quemados salen del .ass del formato, con la narración nueva.
-  const ass = path.join('output', 'drafts', proyecto.id, 'captions_16x9.ass');
+  const ass = path.join(PATHS.drafts, proyecto.id, 'captions_16x9.ass');
   assert.ok(fs.existsSync(ass), 'no se generó el .ass del formato');
   const textoAss = fs.readFileSync(ass, 'utf8');
   assert.ok(textoAss.includes('Segundo tramo reescrito'), 'el subtítulo no recoge la narración editada');
@@ -137,7 +153,8 @@ try {
     path: fin.derivado.salida.path,
     MB: Number((fin.derivado.salida.bytes / 1e6).toFixed(2)),
     duracionMedida: Number(real.toFixed(2)),
-    duracionEsperada,
+    duracionEstimadaAntesDeVoz: duracionEsperada,
+    duracionEsperada: duracionFinal,
     subtituloEditadoPresente: true,
     escenaExcluidaAusente: true,
     tamanoLetraAss: Number(estilo[1]),

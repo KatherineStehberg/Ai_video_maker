@@ -21,6 +21,7 @@
  *   npm test -- tests/x.js   una
  */
 import { spawn } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,9 +36,13 @@ const entorno = {
 };
 
 const args = process.argv.slice(2);
+const pruebas = args.length ? args : readdirSync(path.join(raiz, 'tests'))
+  .filter(nombre => nombre.endsWith('.test.js'))
+  .sort()
+  .map(nombre => path.join('tests', nombre));
 const hijo = spawn(
   process.execPath,
-  ['--test', '--test-concurrency=1', ...(args.length ? args : ['tests/'])],
+  ['--test', '--test-concurrency=1', ...pruebas],
   { cwd: raiz, env: entorno, stdio: 'inherit' },
 );
 hijo.on('exit', code => process.exit(code ?? 1));

@@ -1,5 +1,7 @@
 # AI Video Maker
 
+Instalación Windows y traslado de proyectos para Joseph: [docs/INSTALACION_JOSEPH_WINDOWS.md](docs/INSTALACION_JOSEPH_WINDOWS.md). Validación del 13 de octubre de 2026: [informe](docs/reports/JOSEPH-WINDOWS-20261013.md).
+
 Aplicación local con tres flujos: creación desde guiones (pipeline existente), análisis de videos con música (AVM-001) y **propuesta de edición + exportación MP4** a partir de ese análisis. El análisis y la exportación están verificados con FFmpeg, ffprobe y Chrome; la integración Gemini está implementada y probada con mocks, pendiente de prueba real autorizada.
 
 El ciclo completo `video → análisis → propuesta → aprobación → MP4` funciona **sin clave Gemini y sin coste**, y desde el navegador: hay un editor web en `/editor.html`. Ver [`docs/API.md`](docs/API.md), [`COST_STRATEGY.md`](COST_STRATEGY.md), [`DEPLOY.md`](DEPLOY.md) y [`CHANGELOG.md`](CHANGELOG.md).
