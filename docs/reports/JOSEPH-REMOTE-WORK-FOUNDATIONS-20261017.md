@@ -1,3 +1,5 @@
+> Actualizacion posterior: la sincronizacion de RPM-2026-001 ya fue corregida y verificada en una version nueva, preservando el original. Estado actual: review_ready. Ver JOSEPH-RPM-001-SYNC-V2-20261017.md. Los avisos de temporizacion pendientes que siguen corresponden al estado historico.
+
 # Remote Work Foundations - RPM-2026-002
 
 Preparado en C:\Users\jjoseph\Documents\Ai_video_maker-joseph, rama joseph/edicion-cursos. Se reutilizo y respaldo el borrador existente, conservando el guion completo y sus siete escenas. Cola automatica COURSE_PRODUCTION_ENABLED=0.

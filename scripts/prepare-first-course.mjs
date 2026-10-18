@@ -3,15 +3,15 @@ const {courseId,projectId,assetRoot,item:courseItem}=courseTarget(process.argv[2
 // Explicit single-course preparation. Never starts or ticks the 15-course queue.
 import fs from 'node:fs';
 import path from 'node:path';
-import {loadProject,saveProject} from '../src/core/project.js';
+import {loadProject,saveProject,projectFile} from '../src/core/project.js';
 import {narrateProject,buildNarrationTrack} from '../src/core/tts.js';
-import {abs,rel} from '../src/lib/paths.js';
+import {abs,rel,workDir} from '../src/lib/paths.js';
 import {createHash} from 'node:crypto';
 import {generateSubtitles} from '../src/core/subtitles.js';
 const id=projectId;
 const p=loadProject(id);if(!p)throw Error('Prepare the editable course first.');
-const root=path.join('output/drafts',id,'preparation');fs.mkdirSync(root,{recursive:true});
-const backup=path.join(root,'original-project.json');if(!fs.existsSync(backup))fs.copyFileSync('data/projects/'+id+'.json',backup);
+const root=path.join(workDir(id),'preparation');fs.mkdirSync(root,{recursive:true});
+const backup=path.join(root,'original-project.json');if(!fs.existsSync(backup))fs.copyFileSync(projectFile(id),backup);
 const expected=JSON.parse(fs.readFileSync('content/courses/lc-chile-20261004.json')).items.find(i=>i.id===courseId);
 if(p.scenes.map(s=>s.text).join('\n\n')!==expected.script)throw Error('Existing course has edits; review before audiovisual preparation.');
 p.voice={...p.voice,provider:'sapi',name:'Microsoft Zira Desktop',enabled:true,rate:-1,volume:100};

@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {verifyWordMarks} from '../src/core/speech-cues.js';
+const text='One task. Another task.';const marks=[{time:.1,offset:0,length:3},{time:.5,offset:4,length:4},{time:2,offset:10,length:7},{time:3,offset:18,length:4}];
+test('actual word coverage includes the entire script and rejects missing or out-of-WAV events',()=>{assert.equal(verifyWordMarks(text,marks,4).allWordsCovered,true);assert.throws(()=>verifyWordMarks(text,marks.slice(1),4),/no speech event/);assert.throws(()=>verifyWordMarks(text,marks,2),/Invalid word event/);assert.throws(()=>verifyWordMarks(text,[...marks,{time:3.5,offset:30,length:2}],4),/Invalid word event/);});

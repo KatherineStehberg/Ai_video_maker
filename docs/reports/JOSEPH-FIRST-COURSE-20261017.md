@@ -1,3 +1,5 @@
+> Actualizacion posterior: la sincronizacion de RPM-2026-001 ya fue corregida y verificada en una version nueva, preservando el original. Estado actual: review_ready. Ver JOSEPH-RPM-001-SYNC-V2-20261017.md. Los avisos de temporizacion pendientes que siguen corresponden al estado historico.
+
 > Correccion posterior: se detectaron marcas SAPI fuera de la duracion del WAV. La cobertura de texto indicada aqui no valida la sincronizacion del primer video. Su MP4 permanece intacto y ahora se indica timing_review. Ver JOSEPH-REMOTE-WORK-FOUNDATIONS-20261017.md para la correccion y la evidencia nueva del segundo curso.
 
 # Primer curso audiovisual para Joseph ? 2026-10-17

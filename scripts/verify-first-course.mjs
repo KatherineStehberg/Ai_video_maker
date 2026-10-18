@@ -5,7 +5,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {loadProject,saveProject} from '../src/core/project.js';
 import {resolveFfmpeg,run,probeDuration} from '../src/lib/ffmpeg.js';
-import {abs} from '../src/lib/paths.js';
+import {abs,workDir} from '../src/lib/paths.js';
 import {buildCues,verifyCaptionCoverage} from '../src/core/subtitles.js';
 import {courseFingerprint,hashFile,preparedCourseVideo} from '../src/course-production/prepared.js';
 const p=loadProject(projectId);const ff=await resolveFfmpeg();
@@ -35,8 +35,10 @@ for(const [i,s] of p.scenes.entries()) {
  const unique=new Set(frames).size;assert.ok(unique>=5,'Insufficient actual visual motion in scene '+(i+1));
  scenes.push({id:s.id,start,duration:s.duration,meanVolumeDb:level,longPauses:pauses,uniqueVisualFrames:unique,audioSha256:hashFile(abs(s.narrationPath)),assetSha256:hashFile(abs(s.assetPath)),captionCues:s.captionTimings.length});start+=s.duration;
 }
-const proof={speechTimingVerified:true,captionsSha256:hashFile(abs(p.captions.file)),ok:true,file:p.outputPath,bytes:fs.statSync(target).size,sha256:hashFile(target),projectFingerprint:courseFingerprint(p),fullyDecoded:true,audio:true,motionVerified:true,width:v.width,height:v.height,fps:v.avg_frame_rate,durationSeconds:Number(media.format.duration),meanVolumeDb:mean,captionCoverage:coverage,scenes,verifiedAt:new Date().toISOString(),review:'Technical verification complete. Final human pronunciation and teaching review pending.'};
+let syncEvidence;
+if(process.argv.includes('--require-sync')){const evidence=JSON.parse(fs.readFileSync(path.join(workDir(p.id),'preparation/sync-verification.json'),'utf8'));assert.ok(evidence.ok&&evidence.samples.length===3);assert.equal(evidence.outputSha256,hashFile(target));assert.ok(evidence.wordChecks.every(c=>c.allWordsCovered));syncEvidence={wordChecks:evidence.wordChecks,samples:evidence.samples};}
+const proof={syncEvidence,speechTimingVerified:true,captionsSha256:hashFile(abs(p.captions.file)),ok:true,file:p.outputPath,bytes:fs.statSync(target).size,sha256:hashFile(target),projectFingerprint:courseFingerprint(p),fullyDecoded:true,audio:true,motionVerified:true,width:v.width,height:v.height,fps:v.avg_frame_rate,durationSeconds:Number(media.format.duration),meanVolumeDb:mean,captionCoverage:coverage,scenes,verifiedAt:new Date().toISOString(),review:'Technical verification complete. Final human pronunciation and teaching review pending.'};
 p.metadata={...p.metadata,courseRenderProof:proof};saveProject(p);
 const reopened=loadProject(p.id);assert.deepEqual(reopened.scenes,p.scenes);assert.ok(preparedCourseVideo(reopened));
-fs.writeFileSync('output/drafts/'+p.id+'/preparation/final-verification.json',JSON.stringify(proof,null,2));
+fs.writeFileSync(path.join(workDir(p.id),'preparation/final-verification.json'),JSON.stringify(proof,null,2));
 console.log(JSON.stringify({file:proof.file,duration:proof.durationSeconds,bytes:proof.bytes,sha256:proof.sha256,meanVolumeDb:mean,coverage:coverage.cobertura,motion:scenes.map(s=>s.uniqueVisualFrames),persisted:true}));
