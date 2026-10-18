@@ -1,4 +1,5 @@
-import test, { before, after } from 'node:test';
+import {spawnSync} from 'node:child_process';
+import nodeTest, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,6 +15,10 @@ import { guardar, regenerarEscena, estadoTrabajo } from '../src/project-editor/s
 import { normalizeSpec, estimarCosto } from '../src/generation/jobs.js';
 import { normalizeOrchestratorInput, specDesdeContrato } from '../src/generation/orchestrator-contract.js';
 
+const testPython=process.env.TEST_PYTHON || (process.platform==='win32'?'python':'python3');
+const hasPython=spawnSync(testPython,['-c','import sys; print(sys.version)'],{windowsHide:true}).status===0;
+const test=(name,fn)=>nodeTest(name,{skip:!hasPython && /motor Python|preserva recursos|impide generaciones|imagen a video|clip Wan|Space:/.test(name) ? 'Python interpreter unavailable; optional provider integration not exercised' : false},fn);
+test.after=nodeTest.after;
 const dir = path.join(PATHS.root, '.tmp', `wan-test-${randomUUID()}`);
 const prompt = `Prueba Wan ${randomUUID()}: una persona camina.`;
 const keys = ['WAN_ENABLED', 'WAN_BACKEND', 'WAN_REPO_DIR', 'WAN_MODEL_DIR', 'WAN_PYTHON', 'WAN_MAX_SCENES',
@@ -34,7 +39,7 @@ before(async () => {
   // Test-only model CLI. Exercise the real Python adapter and real FFmpeg media.
   fs.writeFileSync(path.join(dir, 'generate.py'), `import sys, os, json, shutil\nfrom pathlib import Path\nargs=sys.argv[1:]\nroot=Path(__file__).parent\nwith open(root/'calls.jsonl','a') as f: f.write(json.dumps(args)+'\\n')\nif os.getenv('WAN_TEST_FAIL'): sys.exit(1)\nshutil.copyfile(root/'fixture.mp4', args[args.index('--save_file')+1])\n`);
   Object.assign(process.env, { WAN_ENABLED: '1', WAN_BACKEND: 'local', WAN_REPO_DIR: dir,
-    WAN_MODEL_DIR: path.join(dir, 'model'), WAN_PYTHON: 'python3', WAN_CLIP_SECONDS: '5', WAN_MAX_SCENES: '8' });
+    WAN_MODEL_DIR: path.join(dir, 'model'), WAN_PYTHON: testPython, WAN_CLIP_SECONDS: '5', WAN_MAX_SCENES: '8' });
 });
 
 after(() => {

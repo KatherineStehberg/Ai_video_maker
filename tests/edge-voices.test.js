@@ -1,4 +1,5 @@
-import test from 'node:test';
+import {spawnSync} from 'node:child_process';
+import nodeTest from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,6 +13,10 @@ import { runPipeline } from '../src/core/pipeline.js';
 
 // Provider service is simulated; real Python subprocesses and FFmpeg are used.
 // No claim about the quality or availability of Microsoft's live speech service.
+const testPython=process.env.TEST_PYTHON || (process.platform==='win32'?'python':'python3');
+const hasPython=spawnSync(testPython,['-c','import sys; print(sys.version)'],{windowsHide:true}).status===0;
+const test=(name,fn)=>nodeTest(name,{skip:!hasPython && /cat|biling|HTTP/.test(name) ? 'Python interpreter unavailable; optional provider integration not exercised' : false},fn);
+test.after=nodeTest.after;
 const dir = path.resolve('.tmp/edge-test');
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, 'edge_tts.py'), `
@@ -34,7 +39,7 @@ class Communicate:
 `);
 const oldPython = process.env.EDGE_TTS_PYTHON;
 const oldModulePath = process.env.PYTHONPATH;
-process.env.EDGE_TTS_PYTHON = 'python3'; process.env.PYTHONPATH = dir;
+process.env.EDGE_TTS_PYTHON = testPython; process.env.PYTHONPATH = dir;
 const requests = path.join(dir, 'requests.jsonl');
 fs.rmSync(requests, { force: true });
 

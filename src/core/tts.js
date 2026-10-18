@@ -137,14 +137,14 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     })).digest('hex');
 
     // Reutiliza audio ya generado si el texto no cambio (ahorra minutos de CPU).
-    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey) {
+    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey && (!timedCaptions || scene.captionTimings?.length)) {
       narrations.push(scene.narrationPath);
       durations.push(await probeDuration(abs(scene.narrationPath)));
       continue;
     }
 
     try {
-      const synthesize = timedCaptions && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
+      const synthesize = (timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
       const marks = await synthesize(plan.plain, rawFile, {
         voice: plan.base || project.voice?.name || '',
         rate: project.voice?.rate ?? 0,
