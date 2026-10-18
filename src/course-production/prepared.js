@@ -10,7 +10,7 @@ const checked=new Map();
 function checkedHash(file){const stat=fs.statSync(file);const key=file+'|'+stat.size+'|'+stat.mtimeMs;if(!checked.has(key)){if(checked.size>32)checked.clear();checked.set(key,hashFile(file));}return checked.get(key);}
 export function preparedCourseVideo(p) {
  const proof=p?.metadata?.courseRenderProof;
- if(!proof?.ok || proof.projectFingerprint!==courseFingerprint(p) || !proof.fullyDecoded || !proof.audio || !proof.motionVerified) return null;
+ if(!proof?.ok || proof.speechTimingVerified !== true || proof.projectFingerprint!==courseFingerprint(p) || !proof.fullyDecoded || !proof.audio || !proof.motionVerified) return null;
  const file=resolveSafeAsset(proof.file);if(!file||!fs.existsSync(file))return null;
  const stat=fs.statSync(file);if(!stat.isFile()||stat.size!==proof.bytes)return null;
  if(p.scenes.some(s=>!s.assetPath||!s.narrationPath||![s.assetPath,s.narrationPath].every(r=>{const a=resolveSafeAsset(r);return a&&fs.existsSync(a);})))return null;

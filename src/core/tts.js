@@ -133,6 +133,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     const outFile = path.join(dir, `${scene.id}.wav`);
     const narrationKey = createHash('sha256').update(JSON.stringify({
       text, engine: engine.id, voice: project.voice,
+      ...((timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? { timingVersion: 'sapi-pcm16-v2' } : {}),
       language: project.language, ssml: useSsml, base: plan.base,
     })).digest('hex');
 

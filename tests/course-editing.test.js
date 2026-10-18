@@ -45,6 +45,8 @@ test('paused courses prepare only the requested draft, reuse edits and persist w
  assert.equal(entry.editUrl,prepared.editUrl);assert.equal(entry.status,'pending');assert.equal(entry.videoUrl,null);
  assert.equal(listProjects().length,1);assert.ok(state.entries.slice(1).every(e=>!e.projectId));
  assert.throws(()=>prepareCourseProject(pack,item.id,{projectId:'vid_missing'}),/no existe/);
+ p.metadata={...p.metadata,courseRenderProof:{ok:true,fullyDecoded:true,audio:true,motionVerified:true}};saveProject(p);
+ const stale=await get('/api/course-production');const legacy=stale.entries.find(e=>e.id===item.id);assert.equal(legacy.status,'timing_review');assert.equal(legacy.videoUrl,null);assert.ok(legacy.editUrl);
  const next=pack.items[1], collision=projectFile('vid_course_'+next.id);fs.writeFileSync(collision,'not a project');
  assert.throws(()=>prepareCourseProject(pack,next.id),/no se sobrescribe/);assert.equal(fs.readFileSync(collision,'utf8'),'not a project');
  const stateFile=path.join(process.env.AIVM_COURSE_QUEUE_DIR,'state.json');const saved=JSON.parse(fs.readFileSync(stateFile));

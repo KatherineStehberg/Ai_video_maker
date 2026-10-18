@@ -1,6 +1,7 @@
 // Group real word-event boundaries; preserve the original text including punctuation.
 export function speechCues(text, marks, duration, maxChars = 78) {
  if (!marks?.length || !Number.isFinite(duration) || duration <= 0) throw new Error('Missing speech timing');
+ if(marks.some(m=>!Number.isFinite(m.time)||m.time<0||m.time>=duration))throw new Error('Speech marks exceed actual waveform duration');
  const valid=marks.filter(m=>Number.isFinite(m.time)&&m.time>=0&&m.time<duration&&Number.isInteger(m.offset)&&m.offset>=0&&m.offset<text.length);
  if (!valid.length || valid.some((m,i)=>i&&(m.time<valid[i-1].time||m.offset<valid[i-1].offset))) throw new Error('Invalid speech marks');
  const groups=[];let from=0;

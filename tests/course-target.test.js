@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {courseTarget} from '../scripts/course-target.mjs';
+test('single-course tools select the requested course without mixing six and seven scenes',()=>{const first=courseTarget(),next=courseTarget('RPM-2026-002');assert.equal(first.item.scenes.length,6);assert.equal(next.item.scenes.length,7);assert.equal(next.projectId,'vid_course_RPM-2026-002');assert.notEqual(first.assetRoot,next.assetRoot);assert.throws(()=>courseTarget('../.env'));});

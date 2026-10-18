@@ -1,3 +1,5 @@
+> Correccion posterior: se detectaron marcas SAPI fuera de la duracion del WAV. La cobertura de texto indicada aqui no valida la sincronizacion del primer video. Su MP4 permanece intacto y ahora se indica timing_review. Ver JOSEPH-REMOTE-WORK-FOUNDATIONS-20261017.md para la correccion y la evidencia nueva del segundo curso.
+
 # Primer curso audiovisual para Joseph ? 2026-10-17
 
 ## Entrega local

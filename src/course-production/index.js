@@ -123,7 +123,7 @@ export async function courseProductionRoute(req, res, url) {
             const file = filePath && resolveSafeAsset(filePath);
             const valid = entry.status === 'review_ready' && entry.proof?.ok && file && fs.existsSync(file) && fs.statSync(file).size > 0 &&
               (!project.editor || project.editor.revision === project.editor.exportedRevision);
-            return { ...entry, status: prepared ? 'review_ready' : project?.metadata?.courseRenderProof ? 'draft' : entry.status,
+            return { ...entry, status: prepared ? 'review_ready' : project?.metadata?.courseRenderProof ? (project.metadata.courseRenderProof.speechTimingVerified ? 'draft' : 'timing_review') : entry.status,
               projectId: project?.id || null, projectError,
               editUrl: project ? '/project-editor.html?id=' + encodeURIComponent(project.id) : null,
               videoUrl: prepared ? prepared.videoUrl : valid ? '/file?path=' + encodeURIComponent(filePath) : null };

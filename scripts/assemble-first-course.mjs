@@ -1,14 +1,16 @@
+import {courseTarget} from './course-target.mjs';
+const {courseId,projectId,assetRoot,item:courseItem}=courseTarget(process.argv[2]);
 import fs from 'node:fs';
 import path from 'node:path';
 import {loadProject,saveProject} from '../src/core/project.js';
 import {ffmpegRun,probeDuration} from '../src/lib/ffmpeg.js';
 import {runPipeline} from '../src/core/pipeline.js';
 import {abs,rel} from '../src/lib/paths.js';
-const p=loadProject('vid_course_RPM-2026-001');
+const p=loadProject(projectId);
 if(p.outputPath && fs.existsSync(abs(p.outputPath)))throw Error('An export already exists; preserve it and use the editor to make intentional revisions.');
-const root='data/assets/images/lc-chile-courses/prepared-RPM-2026-001';
+const root=assetRoot;
 const manifest=JSON.parse(fs.readFileSync(root+'/render-manifest.json'));
-if(Object.keys(manifest).length!==6)throw Error('Six verified animations required');
+if(Object.keys(manifest).length!==p.scenes.length)throw Error('Verified animations required for all course scenes');
 for(const value of Object.values(manifest)){const qa=JSON.parse(fs.readFileSync(value+'/qa.json'));if(!qa.rendered)throw Error('Unverified animation');}
 const montage=root+'/scene-1-composite.mp4';
 if(!fs.existsSync(montage)) {
@@ -19,7 +21,7 @@ if(!fs.existsSync(montage)) {
  await ffmpegRun(['-f','concat','-safe','0','-i',list,'-t',String(p.scenes[0].duration),'-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-an','-movflags','+faststart',montage]);
 }
 const credit={proveedor:'lc-course-animations',autor:'Language Center Chile',licencia:'Original educational animation; GSAP standard license retained in HTML',fuente:'Local HTML/GSAP sources and PR #3 course illustrations',stock:{id:'7706630',author:'MART PRODUCTION',source:'https://www.pexels.com/video/person-working-on-a-laptop-7706630/',license:'https://www.pexels.com/license/'}};
-for(let i=0;i<6;i++){
+for(let i=0;i<p.scenes.length;i++){
  const file=i===0?montage:manifest[i+1]+'/animation.mp4';
  const duration=await probeDuration(abs(file));if(duration+0.05<p.scenes[i].duration)throw Error('Visual too short');
  const sidecar=file+'.json';if(!fs.existsSync(sidecar))fs.writeFileSync(sidecar,JSON.stringify({...credit,animationSource:root+'/scene-'+(i+1)+'.html'},null,2));
