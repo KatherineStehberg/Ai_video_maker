@@ -155,7 +155,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       // Normaliza a 48kHz estereo y recorta silencios largos de los extremos.
       await ffmpegRun([
         '-i', rawFile,
-        '-af', marks?.length ? 'loudnorm=I=-16:TP=-1.5:LRA=11' : 'silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB,' +
+        '-af', Array.isArray(marks) && marks.length ? 'loudnorm=I=-16:TP=-1.5:LRA=11' : 'silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB,' +
                'areverse,silenceremove=start_periods=1:start_silence=0.2:start_threshold=-50dB,areverse,' +
                'loudnorm=I=-16:TP=-1.5:LRA=11',
         '-ar', '48000', '-ac', '2',
@@ -164,7 +164,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       try { fs.unlinkSync(rawFile); } catch { /* temporal */ }
 
       const d = await probeDuration(outFile);
-      if (marks?.length) { scene.captionTimingText = text; scene.captionTimings = speechCues(text, marks, d); }
+      if (Array.isArray(marks) && marks.length) { scene.captionTimingText = text; scene.captionTimings = speechCues(text, marks, d); }
       else { scene.captionTimings = null; scene.captionTimingText = null; }
       narrations.push(rel(outFile));
       durations.push(d);
