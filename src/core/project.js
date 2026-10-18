@@ -54,6 +54,8 @@ export function makeScene(partial = {}) {
     // Transicion de ENTRADA de esta escena: { type, duration, enabled }.
     // Admite la cadena que se guardaba antes ('fade', 'none'…) y la convierte.
     transition: normalizarTransicion(partial.transition),
+    captionTimings: partial.captionTimings ?? null,
+    captionTimingText: partial.captionTimingText ?? null,
     caption: partial.caption ?? null,          // null => se usa `text`
     kenBurns: partial.kenBurns ?? 'auto',      // auto | in | out | none
     // TEXTO DESTACADO sobre la imagen. Son CINCO campos y no uno porque un
