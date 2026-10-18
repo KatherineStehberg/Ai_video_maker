@@ -202,7 +202,7 @@ export async function runPipeline(project, {
     // ---------- 7. METADATOS ----------
     if (want.has('metadata')) {
       emit('metadata', 97, 'Generando metadatos de publicacion');
-      project.metadata = buildMetadata(project, brand);
+      project.metadata = { ...(project.metadata || {}), ...buildMetadata(project, brand) };
       const metaFile = path.join(workDir(project.id), 'metadata.json');
       fs.writeFileSync(metaFile, JSON.stringify(project.metadata, null, 2), 'utf8');
       report.steps.metadata = { file: rel(metaFile), platforms: Object.keys(project.metadata) };

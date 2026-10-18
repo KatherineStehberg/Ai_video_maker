@@ -1,3 +1,4 @@
+import { preparedCourseVideo } from './prepared.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { PATHS, abs } from '../lib/paths.js';
@@ -117,13 +118,15 @@ export async function courseProductionRoute(req, res, url) {
             const item = pack.items.find(i => i.id === entry.id);
             let project = null, projectError = null;
             try { project = findCourseProject(item, entry); } catch (e) { projectError = e.message; }
+            const prepared = project && preparedCourseVideo(project);
             const filePath = project && (project.outputs?.[project.aspectRatio] || project.outputPath);
             const file = filePath && resolveSafeAsset(filePath);
             const valid = entry.status === 'review_ready' && entry.proof?.ok && file && fs.existsSync(file) && fs.statSync(file).size > 0 &&
               (!project.editor || project.editor.revision === project.editor.exportedRevision);
-            return { ...entry, projectId: project?.id || null, projectError,
+            return { ...entry, status: prepared ? 'review_ready' : project?.metadata?.courseRenderProof ? 'draft' : entry.status,
+              projectId: project?.id || null, projectError,
               editUrl: project ? '/project-editor.html?id=' + encodeURIComponent(project.id) : null,
-              videoUrl: valid ? '/file?path=' + encodeURIComponent(filePath) : null };
+              videoUrl: prepared ? prepared.videoUrl : valid ? '/file?path=' + encodeURIComponent(filePath) : null };
           }) };
       }
     }

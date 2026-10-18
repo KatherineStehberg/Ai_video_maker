@@ -1,4 +1,4 @@
-const labels = { pending: 'En cola', submitting: 'Preparando trabajo', rendering: 'Produciendo', review_ready: 'Listo para revisión final', blocked: 'Bloqueado' };
+const labels = { draft: 'Cambios pendientes de exportar y verificar', pending: 'En cola', submitting: 'Preparando trabajo', rendering: 'Produciendo', review_ready: 'Listo para revisión final', blocked: 'Bloqueado' };
 const node = (tag, text) => { const el = document.createElement(tag); el.textContent = text; return el; };
 const link = (text, href) => { const el = node('a', text); el.href = href; return el; };
 

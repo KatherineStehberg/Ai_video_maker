@@ -47,7 +47,7 @@ const {chromium} = require('playwright-core');
     const report = {width:1920,height:1080,duration,fps:24,audio:'none',qaTimes:times,frameHashes:hashes,rendered:false};
     if (!flags.includes('--qa')) {
       const partial = path.join(out,'animation.partial.mp4');
-      encoder = spawn(ffmpeg,['-y','-loglevel','error','-f','image2pipe','-vcodec','mjpeg','-framerate','24','-i','-','-an','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-movflags','+faststart',partial]);
+      encoder = spawn(ffmpeg,['-y','-loglevel','error','-f','image2pipe','-vcodec','mjpeg','-framerate','24','-i','-','-an','-vf','scale=in_range=pc:out_range=tv','-color_range','tv','-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p','-movflags','+faststart',partial]);
       let err = '';
       encoder.stderr.on('data',d => err += d);
       const done = new Promise((resolve,reject) => {encoder.once('error',reject);encoder.once('close',code => code === 0 ? resolve() : reject(Error(err || `FFmpeg exit ${code}`)));});
