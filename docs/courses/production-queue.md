@@ -39,3 +39,31 @@ Los guiones constituyen videos breves de explicación y práctica; las actividad
 En Windows, SAPI necesita ejecutarse con la cuenta habitual del equipo; el sandbox puede ocultar las voces instaladas. El servidor debe permanecer abierto y el equipo encendido. Los enlaces `127.0.0.1` funcionan solamente en este computador. Los MP4 se conservan en `output/final/` y el estado en `data/course-production/state.json`.
 
 `npm run courses:test` prueba secuencia, persistencia, recuperación y bloqueo ante errores. `node --test tests/course-production-contract.test.js` verifica los 15 guiones y la selección de voz inglesa. `npm test` desactiva la cola de cursos para no mezclar renders de prueba con trabajo real.
+
+## Video de portafolio — AI Video Maker (Upwork)
+
+Añadido por solicitud de Katherine Stehberg el 19 de octubre de 2026.
+
+- ID: PORTFOLIO-AVM-001.
+- Título: AI Video Maker — Video Production & Editing Platform.
+- Estado: PLANIFICADO / pendiente de captura real del editor y muestra final validada. No enviado al motor local ni renderizado desde esta actualización documental.
+- Destino: portafolio Upwork de Katherine Stehberg; revisión antes de publicar.
+- Formato: horizontal 16:9, 1920×1080; duración objetivo 60–90 segundos; narración en inglés y subtítulos completos.
+- Objetivo: mostrar el trabajo de Katherine en gestión de proyecto y desarrollo full-stack mediante una demostración verificable.
+- Orden: añadir después de los trabajos ya pendientes; no interrumpir ni reordenar los cursos.
+
+### Secuencia de producción
+
+1. Presentación breve del problema: organizar la producción de videos educativos y promocionales.
+2. Captura real de un proyecto: escenas, guion y recursos visuales.
+3. Demostración real de edición: subtítulos, texto destacado, pistas de audio y guardado.
+4. Exportación MP4 y reproducción de una muestra terminada.
+5. Cierre: Katherine Stehberg — Project Manager & Full-Stack Developer.
+
+### Narración propuesta
+
+AI Video Maker is a project I am developing to support educational and promotional video production. My role combines project management with hands-on full-stack development. I define requirements, prioritize features, and coordinate implementation and testing. In this demonstration, you can see how a project brings together scenes, narration, visuals, subtitles, and editing controls. The workflow supports saving changes and exporting an MP4 for review. This project is still in development, with ongoing usability testing and workflow improvements. It reflects how I connect business needs, clear communication, and practical technology implementation.
+
+### Material y revisión
+
+Usar grabaciones auténticas del editor y un MP4 propio cuya reproducción, audio y subtítulos estén revisados. Capturar la exportación únicamente si funciona en la versión instalada. No sustituir la demostración del producto por pantallas ficticias ni prometer funciones pendientes. Ocultar correos, claves, rutas personales y datos de clientes. Utilizar recursos con permisos de exhibición. Verificar que la narración coincida con las funciones realmente mostradas. Revisión final de Katherine antes de publicación. Este registro amplía la planificación; no cambia el paquete automático de 15 guiones de cursos ni el estado local de ejecución.
