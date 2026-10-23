@@ -4,6 +4,7 @@ import { PATHS, ensureDir, rel } from '../../lib/paths.js';
 import { CONFIG } from '../../config.js';
 import { slugify } from '../../lib/util.js';
 import { ffmpegRun, escapeDrawtext } from '../../lib/ffmpeg.js';
+import { provideCourseVisual } from '../../course-production/visuals.js';
 
 /**
  * Contrato:
@@ -187,6 +188,7 @@ export function getProvider(name) {
  * que nunca falla. Asi el render nunca se queda sin visual.
  */
 export async function provideImage(ctx, preferred = 'auto') {
+  if (ctx.project?.brand === 'lc-chile-courses') return provideCourseVisual(ctx);
   const order = preferred && preferred !== 'auto'
     ? [preferred, 'placeholder']
     : [CONFIG.image.provider, 'local', 'pexels', 'placeholder'];

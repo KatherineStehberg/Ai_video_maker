@@ -176,3 +176,26 @@ export function escapeDrawtext(t) {
 export function escapeStyleValue(v) {
   return String(v).split(',').join(' ').split("'").join('');
 }
+
+/**
+ * Transiciones que ESTE FFmpeg sabe hacer (nombres del filtro `xfade`).
+ *
+ * Se pregunta al binario en vez de suponerlo: una compilacion sin `xfade`, o
+ * mas vieja, no trae todas. Lo que no este aqui se ofrece deshabilitado, nunca
+ * simulado con otra cosa. El resultado se cachea: no cambia en caliente.
+ */
+let _xfade = null;
+export async function xfadeDisponibles() {
+  if (_xfade) return _xfade;
+  const { ffmpeg } = await resolveFfmpeg();
+  if (!ffmpeg) return (_xfade = []);
+  const res = await run(ffmpeg, ['-hide_banner', '-h', 'filter=xfade']);
+  const texto = `${res.stdout}\n${res.stderr}`;
+  // La ayuda lista cada transicion como una linea "  nombre  <n>  ..E..V.....".
+  const nombres = new Set();
+  for (const linea of texto.split('\n')) {
+    const m = /^\s{2,}([a-z][a-z0-9_]*)\s+\d+\s+\.{0,2}[A-Z.]{5,}/.exec(linea);
+    if (m) nombres.add(m[1]);
+  }
+  return (_xfade = [...nombres]);
+}

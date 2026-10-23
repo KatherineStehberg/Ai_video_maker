@@ -1,0 +1,1008 @@
+/**
+ * PANELES CONTEXTUALES
+ *
+ * Una funcion por herramienta. Cada una dibuja SOLO su panel: nunca se enseñan
+ * todos los formularios a la vez, que es lo que convierte un editor en una
+ * lista interminable de campos.
+ *
+ * Todas reciben `{ s, acc }`:
+ *   s    estado actual (ver state.js)
+ *   acc  acciones que ofrece main.js (cambiar, seleccionar, regenerar…)
+ *
+ * Solo vista: aqui no se llama al backend ni se guarda nada.
+ */
+
+import { escenasVisibles, escenaActual, proyectoVisible, reloj } from './state.js';
+
+const el = (tag, clase, texto) => {
+  const n = document.createElement(tag);
+  if (clase) n.className = clase;
+  if (texto !== undefined) n.textContent = texto;
+  return n;
+};
+
+function campo(etiqueta, control, pista) {
+  const l = el('label', 'campo');
+  l.append(el('span', null, etiqueta), control);
+  if (pista) l.append(el('span', 'ayuda', pista));
+  return l;
+}
+
+function entrada({ tipo = 'text', valor = '', ...extra } = {}) {
+  const i = document.createElement('input');
+  i.type = tipo;
+  // min, max y step ANTES que el valor. Un deslizador nace con 0-100 y paso 1:
+  // si se asigna 0.3 primero, se redondea a 0 y queda ahi aunque luego cambie
+  // el rango. Asi el volumen de la musica al 30 % se dibujaba en 0 %.
+  Object.assign(i, extra);
+  i.value = valor ?? '';
+  return i;
+}
+
+function area(valor, filas = 4) {
+  const t = document.createElement('textarea');
+  t.rows = filas;
+  t.value = valor ?? '';
+  return t;
+}
+
+function lista(opciones, valor) {
+  const s = document.createElement('select');
+  for (const o of opciones) {
+    const [v, t] = Array.isArray(o) ? o : [o.id ?? o, o.label ?? o];
+    const op = document.createElement('option');
+    op.value = v; op.textContent = t;
+    s.append(op);
+  }
+  s.value = valor;
+  return s;
+}
+
+/** Como `lista`, pero para pares [valor, texto] ya preparados. */
+function lista2(pares, valor) {
+  const s = document.createElement('select');
+  for (const [v, t] of pares) {
+    const op = document.createElement('option');
+    op.value = v; op.textContent = t;
+    s.append(op);
+  }
+  s.value = valor;
+  return s;
+}
+
+function boton(texto, clase, alPulsar, { deshabilitado = false, proximamente = false, titulo = '' } = {}) {
+  const b = el('button', `btn ${clase || ''}${proximamente ? ' proximamente' : ''}`.trim(), texto);
+  b.type = 'button';
+  if (titulo) b.title = titulo;
+  b.disabled = deshabilitado || proximamente;
+  if (!b.disabled) b.addEventListener('click', alPulsar);
+  return b;
+}
+
+const vacio = texto => el('p', 'vacio', texto);
+
+// ==================================================================== ESCENAS
+
+export function panelEscenas({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const escenas = escenasVisibles(s);
+  if (!escenas.length) { frag.append(vacio('Este proyecto no tiene escenas.')); return frag; }
+
+  const sel = s.escenaSel;
+
+  for (const e of escenas) {
+    const item = el('button', 'escena-item');
+    item.type = 'button';
+    item.dataset.index = String(e.index);
+    item.dataset.excluida = e.excluida ? 'si' : 'no';
+    if (e.index === sel) item.setAttribute('aria-current', 'true');
+
+    const mini = el('div', 'escena-mini');
+    if (e.recurso?.url && e.recurso.kind === 'image') {
+      const img = document.createElement('img');
+      img.src = e.recurso.url; img.alt = ''; img.loading = 'lazy';
+      mini.append(img);
+    } else {
+      mini.append(el('span', 'mini', e.recurso?.kind === 'video' ? '▶' : '—'));
+    }
+    mini.append(el('span', 'num', String(e.numero)));
+
+    const datos = el('div', 'escena-datos');
+    datos.append(el('div', 'escena-tiempo', `${reloj(e.start)} · ${e.duration.toFixed(1)} s`));
+    datos.append(el('div', 'escena-texto', e.text || '(sin narración)'));
+
+    // Indicadores de un vistazo: voz, subtítulos, rótulo y avisos de recurso.
+    const marcas = el('div', 'marcas');
+    const marcar = (texto, tipo) => {
+      const m = el('span', 'marca-ind', texto);
+      if (tipo) m.dataset.tipo = tipo;
+      marcas.append(m);
+    };
+    if (e.tieneNarracion) marcar('voz', 'voz');
+    if (e.tieneSubtitulos) marcar('subs', 'subs');
+    if (e.tieneTextoDestacado) marcar('rótulo', 'texto');
+    if (e.faltaRecurso) marcar('falta imagen', 'falta');
+    else if (e.recurso?.estado === 'fallback') marcar('fondo', 'fallback');
+    if (e.excluida) marcar('excluida');
+    datos.append(marcas);
+
+    item.append(mini, datos);
+    item.addEventListener('click', () => acc.seleccionar(e.index));
+    frag.append(item);
+  }
+
+  // ---- configuración de la escena seleccionada ----
+  const e = escenaActual(s);
+  if (!e) return frag;
+
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, `Escena ${e.numero}`));
+
+  const narr = area(e.text, 3);
+  narr.addEventListener('input', () => acc.cambiarEscena(e.id, 'text', narr.value));
+  caja.append(campo('Narración (lo que se escucha)', narr));
+
+  const dur = entrada({ tipo: 'number', valor: e.duration, min: 0.5, max: 300, step: 0.1 });
+  dur.addEventListener('change', () => acc.cambiarEscena(e.id, 'duration', Number(dur.value)));
+
+  const prompt = entrada({
+    valor: e.visualPrompt, maxLength: 300,
+    // La sugerencia se ve como marca de agua: orienta sin escribir nada.
+    placeholder: e.visualPromptSugerido || 'palabras para buscar la imagen',
+  });
+  prompt.addEventListener('input', () => acc.cambiarEscena(e.id, 'visualPrompt', prompt.value));
+
+  const rej = el('div', 'rejilla-2');
+  rej.append(campo('Duración (s)', dur), campo('Qué imagen buscar', prompt));
+  caja.append(rej);
+  caja.append(sugerenciaVisual({ e, acc }));
+
+  const incluir = entrada({ tipo: 'checkbox' });
+  incluir.checked = !e.excluida;
+  incluir.addEventListener('change', () => acc.cambiarEscena(e.id, 'excluida', !incluir.checked));
+  const lblIncluir = el('label', 'casilla');
+  lblIncluir.append(incluir, document.createTextNode('Incluir esta escena en el video'));
+  caja.append(lblIncluir);
+
+  const rotOn = entrada({ tipo: 'checkbox' });
+  rotOn.checked = Boolean(e.showOnScreenText);
+  rotOn.addEventListener('change', () => acc.cambiarEscena(e.id, 'showOnScreenText', rotOn.checked));
+  const lblRot = el('label', 'casilla');
+  lblRot.append(rotOn, document.createTextNode('Texto destacado sobre la imagen'));
+  caja.append(lblRot);
+  caja.append(el('p', 'ayuda', 'El rótulo se edita en la herramienta Texto. Los subtítulos llevan la narración completa en todas las escenas.'));
+
+  const acciones = el('div', 'fila');
+  acciones.append(
+    boton('Regenerar imagen', 'btn-mini', () => acc.regenerar(e.index, { visual: true, voz: false }), { deshabilitado: s.trabajando }),
+    boton('Regenerar voz', 'btn-mini', () => acc.regenerar(e.index, { visual: false, voz: true }), { deshabilitado: s.trabajando }),
+  );
+  caja.append(acciones);
+
+  const noListas = el('div', 'fila');
+  const motivo = 'Todavía no se puede guardar esta operación.';
+  noListas.append(
+    boton('Duplicar', 'btn-mini', null, { proximamente: true, titulo: motivo }),
+    boton('Dividir', 'btn-mini', null, { proximamente: true, titulo: motivo }),
+    boton('Reordenar', 'btn-mini', null, { proximamente: true, titulo: motivo }),
+  );
+  caja.append(noListas);
+
+  frag.append(caja);
+  return frag;
+}
+
+// ====================================================================== GUION
+
+export function panelGuion({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const escenas = escenasVisibles(s);
+  if (!escenas.length) { frag.append(vacio('Sin guion todavía.')); return frag; }
+
+  const buscar = entrada({ tipo: 'search', valor: s.busquedaGuion || '', placeholder: 'Buscar en el guion…' });
+  buscar.addEventListener('input', () => acc.buscarGuion(buscar.value));
+  frag.append(campo('Buscar', buscar));
+
+  const q = (s.busquedaGuion || '').trim().toLowerCase();
+  const total = escenas.reduce((a, e) => a + (e.excluida ? 0 : e.duration), 0);
+  const palabras = escenas.reduce((a, e) => a + String(e.text || '').trim().split(/\s+/).filter(Boolean).length, 0);
+  frag.append(el('p', 'ayuda', `${palabras} palabras · ${escenas.length} escenas · dura unos ${reloj(total)}.`));
+
+  const visibles = q ? escenas.filter(e => String(e.text || '').toLowerCase().includes(q)) : escenas;
+  if (!visibles.length) { frag.append(vacio(`Ninguna escena contiene "${q}".`)); return frag; }
+
+  for (const e of visibles) {
+    const caja = el('div', 'bloque');
+    const cab = el('div', 'fila');
+    const ir = boton(`Escena ${e.numero}`, 'btn-mini', () => acc.seleccionar(e.index));
+    if (e.index === s.escenaSel) ir.setAttribute('aria-current', 'true');
+    cab.append(ir, el('span', 'mini', `${reloj(e.start)} · ${e.duration.toFixed(1)} s`));
+    if (e.excluida) cab.append(el('span', 'pill', 'excluida'));
+    caja.append(cab);
+
+    const t = area(e.text, 3);
+    t.addEventListener('input', () => acc.cambiarEscena(e.id, 'text', t.value));
+    t.addEventListener('focus', () => acc.seleccionar(e.index));
+    caja.append(t);
+    frag.append(caja);
+  }
+  return frag;
+}
+
+// ====================================================================== TEXTO
+
+export function panelTexto({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const e = escenaActual(s);
+  if (!e) { frag.append(vacio('Selecciona una escena.')); return frag; }
+
+  const cfg = s.capacidades?.onScreen || {};
+  const resumen = s.derivado?.textoDestacado;
+
+  frag.append(el('p', 'ayuda',
+    'El texto destacado es un rótulo corto en unas pocas escenas. Los subtítulos, que llevan '
+    + 'toda la narración, se ajustan en la herramienta Subtítulos.'));
+  if (resumen) {
+    frag.append(el('p', 'mini', `Ahora hay rótulo en ${resumen.conDestacado} de ${resumen.total} escenas.`));
+  }
+
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, `Rótulo de la escena ${e.numero}`));
+
+  const on = entrada({ tipo: 'checkbox' });
+  on.checked = Boolean(e.showOnScreenText);
+  on.addEventListener('change', () => acc.cambiarEscena(e.id, 'showOnScreenText', on.checked));
+  const lbl = el('label', 'casilla');
+  lbl.append(on, document.createTextNode('Mostrar texto destacado en esta escena'));
+  caja.append(lbl);
+
+  const texto = entrada({ valor: e.onScreenTitle, maxLength: 60 });
+  texto.addEventListener('input', () => acc.cambiarEscena(e.id, 'onScreenTitle', texto.value));
+  const palabras = String(e.onScreenTitle || '').trim().split(/\s+/).filter(Boolean).length;
+  const max = cfg.maxWords ?? 8;
+  caja.append(campo(
+    `Texto (2–${max} palabras)`, texto,
+    palabras > max
+      ? `Son ${palabras} palabras: al producir se recortará a ${max}. El subtítulo sigue llevando la narración entera.`
+      : `${palabras || 'sin'} ${palabras === 1 ? 'palabra' : 'palabras'}.`,
+  ));
+
+  const estilo = e.onScreenStyle || {};
+  const rej = el('div', 'rejilla-2');
+
+  const pos = lista((cfg.positions || []).map(p => [p, {
+    top: 'Arriba', 'upper-third': 'Tercio superior', center: 'Centro',
+    'lower-third': 'Tercio inferior', bottom: 'Abajo',
+  }[p] || p]), e.onScreenPosition);
+  pos.addEventListener('change', () => acc.cambiarEscena(e.id, 'onScreenPosition', pos.value));
+
+  const tam = lista((cfg.sizes || []).map(t => [t, { small: 'Pequeño', medium: 'Mediano', large: 'Grande', xlarge: 'Enorme' }[t] || t]), estilo.size || 'large');
+  tam.addEventListener('change', () => acc.cambiarEscenaEstilo(e, 'size', tam.value));
+
+  const fondo = lista((cfg.backgrounds || []).map(b => [b, { none: 'Sin fondo', outline: 'Contorno', box: 'Caja' }[b] || b]), estilo.background || 'box');
+  fondo.addEventListener('change', () => acc.cambiarEscenaEstilo(e, 'background', fondo.value));
+
+  const anim = lista((cfg.animations || []).map(a => [a, { none: 'Sin animación', fade: 'Aparece suave', 'slide-up': 'Sube al entrar', pop: 'Entrada seca' }[a] || a]), e.onScreenAnimation);
+  anim.addEventListener('change', () => acc.cambiarEscena(e.id, 'onScreenAnimation', anim.value));
+
+  const color = entrada({ tipo: 'color', valor: estilo.color || '#ffffff' });
+  color.addEventListener('change', () => acc.cambiarEscenaEstilo(e, 'color', color.value));
+
+  rej.append(campo('Posición', pos), campo('Tamaño', tam), campo('Fondo', fondo), campo('Entrada', anim), campo('Color', color));
+  caja.append(rej);
+  caja.append(el('p', 'ayuda', 'La vista previa del centro muestra dónde queda. Nunca se coloca encima de los subtítulos.'));
+  frag.append(caja);
+  return frag;
+}
+
+// =================================================================== RECURSOS
+
+export function panelRecursos({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const e = escenaActual(s);
+  if (!e) { frag.append(vacio('Selecciona una escena.')); return frag; }
+
+  const r = e.recurso || {};
+  const ETIQ = {
+    listo: ['ok', 'Listo'],
+    fallback: ['aviso', 'Fondo de marca'],
+    falta: ['error', 'Falta la imagen'],
+    error: ['error', 'El archivo no está'],
+  };
+  const [tono, etiqueta] = ETIQ[r.estado] || ['', r.estado || '—'];
+
+  const caja = el('div', 'bloque');
+  const cab = el('div', 'fila');
+  cab.append(el('h3', null, `Recurso de la escena ${e.numero}`));
+  const pill = el('span', 'pill', etiqueta);
+  pill.dataset.tono = tono;
+  cab.append(pill);
+  caja.append(cab);
+
+  if (r.url && r.kind === 'image') {
+    const img = document.createElement('img');
+    img.src = r.url; img.alt = ''; img.style.width = '100%'; img.style.borderRadius = '6px';
+    caja.append(img);
+  } else if (r.url && r.kind === 'video') {
+    const v = document.createElement('video');
+    v.src = r.url; v.controls = true; v.preload = 'metadata'; v.style.width = '100%'; v.style.borderRadius = '6px';
+    caja.append(v);
+  } else {
+    caja.append(vacio('Esta escena se renderizará con un fondo plano de marca.'));
+  }
+
+  if (r.credito) caja.append(atribucionImagen(r.credito));
+  else if (r.proveedor) caja.append(el('p', 'mini', `Origen: ${r.proveedor}`));
+
+  const prompt = entrada({
+    valor: e.visualPrompt, maxLength: 300,
+    placeholder: e.visualPromptSugerido || 'palabras para buscar la imagen',
+  });
+  prompt.addEventListener('input', () => acc.cambiarEscena(e.id, 'visualPrompt', prompt.value));
+  caja.append(campo('Qué buscar', prompt, 'Cambia el texto y vuelve a buscar para obtener otra imagen.'));
+  caja.append(sugerenciaVisual({ e, acc }));
+
+  const acciones = el('div', 'fila');
+  acciones.append(
+    boton('Buscar otra imagen', 'btn-mini', () => acc.regenerar(e.index, { visual: true, voz: false }), { deshabilitado: s.trabajando }),
+    boton('Quitar imagen', 'btn-mini', () => acc.cambiarEscena(e.id, 'assetPath', null), { deshabilitado: !r.path }),
+  );
+  caja.append(acciones);
+
+  // Subir un archivo propio: el endpoint de importación del estudio ya existe
+  // y valida el tipo y la autorización, así que se reutiliza tal cual.
+  const subir = entrada({ tipo: 'file', accept: 'image/*,video/*' });
+  subir.addEventListener('change', () => { if (subir.files[0]) acc.subirRecurso(e, subir.files[0]); });
+  caja.append(campo('Usar un archivo mío', subir, 'Se guarda una copia local. Declara que tienes permiso para usarlo.'));
+
+  frag.append(caja);
+  frag.append(bancoImagenes({ s, acc, e }));
+  return frag;
+}
+
+/** «Foto de X en Pexels · licencia», con enlaces. Nunca se inventa un autor. */
+/**
+ * Sugerencia de busqueda a partir del texto de la escena.
+ *
+ * Se OFRECE, no se aplica sola: el campo es de la usuaria, y una sugerencia que
+ * se escribe sin permiso acaba pisando lo que alguien puso a mano. Solo aparece
+ * cuando aporta algo distinto de lo que ya hay escrito.
+ */
+function sugerenciaVisual({ e, acc }) {
+  const sug = (e.visualPromptSugerido || '').trim();
+  const fila = el('div', 'fila');
+  if (!sug || sug === (e.visualPrompt || '').trim()) { fila.hidden = true; return fila; }
+  fila.append(el('span', 'mini', `Según el texto de la escena: «${sug}»`));
+  fila.append(boton('Usar', 'btn-mini', () => acc.cambiarEscena(e.id, 'visualPrompt', sug)));
+  return fila;
+}
+
+function atribucionImagen(c) {
+  const p = el('p', 'mini atribucion');
+  p.append(document.createTextNode('Foto de '));
+  const autor = el('a', null, c.autor || 'autor desconocido');
+  if (c.autorUrl) { autor.href = c.autorUrl; autor.target = '_blank'; autor.rel = 'noopener'; }
+  p.append(autor, document.createTextNode(c.proveedor === 'pexels' ? ' en ' : ' · '));
+  const fuente = el('a', null, c.proveedor === 'pexels' ? 'Pexels' : (c.proveedor || 'origen'));
+  if (c.urlAtribucion) { fuente.href = c.urlAtribucion; fuente.target = '_blank'; fuente.rel = 'noopener'; }
+  p.append(fuente, document.createTextNode(` · ${c.licencia || 'licencia no declarada'}`));
+  return p;
+}
+
+/**
+ * Banco de imagenes gratuitas. La busqueda y la descarga las hace el backend:
+ * aqui solo se ven miniaturas y se elige. Sin banco configurado se dice, y se
+ * dejan a mano los archivos propios y los fondos locales.
+ */
+function bancoImagenes({ s, acc, e }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Imágenes gratuitas'));
+
+  if (!s.capacidades?.biblioteca?.imagenes) {
+    caja.append(el('p', 'ayuda',
+      'La biblioteca de imágenes gratuitas no está disponible en este equipo. '
+      + 'Puedes usar tus propios archivos o los fondos locales.'));
+    return caja;
+  }
+
+  const b = s.biblioteca?.imagenes || {};
+  const q = entrada({ tipo: 'search', valor: b.consulta ?? e.visualPrompt ?? '', placeholder: 'Ej.: naturaleza espiritual' });
+  q.addEventListener('input', () => acc.fijarConsulta('imagenes', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarImagenes(q.value); } });
+  caja.append(campo('Buscar por tema', q));
+  caja.append(boton(b.estado === 'buscando' ? 'Buscando…' : 'Buscar imágenes gratuitas', 'btn-mini btn-principal',
+    () => acc.buscarImagenes(q.value), { deshabilitado: b.estado === 'buscando' }));
+
+  if (b.estado === 'buscando' && !b.resultados?.length) caja.append(el('p', 'mini', 'Buscando imágenes…'));
+  if (b.motivo) caja.append(vacio(b.motivo));
+
+  // Vista previa de la elegida, antes de usarla.
+  const sel = b.seleccion;
+  if (sel) {
+    const previa = el('div', 'biblio-previa');
+    const img = document.createElement('img');
+    img.src = sel.vistaPrevia || sel.miniatura; img.alt = sel.descripcion || '';
+    previa.append(img);
+    previa.append(atribucionImagen({ proveedor: 'pexels', autor: sel.autor, autorUrl: sel.autorUrl, urlAtribucion: sel.paginaUrl, licencia: sel.licencia }));
+    previa.append(el('p', 'ayuda', 'Se ajusta al formato recortando los bordes, sin deformarla, y se ve durante toda la escena.'));
+    const fila = el('div', 'fila');
+    fila.append(
+      boton(b.estado === 'importando' ? 'Descargando…' : (e.recurso?.path ? 'Reemplazar por esta imagen' : 'Usar esta imagen'),
+        'btn-mini btn-principal', () => acc.usarImagen(e, sel), { deshabilitado: b.estado === 'importando' }),
+      boton('Mantener la actual', 'btn-mini', () => acc.previsualizarImagen(null)),
+    );
+    previa.append(fila);
+    caja.append(previa);
+  }
+
+  if (b.resultados?.length) {
+    const rejilla = el('div', 'biblio-rejilla');
+    for (const f of b.resultados) {
+      const t = el('button', 'biblio-tarjeta');
+      t.type = 'button';
+      t.title = `${f.descripcion || 'Imagen'} · ${f.autor}`;
+      if (sel?.id === f.id) t.setAttribute('aria-current', 'true');
+      const img = document.createElement('img');
+      img.src = f.miniatura; img.alt = f.descripcion || ''; img.loading = 'lazy';
+      t.append(img, el('span', 'biblio-autor', f.autor));
+      t.addEventListener('click', () => acc.previsualizarImagen(f));
+      rejilla.append(t);
+    }
+    caja.append(rejilla);
+    if (b.total > b.resultados.length) {
+      caja.append(boton('Ver más resultados', 'btn-mini', () => acc.buscarImagenes(b.consulta, (b.pagina || 1) + 1),
+        { deshabilitado: b.estado === 'buscando' }));
+    }
+  }
+  return caja;
+}
+
+// =============================================================== TRANSICIONES
+
+export function panelTransiciones({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const e = escenaActual(s);
+  if (!e) { frag.append(vacio('Selecciona una escena.')); return frag; }
+
+  const catalogo = s.capacidades?.transiciones || [{ id: 'none', label: 'Sin transición', disponible: true }];
+  const limites = s.capacidades?.duracionTransicion || { min: 0.1, max: 2, porDefecto: 0.5 };
+  // La transición pertenece a la escena de DESTINO: describe cómo ENTRA esta
+  // escena desde la anterior. Por eso la primera no puede tener ninguna.
+  const t = e.transition || { type: 'none', duration: 0, enabled: false };
+  const esPrimera = e.numero === 1;
+
+  frag.append(el('p', 'ayuda',
+    'Cada transición se aplica al ENTRAR esta escena desde la anterior, y se renderiza '
+    + 'de verdad en el MP4. Las que esta versión de FFmpeg no puede hacer salen marcadas «Próximamente».'));
+
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, `Escena ${e.numero}`));
+
+  if (esPrimera) {
+    caja.append(vacio('La primera escena no entra desde ninguna otra: no lleva transición.'));
+    frag.append(caja);
+    frag.append(bloqueMovimiento({ s, acc, e }));
+    return frag;
+  }
+
+  const tr = listaTransiciones(catalogo, s.capacidades?.categoriasTransicion, t.type);
+  tr.addEventListener('change', () => acc.cambiarEscena(e.id, 'transition', {
+    type: tr.value,
+    // Al elegir una transición se conserva la duración que ya tenía; si venía
+    // de «sin transición», se parte de la duración por defecto.
+    duration: t.duration > 0 ? t.duration : limites.porDefecto,
+    enabled: tr.value !== 'none',
+  }));
+  caja.append(campo('Transición', tr));
+
+  const ficha = catalogo.find(x => x.id === t.type);
+  if (ficha?.descripcion) caja.append(el('p', 'mini', ficha.descripcion));
+
+  if (t.type !== 'none') {
+    const dur = entrada({ tipo: 'range', min: limites.min, max: limites.max, step: 0.05, valor: t.duration || limites.porDefecto });
+    const durTexto = el('span', 'mini', `${Number(t.duration || limites.porDefecto).toFixed(2)} s`);
+    dur.addEventListener('input', () => { durTexto.textContent = `${Number(dur.value).toFixed(2)} s`; });
+    dur.addEventListener('change', () => acc.cambiarEscena(e.id, 'transition', { ...t, duration: Number(dur.value) }));
+    caja.append(campo('Duración de la transición', dur,
+      'Se solapa con el final de la escena anterior, así que el video NO se alarga. '
+      + 'No puede pasar de la mitad de la escena más corta de las dos.'));
+    caja.append(durTexto);
+  }
+
+  frag.append(caja);
+  frag.append(bloqueMovimiento({ s, acc, e }));
+  return frag;
+}
+
+/**
+ * Selector de transiciones agrupado por familia.
+ *
+ * Son casi sesenta: sin agrupar, la lista es inmanejable. Las que este FFmpeg
+ * no puede hacer aparecen deshabilitadas y con el motivo en el `title`, en vez
+ * de desaparecer sin explicación o, peor, hacer otra cosa parecida.
+ */
+function listaTransiciones(catalogo, categorias, valor) {
+  const sel = document.createElement('select');
+  const familias = categorias?.length ? categorias : [{ id: null, label: 'Transiciones' }];
+  for (const familia of familias) {
+    const dentro = catalogo.filter(t => (familia.id ? t.categoria === familia.id : true));
+    if (!dentro.length) continue;
+    const grupo = document.createElement('optgroup');
+    grupo.label = familia.label;
+    for (const t of dentro) {
+      const op = document.createElement('option');
+      op.value = t.id;
+      op.textContent = t.disponible === false ? `${t.label} — Próximamente` : t.label;
+      op.disabled = t.disponible === false;
+      if (t.motivo) op.title = t.motivo;
+      grupo.append(op);
+    }
+    sel.append(grupo);
+  }
+  sel.value = valor;
+  return sel;
+}
+
+/** Movimiento de la imagen fija: vive con las transiciones porque es lo mismo. */
+function bloqueMovimiento({ s, acc, e }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Movimiento de la imagen'));
+  const mv = lista(s.capacidades?.movimientos || [{ id: 'none', label: 'Sin movimiento' }], e.kenBurns);
+  mv.addEventListener('change', () => acc.cambiarEscena(e.id, 'kenBurns', mv.value));
+  caja.append(campo('Movimiento', mv, 'Acercar o alejar lentamente sobre una imagen fija.'));
+  return caja;
+}
+
+// ====================================================================== AUDIO
+
+/**
+ * PANEL DE AUDIO, por pestañas.
+ *
+ * Son cuatro fuentes distintas y no caben a la vez en 300 px: narración,
+ * música, efectos y el audio original del video subido. Cada una tiene sus
+ * controles, y mezclarlas en una sola columna era lo que hacía imposible saber
+ * qué estaba sonando.
+ *
+ * Lo que se ve aquí es lo que llega al MP4: el backend arma la mezcla con el
+ * mismo plan (project-editor/audio.js), así que un bloque silenciado aquí es un
+ * bloque silenciado allí.
+ */
+export function panelAudio({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const p = proyectoVisible(s);
+  if (!p) return frag;
+
+  const mezcla = s.derivado?.linea?.mezcla;
+  const efectos = p.sfx || [];
+  const original = p.originalAudio || {};
+
+  const PESTANAS = [
+    { id: 'narracion', label: 'Narración' },
+    { id: 'musica', label: 'Música' },
+    { id: 'efectos', label: efectos.length ? `Efectos (${efectos.length})` : 'Efectos' },
+    // El audio original solo existe si la usuaria subió un video con sonido.
+    ...(original.path ? [{ id: 'original', label: 'Audio original' }] : []),
+  ];
+  const activa = PESTANAS.some(x => x.id === s.pestanaAudio) ? s.pestanaAudio : 'narracion';
+
+  const tabs = el('div', 'pestanas');
+  for (const t of PESTANAS) {
+    const b = el('button', 'pestana', t.label);
+    b.type = 'button';
+    b.setAttribute('aria-current', String(t.id === activa));
+    b.addEventListener('click', () => acc.pestanaAudio(t.id));
+    tabs.append(b);
+  }
+  frag.append(tabs);
+
+  // Cuántas pistas van a sonar de verdad. Es el dato que zanja la duda de «¿se
+  // oirá la música?» sin tener que exportar para comprobarlo.
+  if (mezcla) {
+    frag.append(el('p', 'mini', mezcla.hayAudio
+      ? `En el video sonarán ${mezcla.pistas} pista(s).`
+      : 'El video se exportará SIN pista de audio: no hay nada que suene.'));
+  }
+
+  if (activa === 'narracion') frag.append(bloqueNarracion({ s, acc, p }));
+  if (activa === 'musica') frag.append(bloqueMusica({ s, acc, p }));
+  if (activa === 'efectos') frag.append(bloqueEfectos({ s, acc, p }));
+  if (activa === 'original') frag.append(bloqueOriginal({ s, acc, original }));
+
+  return frag;
+}
+
+function bloqueNarracion({ s, acc, p }) {
+  const voz = el('div', 'bloque');
+  voz.append(el('h3', null, 'Narración'));
+  const conVoz = s.derivado?.pistas?.narracion || 0;
+  voz.append(el('p', 'mini', conVoz
+    ? `${conVoz} escenas con voz generada · ${p.voice?.name || 'voz local'}`
+    : 'Todavía no hay voz generada.'));
+
+  const gan = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: p.voice?.gain ?? 1 });
+  const ganTexto = el('span', 'mini', `${Math.round((p.voice?.gain ?? 1) * 100)} %`);
+  gan.addEventListener('input', () => { ganTexto.textContent = `${Math.round(gan.value * 100)} %`; });
+  gan.addEventListener('change', () => acc.cambiar('voice.gain', Number(gan.value)));
+  voz.append(campo('Volumen de la narración', gan, 'Se aplica al mezclar el audio: no hace falta regenerar la voz.'));
+  voz.append(ganTexto);
+
+  const mudo = entrada({ tipo: 'checkbox' });
+  mudo.checked = p.voice?.enabled === false;
+  mudo.addEventListener('change', () => acc.cambiar('voice.enabled', !mudo.checked));
+  const lblMudo = el('label', 'casilla');
+  lblMudo.append(mudo, document.createTextNode('Silenciar la narración en el video'));
+  voz.append(lblMudo);
+  return voz;
+}
+
+/**
+ * EFECTOS DE SONIDO elegidos por la usuaria.
+ *
+ * Ninguno se añade solo. Cada uno queda anclado a una escena y a un segundo
+ * dentro de ella, así que sigue en su sitio aunque cambien las duraciones de
+ * las escenas anteriores.
+ */
+function bloqueEfectos({ s, acc, p }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Efectos de sonido'));
+
+  const escenas = escenasVisibles(s);
+  const nombreEscena = (id) => {
+    const i = escenas.findIndex(e => e.id === id);
+    return i < 0 ? 'sin escena' : `escena ${escenas[i].numero}`;
+  };
+
+  const lista = p.sfx || [];
+  if (!lista.length) {
+    caja.append(el('p', 'mini', 'Este video no tiene efectos de sonido.'));
+  }
+
+  for (const fx of lista) {
+    const item = el('div', 'fx-item');
+    item.append(el('strong', null, fx.titulo || fx.path.split('/').pop()));
+    item.append(el('p', 'mini', [
+      nombreEscena(fx.sceneId),
+      `empieza en ${Number(fx.start || 0).toFixed(1)} s`,
+      fx.credit?.licencia || 'sin licencia declarada',
+    ].join(' · ')));
+
+    const a = document.createElement('audio');
+    a.src = `/file?path=${encodeURIComponent(fx.path)}`;
+    a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    item.append(a);
+
+    // A qué escena se ancla. Cambiarla lo mueve con ella.
+    const sel = lista2(escenas.map(e => [e.id, `Escena ${e.numero}`]), fx.sceneId || '');
+    sel.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'sceneId', sel.value));
+    item.append(campo('Escena', sel));
+
+    const ini = entrada({ tipo: 'number', min: 0, max: 600, step: 0.1, valor: fx.start ?? 0 });
+    ini.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'start', Number(ini.value)));
+    item.append(campo('Segundo dentro de la escena', ini));
+
+    const vol = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: fx.volume ?? 0.6 });
+    const volTexto = el('span', 'mini', `${Math.round((fx.volume ?? 0.6) * 100)} %`);
+    vol.addEventListener('input', () => { volTexto.textContent = `${Math.round(vol.value * 100)} %`; });
+    vol.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'volume', Number(vol.value)));
+    item.append(campo('Volumen', vol));
+    item.append(volTexto);
+
+    const mudo = entrada({ tipo: 'checkbox' });
+    mudo.checked = fx.enabled === false;
+    mudo.addEventListener('change', () => acc.cambiarEfecto(fx.id, 'enabled', !mudo.checked));
+    const lbl = el('label', 'casilla');
+    lbl.append(mudo, document.createTextNode('Silenciar este efecto'));
+    item.append(lbl);
+
+    item.append(boton('Quitar', 'btn-mini btn-peligro', () => acc.quitarEfecto(fx.id)));
+    caja.append(item);
+  }
+
+  caja.append(boton(s.biblioteca?.efectos?.abierta ? 'Cerrar biblioteca' : 'Agregar efecto',
+    'btn-mini btn-principal', () => acc.abrirEfectos()));
+
+  const b = s.biblioteca?.efectos || {};
+  if (b.abierta) caja.append(bibliotecaEfectos({ b, acc }));
+  return caja;
+}
+
+/** Biblioteca local de efectos. Solo se ofrecen los que declaran licencia. */
+function bibliotecaEfectos({ b, acc }) {
+  const caja = el('div', 'biblio-musica');
+
+  const q = entrada({ tipo: 'search', valor: b.consulta || '', placeholder: 'campana, golpe, whoosh…' });
+  q.addEventListener('input', () => acc.fijarConsulta('efectos', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarEfectos(q.value, b.categoria || ''); } });
+
+  const cats = [['', 'Todas las categorías'], ...(b.categorias || []).map(c => [c.id, c.label])];
+  const cat = lista2(cats, b.categoria || '');
+  cat.addEventListener('change', () => acc.buscarEfectos(q.value, cat.value));
+
+  const rej = el('div', 'rejilla-2');
+  rej.append(campo('Buscar', q), campo('Categoría', cat));
+  caja.append(rej);
+
+  if (b.motivo) caja.append(vacio(b.motivo));
+
+  for (const e of b.efectos || []) {
+    const t = el('div', 'musica-tarjeta');
+    t.append(el('strong', null, e.titulo));
+    t.append(el('p', 'mini', [
+      e.duracion ? `${e.duracion.toFixed(1)} s` : null, e.formato, e.categoria,
+    ].filter(Boolean).join(' · ')));
+    t.append(el('p', 'mini', `${e.licencia} · ${e.fuente}`));
+    const a = document.createElement('audio');
+    a.src = e.url; a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    a.addEventListener('play', () => { for (const o of document.querySelectorAll('.musica-tarjeta audio')) if (o !== a) o.pause(); });
+    t.append(a);
+    t.append(boton('Usar', 'btn-mini btn-principal', () => acc.usarEfecto(e)));
+    caja.append(t);
+  }
+
+  if (b.rechazadas?.length) {
+    caja.append(el('p', 'ayuda',
+      `${b.rechazadas.length} archivo(s) de la carpeta no se ofrecen por no tener licencia declarada.`));
+  }
+  return caja;
+}
+
+/** Audio del video que subió la usuaria. Solo aparece si existe. */
+function bloqueOriginal({ s, acc, original }) {
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Audio original del video'));
+  caja.append(el('p', 'mini', original.path.split('/').pop()));
+
+  const usar = entrada({ tipo: 'checkbox' });
+  usar.checked = original.enabled === true;
+  usar.addEventListener('change', () => acc.cambiar('originalAudio.enabled', usar.checked));
+  const lbl = el('label', 'casilla');
+  lbl.append(usar, document.createTextNode('Usar el audio original en el video'));
+  caja.append(lbl);
+
+  const vol = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: original.volume ?? 0.8 });
+  const volTexto = el('span', 'mini', `${Math.round((original.volume ?? 0.8) * 100)} %`);
+  vol.addEventListener('input', () => { volTexto.textContent = `${Math.round(vol.value * 100)} %`; });
+  vol.addEventListener('change', () => acc.cambiar('originalAudio.volume', Number(vol.value)));
+  caja.append(campo('Volumen', vol));
+  caja.append(volTexto);
+  return caja;
+}
+
+/** Segundos -> "1:05". */
+const mmss = (seg) => {
+  const t = Math.round(Number(seg) || 0);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+};
+
+/**
+ * Musica del proyecto: la pista elegida con sus controles, y la biblioteca para
+ * elegir o cambiarla. Solo se ofrecen pistas con licencia declarada.
+ */
+function bloqueMusica({ s, acc, p }) {
+  const mus = el('div', 'bloque');
+  mus.append(el('h3', null, 'Música'));
+  const m = p.music || {};
+  const c = m.credit || null;
+
+  if (m.path) {
+    mus.append(el('p', null, c?.titulo || m.path.split('/').pop()));
+    if (c) mus.append(el('p', 'mini', `${c.licencia} · ${c.fuente}`));
+    if (c?.requiereAtribucion && c?.atribucion) mus.append(el('p', 'mini', `Atribución: ${c.atribucion}`));
+    const a = document.createElement('audio');
+    a.src = `/file?path=${encodeURIComponent(m.path)}`;
+    a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    mus.append(a);
+
+    const volM = entrada({ tipo: 'range', min: 0, max: 1, step: 0.01, valor: m.volume ?? 0.12 });
+    const volTexto = el('span', 'mini', `${Math.round((m.volume ?? 0.12) * 100)} %`);
+    volM.addEventListener('input', () => { volTexto.textContent = `${Math.round(volM.value * 100)} %`; });
+    volM.addEventListener('change', () => acc.cambiar('music.volume', Number(volM.value)));
+    mus.append(campo('Volumen de la música', volM, 'La voz no se reduce: la música se mezcla por debajo.'));
+    mus.append(volTexto);
+
+    const usar = entrada({ tipo: 'checkbox' });
+    usar.checked = !m.enabled;
+    usar.addEventListener('change', () => acc.cambiar('music.enabled', !usar.checked));
+    const lblUsar = el('label', 'casilla');
+    lblUsar.append(usar, document.createTextNode('Silenciar la música en el video'));
+    mus.append(lblUsar);
+
+    const fila = el('div', 'fila');
+    fila.append(
+      boton('Cambiar música', 'btn-mini', () => acc.abrirMusica()),
+      boton('Quitar música', 'btn-mini btn-peligro', () => acc.cambiar('music', { path: null, enabled: false })),
+    );
+    mus.append(fila);
+  } else {
+    mus.append(el('p', 'mini', 'Este proyecto no tiene música.'));
+    mus.append(boton('Agregar música', 'btn-mini btn-principal', () => acc.abrirMusica()));
+  }
+
+  const b = s.biblioteca?.musica || {};
+  if (b.abierta) mus.append(bibliotecaMusica({ b, acc, actual: m.path }));
+
+  const subirM = entrada({ tipo: 'file', accept: 'audio/*' });
+  subirM.addEventListener('change', () => { if (subirM.files[0]) acc.subirMusica(subirM.files[0]); });
+  mus.append(campo('Usar una pista mía', subirM, 'Se guarda una copia local. Declara que tienes permiso para usarla.'));
+  return mus;
+}
+
+function bibliotecaMusica({ b, acc, actual }) {
+  const caja = el('div', 'biblio-musica');
+  const q = entrada({ tipo: 'search', valor: b.consulta || '', placeholder: 'Ambiente o estilo: calma, espiritual, curso…' });
+  q.addEventListener('input', () => acc.fijarConsulta('musica', q.value));
+  q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); acc.buscarMusica(q.value, b.maxDuracion); } });
+  const dur = lista([['', 'Cualquier duración'], ['60', 'Hasta 1 min'], ['120', 'Hasta 2 min'], ['180', 'Hasta 3 min']], String(b.maxDuracion || ''));
+  dur.addEventListener('change', () => acc.buscarMusica(q.value, dur.value));
+  const rej = el('div', 'rejilla-2');
+  rej.append(campo('Buscar', q), campo('Duración', dur));
+  caja.append(rej);
+  caja.append(boton(b.estado === 'buscando' ? 'Buscando…' : 'Buscar música', 'btn-mini', () => acc.buscarMusica(q.value, dur.value)));
+
+  if (b.motivo) caja.append(vacio(b.motivo));
+  for (const t of b.pistas || []) {
+    const tarjeta = el('div', 'musica-tarjeta');
+    if (t.path === actual) tarjeta.setAttribute('aria-current', 'true');
+    tarjeta.append(el('strong', null, t.titulo));
+    tarjeta.append(el('p', 'mini',
+      [t.duracion ? mmss(t.duracion) : null, t.formato, `${(t.bytes / 1e6).toFixed(1)} MB`, t.genero, t.ambiente].filter(Boolean).join(' · ')));
+    tarjeta.append(el('p', 'mini', `${t.licencia} · ${t.fuente}`));
+    if (t.requiereAtribucion) tarjeta.append(el('p', 'mini', `Requiere atribución: ${t.atribucion || '—'}`));
+    const a = document.createElement('audio');
+    a.src = t.url; a.controls = true; a.preload = 'none'; a.style.width = '100%';
+    // Solo suena una vista previa a la vez.
+    a.addEventListener('play', () => { for (const o of document.querySelectorAll('.musica-tarjeta audio')) if (o !== a) o.pause(); });
+    tarjeta.append(a);
+    tarjeta.append(boton(t.path === actual ? 'En uso' : 'Usar esta música', 'btn-mini btn-principal',
+      () => acc.usarMusica(t), { deshabilitado: t.path === actual }));
+    caja.append(tarjeta);
+  }
+  if (b.rechazadas?.length) {
+    caja.append(el('p', 'ayuda', `${b.rechazadas.length} archivo(s) de la carpeta no se ofrecen por no tener licencia declarada.`));
+  }
+  return caja;
+}
+
+// ================================================================= SUBTITULOS
+
+export function panelSubtitulos({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const p = proyectoVisible(s);
+  if (!p) return frag;
+
+  const cfg = s.capacidades?.captionStyle || {};
+  const estilo = p.captions?.style || {};
+  const m = s.derivado?.subtitulos?.metrica;
+  const cob = s.derivado?.subtitulos?.cobertura;
+
+  const on = entrada({ tipo: 'checkbox' });
+  on.checked = p.captions?.enabled !== false;
+  on.addEventListener('change', () => acc.cambiar('captions.enabled', on.checked));
+  const lbl = el('label', 'casilla');
+  lbl.append(on, document.createTextNode('Subtitular todo el video'));
+  frag.append(lbl);
+
+  if (p.captions?.enabled === false) {
+    frag.append(el('p', 'ayuda', 'Sin subtítulos: no aparecerá ningún texto de narración en el video.'));
+    return frag;
+  }
+
+  if (cob) {
+    const aviso = el('p', cob.ok ? 'mini' : 'aviso aviso-atencion',
+      cob.ok
+        ? `Cobertura ${cob.porcentaje} %: toda la narración queda subtitulada.`
+        : `Cobertura ${cob.porcentaje} %. ${cob.problemas[0] || ''}`);
+    frag.append(aviso);
+  }
+
+  // ---- presets ----
+  const presets = el('div', 'fila');
+  for (const pr of cfg.presets || []) {
+    const b = boton(pr.label, 'btn-mini', () => acc.aplicarPreset(pr));
+    b.title = pr.description || '';
+    b.setAttribute('aria-pressed', String(estilo.preset === pr.id));
+    if (estilo.preset === pr.id) b.classList.add('btn-principal');
+    presets.append(b);
+  }
+  frag.append(campo('Presets', presets));
+  const desc = (cfg.presets || []).find(x => x.id === estilo.preset)?.description;
+  if (desc) frag.append(el('p', 'ayuda', desc));
+
+  const rej = el('div', 'rejilla-2');
+  const bind = (control, ruta, transformar = v => v) => {
+    control.addEventListener('change', () => acc.cambiar(`captions.style.${ruta}`, transformar(control.value)));
+    return control;
+  };
+
+  rej.append(campo('Tipografía', bind(lista((cfg.fonts || []).map(f => [f.id, f.label]), estilo.fontFamily || 'Arial'), 'fontFamily')));
+  rej.append(campo('Tamaño', bind(lista([['0.85', 'Más pequeño'], ['1', 'Normal'], ['1.15', 'Más grande'], ['1.3', 'Muy grande']], String(estilo.fontScale ?? 1)), 'fontScale', Number)));
+  rej.append(campo('Color', bind(entrada({ tipo: 'color', valor: estilo.color || '#ffffff' }), 'color')));
+  rej.append(campo('Fondo', bind(lista([['outline', 'Contorno oscuro'], ['box', 'Caja semitransparente'], ['none', 'Sin fondo']], estilo.background || 'outline'), 'background')));
+  rej.append(campo('Color del fondo', bind(entrada({ tipo: 'color', valor: estilo.backgroundColor || '#000000' }), 'backgroundColor')));
+  rej.append(campo('Opacidad del fondo', bind(entrada({ tipo: 'range', min: 0, max: 1, step: 0.05, valor: estilo.backgroundOpacity ?? 0 }), 'backgroundOpacity', Number)));
+  rej.append(campo('Contorno', bind(entrada({ tipo: 'range', min: 0, max: 2.5, step: 0.05, valor: estilo.outlineScale ?? 1 }), 'outlineScale', Number)));
+  rej.append(campo('Posición', bind(lista([['bottom', 'Abajo (zona segura)'], ['center', 'Centro'], ['top', 'Arriba']], estilo.position || 'bottom'), 'position')));
+  rej.append(campo('Alineación', bind(lista([['center', 'Centrado'], ['left', 'Izquierda'], ['right', 'Derecha']], estilo.alignment || 'center'), 'alignment')));
+  frag.append(rej);
+
+  const margen = entrada({ tipo: 'range', min: 0, max: 0.4, step: 0.01, valor: estilo.marginVPct ?? (m ? m.marginV / (s.derivado?.dimensiones?.height || 1920) : 0.18) });
+  margen.addEventListener('change', () => acc.cambiar('captions.style.marginVPct', Number(margen.value)));
+  frag.append(campo('Margen desde el borde', margen, 'Nunca baja de la zona segura del formato, aunque se pida menos.'));
+
+  if (m) {
+    frag.append(el('p', 'mini',
+      `En ${p.aspectRatio} la letra medirá ${m.fontSize} px, ${m.maxLines} líneas como máximo, `
+      + `${m.maxCharsPerLine} caracteres por línea, a ${m.marginV} px del borde.`));
+  }
+
+  const zonas = entrada({ tipo: 'checkbox' });
+  zonas.checked = s.zonasSeguras;
+  zonas.addEventListener('change', () => acc.zonasSeguras(zonas.checked));
+  const lblZ = el('label', 'casilla');
+  lblZ.append(zonas, document.createTextNode('Ver zonas seguras en la vista previa'));
+  frag.append(lblZ);
+
+  return frag;
+}
+
+// ====================================================================== MARCA
+
+export function panelMarca({ s, acc }) {
+  const frag = document.createDocumentFragment();
+  const p = proyectoVisible(s);
+  if (!p) return frag;
+
+  const caja = el('div', 'bloque');
+  caja.append(el('h3', null, 'Proyecto'));
+
+  const titulo = entrada({ valor: p.title, maxLength: 120 });
+  titulo.addEventListener('input', () => acc.cambiar('title', titulo.value));
+  caja.append(campo('Nombre', titulo));
+
+  const formato = lista(Object.entries(s.capacidades?.aspects || {}).map(([id, a]) => [id, `${id} · ${a.label}`]), p.aspectRatio);
+  formato.addEventListener('change', () => acc.cambiarFormato(formato.value));
+  caja.append(campo('Formato', formato));
+
+  const marca = lista((s.capacidades?.brands || []).map(b => [b.id, b.name]), p.brand);
+  marca.addEventListener('change', () => acc.cambiar('brand', marca.value));
+  caja.append(campo('Marca', marca, 'Define los colores del fondo generado, la tipografía y el logo.'));
+
+  const cta = entrada({ valor: p.cta || '', maxLength: 200 });
+  cta.addEventListener('input', () => acc.cambiar('cta', cta.value));
+  caja.append(campo('Llamada a la acción del cierre', cta, 'Se dibuja en los últimos segundos del video.'));
+  frag.append(caja);
+
+  const logo = el('div', 'bloque');
+  logo.append(el('h3', null, 'Logo'));
+  if (p.assets?.logo) {
+    const img = document.createElement('img');
+    img.src = `/file?path=${encodeURIComponent(p.assets.logo)}`;
+    img.alt = ''; img.style.maxWidth = '100%'; img.style.borderRadius = '6px';
+    logo.append(img);
+    logo.append(el('p', 'mini', 'Se superpone en el vídeo final.'));
+  } else {
+    logo.append(el('p', 'ayuda', 'Este proyecto usa el logo de la marca seleccionada, si la marca tiene uno. Subir un logo propio desde aquí todavía no está disponible.'));
+  }
+  frag.append(logo);
+
+  const alm = s.capacidades?.almacenamiento;
+  if (alm) {
+    const caja2 = el('div', 'bloque');
+    caja2.append(el('h3', null, 'Dónde se guarda'));
+    caja2.append(el('p', 'mini', `${alm.label}: ${alm.proyectos}/${p.id}.json`));
+    caja2.append(el('p', 'ayuda', 'Todo se guarda en este equipo. Escritura atómica: un corte a mitad no corrompe el proyecto.'));
+    frag.append(caja2);
+  }
+  return frag;
+}
+
+export const PANELES = {
+  escenas: { titulo: 'Escenas', render: panelEscenas },
+  guion: { titulo: 'Guion', render: panelGuion },
+  texto: { titulo: 'Texto destacado', render: panelTexto },
+  recursos: { titulo: 'Recursos', render: panelRecursos },
+  transiciones: { titulo: 'Transiciones', render: panelTransiciones },
+  audio: { titulo: 'Audio', render: panelAudio },
+  subtitulos: { titulo: 'Subtítulos', render: panelSubtitulos },
+  marca: { titulo: 'Marca y configuración', render: panelMarca },
+};

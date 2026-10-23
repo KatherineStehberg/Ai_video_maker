@@ -1,5 +1,7 @@
 # AI Video Maker
 
+Instalación Windows y traslado de proyectos para Joseph: [docs/INSTALACION_JOSEPH_WINDOWS.md](docs/INSTALACION_JOSEPH_WINDOWS.md). Validación del 13 de octubre de 2026: [informe](docs/reports/JOSEPH-WINDOWS-20261013.md).
+
 Aplicación local con tres flujos: creación desde guiones (pipeline existente), análisis de videos con música (AVM-001) y **propuesta de edición + exportación MP4** a partir de ese análisis. El análisis y la exportación están verificados con FFmpeg, ffprobe y Chrome; la integración Gemini está implementada y probada con mocks, pendiente de prueba real autorizada.
 
 El ciclo completo `video → análisis → propuesta → aprobación → MP4` funciona **sin clave Gemini y sin coste**, y desde el navegador: hay un editor web en `/editor.html`. Ver [`docs/API.md`](docs/API.md), [`COST_STRATEGY.md`](COST_STRATEGY.md), [`DEPLOY.md`](DEPLOY.md) y [`CHANGELOG.md`](CHANGELOG.md).
@@ -170,6 +172,137 @@ Prueba opcional de navegador, después de `npm.cmd test`:
 ```powershell
 npm.cmd install --no-save --package-lock=false --prefix .tmp/browser-tools playwright-core
 node scripts/browser-smoke.mjs
+```
+
+### Editor visual
+
+Para editar un video ya montado, escena a escena:
+
+```
+http://127.0.0.1:4321/project-editor.html?id=<idProyecto>
+```
+
+Se llega desde el botón **Editar** de cualquier proyecto en «Proyectos
+recientes», o desde la lista del Estudio. La pantalla de inicio no cambia.
+
+| Zona | Qué hay |
+|---|---|
+| Barra superior | volver, nombre editable, estado de guardado, deshacer/rehacer, formato (9:16, 16:9, 1:1, 4:5), zonas seguras, Exportar MP4 |
+| Herramientas | Escenas · Guion · Texto · Recursos · Transiciones · Audio · Subtítulos · Marca |
+| Centro | vista previa con imagen, rótulo, subtítulo y zonas seguras, más reproducción |
+| Abajo | línea de tiempo con pistas de texto destacado, subtítulos, narración, visual, música y cortes |
+
+Cabe en una pantalla de 1366×768 sin scroll de página.
+
+**Lo que guarda de verdad**: narración, título, duración, prompt visual,
+incluir/excluir escena, los cinco campos del texto destacado, estilo global de
+subtítulos, transición, movimiento de imagen, volumen de narración y de música,
+recurso de cada escena, nombre, formato y marca del proyecto.
+
+**Lo que está deshabilitado y etiquetado «Próximamente»**: publicar en redes,
+arrastrar clips en la línea de tiempo, dividir, duplicar y reordenar escenas, y
+la pista de efectos de sonido. No se simula ninguna de ellas.
+
+**Dónde se guarda**: `data/projects/<id>.json`, con escritura atómica. El
+editor pasa por `src/project-editor/storage.js`, una interfaz de cinco métodos
+pensada para poder sustituir el almacenamiento local más adelante. Supabase
+**no** está conectado.
+
+```powershell
+node scripts/editor-visual-smoke.mjs    # navegador real a 1366x768 (Node 20+)
+node scripts/editor-export-smoke.mjs    # editar, guardar, exportar y medir el MP4
+```
+
+### Biblioteca de recursos
+
+**Imágenes.** En el editor, herramienta **Recursos** → «Buscar imágenes
+gratuitas». Usa [Pexels](https://www.pexels.com/license/) y necesita
+`PEXELS_API_KEY` en el `.env`; sin clave la interfaz lo dice y deja los archivos
+propios y los fondos de marca. La clave vive sólo en el backend: el navegador
+manda el término de búsqueda o el id de la foto, nunca una URL. Cada imagen se
+descarga a `data/assets/images/_library/pexels/` con una ficha `<archivo>.json`
+(proveedor, id, autor, atribución, licencia, fecha, término buscado), así que el
+proyecto sigue funcionando sin conexión.
+
+**Música.** Herramienta **Audio** → «Agregar música». Lee
+`data/assets/music/`, y **sólo ofrece pistas con licencia declarada**: cada
+archivo necesita su ficha al lado.
+
+```json
+{
+  "titulo": "Calma luminosa",
+  "licencia": "CC0 1.0 (dominio público)",
+  "licenciaUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "fuente": "De dónde salió el archivo",
+  "autor": "Quién lo hizo",
+  "genero": "Ambiental",
+  "ambiente": "sereno",
+  "etiquetas": ["calma", "meditación"],
+  "requiereAtribucion": false
+}
+```
+
+Sin ficha, o sin `licencia` y `fuente`, la pista no aparece y no se puede usar.
+Para empezar con algo:
+
+```powershell
+node scripts/generar-musica-local.mjs
+```
+
+Genera cuatro pistas ambientales **sintetizadas con FFmpeg** a partir de tonos,
+sin samples ni obras de terceros, publicadas como CC0. Son sencillas, a
+propósito: sirven de fondo bajo una narración. Para música mejor, copia tus
+archivos con su ficha.
+
+**No hay proveedor remoto de música.** `media-library.js` documenta el contrato
+para añadir uno (detrás del backend, sin exponer claves, con licencia visible y
+archivo cacheado), pero no se descarga música de ningún servicio externo hasta
+verificar su licencia.
+
+```powershell
+node scripts/editor-library-smoke.mjs <idProyecto>   # flujo real, Pexels + música + MP4
+```
+
+### Subtítulos y texto destacado
+
+Son **dos cosas distintas** y conviene no confundirlas:
+
+| | Subtítulo | Texto destacado |
+|---|---|---|
+| Qué lleva | toda la narración, palabra por palabra | 2–8 palabras |
+| Dónde sale | en **todas** las escenas | sólo en **algunas** |
+| Para qué | que se entienda sin sonido | fijar una idea: título, concepto, cifra, cierre |
+| Se controla en | panel global «Cómo se ven los subtítulos» | cada tarjeta de escena |
+
+Los dos pueden coexistir en la misma escena: el rótulo se coloca fuera de la
+banda de subtítulos, así que nunca se pisan.
+
+**Tamaño de letra por formato** (`src/core/captions-style.js`). Los dos extremos
+están medidos; 1:1 y 4:5 se interpolan entre ellos, porque el tamaño depende de
+cómo se mira cada formato y no de la geometría:
+
+| Formato | Resolución | Letra | Franja inferior reservada |
+|---|---|---|---|
+| 9:16 | 1080×1920 | 64 px | 18 % (controles de TikTok/Instagram) |
+| 4:5  | 1080×1350 | 61 px | 14 % |
+| 1:1  | 1080×1080 | 58 px | 12 % |
+| 16:9 | 1920×1080 | 48 px | 10 % |
+
+Ancho máximo del bloque 85 %, dos líneas como mucho, corte por palabras.
+
+**Presets**: Redes sociales, Curso, Limpio y Alto contraste. Son multiplicadores
+sobre el tamaño del formato, así que un preset sigue adaptándose a los cuatro.
+Cambiar de preset reemplaza los controles; retocarlos después se conserva.
+
+**Cuándo se propone un rótulo**: portada o gancho, apertura de sección, dato con
+una cifra concreta y cierre o llamada a la acción. Nunca en dos escenas
+seguidas, nunca en más del 35 % del video, y nunca si el texto disponible es un
+trozo de narración (diálogo, verbo de habla, frase cortada) o una frase que
+habría que recortar. Es una **propuesta**: se acepta, se edita, se añade o se
+quita antes de renderizar.
+
+```powershell
+node scripts/captions-smoke.mjs   # navegador real, Estudio y editor (Node 20+)
 ```
 
 ### Prueba de guion largo

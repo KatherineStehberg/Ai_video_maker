@@ -5,6 +5,183 @@ Las fechas son de desarrollo local; nada de esto se ha publicado todavía.
 
 ## [Sin publicar] — rama `feat/personal-video-studio`
 
+### Añadido — Biblioteca de imágenes y música en el editor (2026-09-22)
+
+Los recursos se eligen desde el editor, sin tener que subir un archivo cada vez.
+
+#### Imágenes gratuitas (Pexels)
+
+- Herramienta **Recursos**: buscador por tema, resultados en tarjetas con
+  miniatura y autor, vista previa antes de elegir, y botones para reemplazar la
+  imagen o mantener la actual. Estado de carga y mensajes claros cuando no hay
+  resultados o no hay conexión.
+- **La clave nunca sale del backend.** El navegador manda un término de
+  búsqueda o un identificador; nunca una URL de descarga. El servidor vuelve a
+  pedir la foto a Pexels por su id, comprueba que el archivo venga de
+  `images.pexels.com` y sólo entonces lo descarga.
+- Cada imagen se **cachea en local** (`data/assets/images/_library/pexels/`)
+  con una ficha al lado que guarda proveedor, id remoto, URL de descarga,
+  autor, URL de atribución, licencia, fecha y término buscado. El video sigue
+  funcionando sin conexión.
+- La **atribución** se muestra en el panel y se guarda con la escena. El crédito
+  se lee siempre de la ficha en disco, nunca de lo que mande el navegador.
+- Sin `PEXELS_API_KEY` la interfaz dice que la biblioteca remota no está
+  disponible y deja a mano los archivos propios y los fondos locales.
+- La búsqueda viaja con el **idioma del proyecto** (`locale`). Sin él, Pexels
+  leía las consultas como inglés: «naturaleza espiritual» devolvía una obra en
+  construcción en Espíritu Santo.
+
+#### Música
+
+- Herramienta **Audio**: biblioteca local con buscador por ambiente, estilo o
+  duración; tarjetas con nombre, duración, formato, tamaño, género, licencia y
+  fuente; vista previa con reproductor; volumen, silenciar y quitar.
+- **Sólo se ofrece música con licencia declarada.** Cada pista necesita su ficha
+  `<archivo>.json` con licencia y fuente; sin ella no aparece y no se puede
+  usar, ni siquiera indicando la ruta a mano.
+- `scripts/generar-musica-local.mjs` crea cuatro pistas ambientales **generadas
+  con FFmpeg a partir de tonos sintéticos**, sin samples ni obras de terceros,
+  publicadas como CC0. Para música mejor, basta con añadir archivos propios con
+  su ficha.
+- Estructura preparada para un proveedor remoto (contrato documentado en
+  `media-library.js`). **No hay ninguno conectado**: no se descarga música de
+  servicios externos sin verificar su licencia.
+- La pista de música aparece en la línea de tiempo con su **forma de onda real**
+  y se marca cuando está silenciada.
+
+#### Corregido de paso
+
+- **Los deslizadores con decimales mostraban un valor falso.** `entrada()`
+  asignaba `value` antes que `min`, `max` y `step`, así que un volumen de 0,3 se
+  dibujaba en 0 y un contorno de 1,15 en 1. Afectaba a música, voz y subtítulos.
+- **Una escena excluida ocupaba tiempo en la línea de tiempo** aunque el render
+  la saltaba, y desplazaba la vista previa y el audio respecto al MP4.
+- Con música ya son seis pistas: se ajustó su altura para que quepan todas en
+  1366×768 sin cortar la última.
+
+### Añadido — Editor visual de proyectos (2026-09-21)
+
+Pantalla nueva para editar un video escena a escena, sin tocar JSON. Se abre
+sólo desde «Editar» en un proyecto guardado: **la pantalla de inicio no cambia**.
+
+`/project-editor.html?id=<idProyecto>`
+
+- **Distribución**: barra superior, ocho herramientas en columna, panel
+  contextual, vista previa central con controles de reproducción y línea de
+  tiempo multipista fija abajo. Cabe entera en 1366×768 sin scroll de página.
+- **Herramientas**: Escenas, Guion, Texto destacado, Recursos, Transiciones,
+  Audio, Subtítulos y Marca. Cada una abre su propio panel; nunca se muestran
+  todos los formularios a la vez.
+- **Línea de tiempo** con pistas de texto destacado, subtítulos, narración,
+  visual, música y cortes. Cada pista aparece sólo si tiene contenido real.
+  Regla, cabezal, zoom, scroll y selección de clips. **No hay arrastre**:
+  mover un clip todavía no se puede guardar, así que no se ofrece.
+- **Forma de onda real** (`src/project-editor/waveform.js`): FFmpeg decodifica
+  el audio a PCM y se reduce a picos. Media hora de narración da 600 picos en
+  ~5 s. Sin archivo de audio se dibuja un bloque rayado y se dice que no hay
+  onda; nunca se inventa una.
+- **Vista previa** que compone imagen, rótulo, subtítulo y zonas seguras con la
+  métrica del backend. Se etiqueta como «aproximada»; cuando existe un MP4 al
+  día se puede ver el definitivo.
+- **Guardado explícito** con estado «Guardado» / «Cambios sin guardar», aviso
+  antes de cerrar, deshacer y rehacer, y control de revisión que rechaza
+  guardar si el proyecto cambió en otra pestaña. Editar invalida la aprobación
+  del guion y marca el MP4 anterior como no vigente.
+- **API nueva** `/api/project-editor/*`, en su propio espacio de nombres. Los
+  endpoints de `/api/studio`, `/api/analysis`, `/api/video-edits` y
+  `/api/video-generation` siguen intactos.
+- **Capa de almacenamiento** (`src/project-editor/storage.js`): interfaz de
+  cinco métodos sobre los JSON de `data/projects/`. Sustituirla por Supabase
+  más adelante no obliga a tocar el editor. **No se ha conectado Supabase.**
+
+#### Corregido de paso
+
+- **`excluida` no hacía nada.** El campo existía pero el render, los subtítulos
+  y la pista de voz seguían incluyendo la escena. Ahora `activeScenes()` es el
+  único criterio y lo respetan los tres.
+- **El volumen de la narración no se aplicaba.** El montaje fijaba `volume=1.0`.
+  Se añade `voice.gain`, que es ganancia de mezcla: cambia el volumen sin tener
+  que regenerar la voz.
+- **`assetProvider` se perdía al recargar.** `makeScene()` no lo conservaba, así
+  que tras reabrir no se podía distinguir una imagen del tema de un fondo de
+  marca de relleno.
+
+#### No incluido, y declarado como tal en la interfaz
+
+Publicar en redes, arrastrar clips, dividir, duplicar y reordenar escenas, pista
+de efectos de sonido y transiciones de deslizamiento o barrido (el render sólo
+distingue «sin transición» y «fundido»).
+
+### Corregido y añadido — Subtítulos y texto destacado (2026-09-21)
+
+Dos cosas que se confundían entre sí quedan separadas: el **subtítulo**, que
+lleva toda la narración en todas las escenas, y el **texto destacado**, que es
+un rótulo corto en unas pocas.
+
+#### Subtitulado completo
+
+- **Corregido: el final de una escena podía quedarse sin subtítulo.**
+  `cuesForScene()` forzaba un mínimo de 0,7 s por cue; en una escena corta con
+  mucho texto esos mínimos sumaban más que la escena y los últimos cues se
+  recortaban contra el final hasta durar cero. Ahora el reparto se calcula sobre
+  el peso **acumulado**, así que los cues son contiguos, ninguno dura cero y el
+  último cierra exactamente al final de la escena.
+- `verifyCaptionCoverage()`: comprueba **escena por escena** que nada narrado se
+  queda sin subtítulo, y devuelve la cobertura real.
+- Un `caption` vacío o en blanco ya no silencia el subtítulo: manda la
+  narración. Para quitar los subtítulos hay que apagarlos en el proyecto.
+- **Corregido: la casilla «Subtítulos quemados» del editor no hacía nada.**
+  `leerFormulario()` nunca la leía, así que el video salía subtitulado aunque se
+  desactivara. Ahora viaja en la petición.
+
+#### Subtítulos más grandes y configurables
+
+- `src/core/captions-style.js` (nuevo): toda la geometría y el estilo en un solo
+  sitio. Tamaño por formato interpolando entre dos anclas medidas:
+  **9:16 → 64 px**, **16:9 → 48 px**, **1:1 → 58 px**, **4:5 → 61 px**.
+  Antes salía `alto / 34`: 32 px en 16:9, menos de la mitad de lo legible.
+- **Zonas seguras** por formato (18 % inferior en 9:16): el subtítulo ya no cae
+  bajo los controles de TikTok ni de Instagram. Ancho máximo 85 %, dos líneas
+  como mucho, corte por palabras.
+- **Controles globales**: tamaño, tipografía, color, fondo, opacidad, contorno,
+  posición y alineación, en el Estudio y en el editor.
+- **Presets**: Redes sociales, Curso, Limpio y Alto contraste. Son
+  multiplicadores, así que siguen adaptándose a cada formato.
+- El `.ass` se genera con `PlayRes` = tamaño real del video y traduce posición y
+  alineación a los valores de ASS; con fondo de caja usa `BorderStyle 3`.
+
+#### Texto destacado sobre algunas imágenes
+
+- `src/core/on-screen-text.js` (nuevo) y cinco campos por escena:
+  `showOnScreenText`, `onScreenTitle`, `onScreenPosition`, `onScreenStyle` y
+  `onScreenAnimation`. Los proyectos guardados antes de esto se reabren igual
+  que se veían.
+- **Corregido: el rótulo salía en TODAS las escenas.** El Estudio escribía
+  «1. Título», «2. Título»… sobre cada imagen, y el generador titulaba cada
+  escena con su propia narración, duplicando el guion sobre el video. Ahora se
+  **propone** sólo en portada, aperturas de sección, datos con cifras y cierre,
+  con un tope del 35 % de las escenas y nunca dos seguidas.
+- **Corregido: trozos de diálogo se colaban como rótulos.** Un guion narrativo
+  producía rótulos como «-Por ejemplo», «Me dijo» o «-Isan, entiendo que tenías
+  el don de ver enfermedades, pero». `esRotuloValido()` descarta diálogos,
+  verbos de habla, frases cortadas a mitad y cualquier título que haya habido
+  que recortar: un titular de verdad ya es corto.
+- Máximo 8 palabras, y el rótulo nunca copia la narración.
+- El rótulo se coloca **fuera de la banda de subtítulos**: los dos conviven en
+  la misma escena sin pisarse, en los cuatro formatos.
+- Animaciones de entrada: `fade`, `slide-up`, `pop` y `none`.
+- En cada tarjeta de escena: **«Agregar texto destacado sobre la imagen»**, con
+  texto, posición, tamaño, color, fondo, animación y **vista previa**.
+  Desactivarlo deja la escena con imagen, voz y subtítulos, y **no borra** el
+  texto escrito.
+
+#### Pruebas
+
+- `tests/captions.test.js` (nuevo, 32 pruebas): tamaños por formato, zonas
+  seguras, subtitulado completo, escenas con y sin rótulo, convivencia sin
+  solape y persistencia al guardar y reabrir.
+- `scripts/captions-smoke.mjs` (nuevo): navegador real, las dos interfaces.
+
 ### Añadido — Videos largos por el mismo flujo (2026-09-20)
 
 Un reel de 15 segundos y una clase de 12 minutos usan ahora **la misma pantalla,

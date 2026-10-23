@@ -4,6 +4,7 @@ data/jobs/
 data/studio-imports/
 data/video-edits/
 data/video-generation/
+data/course-production/
 .env
 .env.local
 *.key
@@ -11,7 +12,6 @@ data/video-generation/
 # Node
 node_modules/
 npm-debug.log*
-package-lock.json
 
 # Python
 __pycache__/

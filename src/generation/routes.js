@@ -1,12 +1,14 @@
 import { listProviders, defaultProvider } from '../providers/video-generation/index.js';
 import {
-  createJob, getJob, publicJob, draftJob, planJob, listJobs, resumeJob, regenerateScene,
+  createJob, getJob, publicJob, draftJob, planJob, listJobs, listHomeProjects, resumeJob, regenerateScene,
   FORMATS, STYLES, DURATION_LIMITS, DURATION_OPTIONS, PROMPT_MAX, SCRIPT_MAX_CHARS, MAX_ESCENAS,
 } from './jobs.js';
 import { HTTP_BODY_MAX, SCENE_TEXT_MAX, SCENE_DURATION_LIMITS } from './limits.js';
 import { ETAPAS, ESTADOS } from './states.js';
 import { WPM_POR_DEFECTO, PAUSA_ENTRE_ESCENAS } from './segmenter.js';
 import { normalizeOrchestratorInput, specDesdeContrato, CONTRACT_VERSION } from './orchestrator-contract.js';
+import { captionStyleOptions } from '../core/captions-style.js';
+import { POSICIONES_DESTACADO, ANIMACIONES_DESTACADO, TAMANOS_DESTACADO, PALABRAS_DESTACADO } from '../core/on-screen-text.js';
 
 /**
  * Endpoints de generación de video con IA.
@@ -65,6 +67,10 @@ export async function generationRoute(req, res, url) {
           duration: DURATION_LIMITS, httpBodyMax: HTTP_BODY_MAX,
         },
         narration: { wpm: WPM_POR_DEFECTO, pausaEntreEscenas: PAUSA_ENTRE_ESCENAS },
+        // Subtitulos: presets, tipografias y opciones. La interfaz los pinta,
+        // no los inventa, asi que anadir un preset aqui lo hace aparecer alli.
+        captionStyle: captionStyleOptions(),
+        onScreen: { positions: POSICIONES_DESTACADO, animations: ANIMACIONES_DESTACADO, sizes: TAMANOS_DESTACADO, maxWords: PALABRAS_DESTACADO.max },
         states: ESTADOS, stages: ETAPAS,
         orchestratorContract: CONTRACT_VERSION,
         promptMax: PROMPT_MAX,   // compatibilidad con la interfaz anterior
@@ -80,7 +86,7 @@ export async function generationRoute(req, res, url) {
 
     // Proyectos recientes, para la pantalla de inicio. No borra nada.
     if (req.method === 'GET' && parts[2] === 'projects' && parts.length === 3) {
-      reply(res, 200, { proyectos: listJobs({ limit: Number(url.searchParams.get('limit')) || 40 }) });
+      reply(res, 200, listHomeProjects({ limit: Number(url.searchParams.get('limit')) || 40 }));
       return true;
     }
 

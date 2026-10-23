@@ -47,6 +47,9 @@ export function planScenes(project, { keepExisting = true } = {}) {
 
   const [minSec, maxSec] = template.sceneSeconds;
 
+  // Todas las escenas a la vista: una palabra que sale en todas no distingue a
+  // ninguna, y eso solo se sabe mirando el guion entero.
+  const guion = chunks.map(c => c.trim());
   const scenes = chunks.map((text, i) => {
     const clean = text.trim();
     const prev = previous.get(clean);
@@ -58,7 +61,7 @@ export function planScenes(project, { keepExisting = true } = {}) {
       id: prev?.id,
       text: clean,
       duration: prev?.durationLocked ? prev.duration : Number(duration.toFixed(2)),
-      visualPrompt: prev?.visualPrompt || keywordsFrom(clean),
+      visualPrompt: prev?.visualPrompt || keywordsFrom(clean, 3, { contexto: guion.filter((_, j) => j !== i) }),
       assetPath: prev?.assetPath || null,
       narrationPath: prev?.narrationPath || null,
       kenBurns: prev?.kenBurns || template.kenBurns,

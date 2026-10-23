@@ -1,0 +1,10 @@
+{
+  "id": "lc-chile-courses",
+  "name": "Language Center Chile — Cursos",
+  "colors": { "primary": "#ffffff", "secondary": "#ffffff", "accent": "#003366", "text": "#003366", "captionText": "#ffffff", "captionOutline": "#003366" },
+  "fontFamily": "Arial",
+  "logo": null,
+  "cta": "",
+  "urls": { "web": "https://languagecenterchile.com" },
+  "hashtags": []
+}

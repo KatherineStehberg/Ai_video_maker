@@ -1,9 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PATHS, ensureDir, rel } from '../lib/paths.js';
+import { PATHS, ensureDir, rel, abs } from '../lib/paths.js';
 import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js';
 import { ASPECTS } from '../config.js';
 import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
+import { normalizeLanguage } from './lang.js';
+import { normalizeCaptionStyle } from './captions-style.js';
+import { normalizeOnScreenText } from './on-screen-text.js';
+import { normalizarEfecto, VOLUMEN_POR_DEFECTO } from '../project-editor/audio.js';
+import { normalizarTransicion } from '../project-editor/transitions.js';
 
 export const STATUS = Object.freeze({
   DRAFT: 'draft',
@@ -28,15 +33,34 @@ export function makeScene(partial = {}) {
     visualPrompt: partial.visualPrompt ?? '',
     assetPath: partial.assetPath ?? null,      // imagen o clip de video (relativo al ROOT)
     assetKind: partial.assetKind ?? 'auto',    // auto | image | video | color
+    // De donde salio el visual (pexels, placeholder, manual…). Se guarda porque
+    // es lo que distingue una imagen del tema de un fondo de marca de relleno,
+    // y el editor necesita poder decirlo. Sin esto se perdia en cada recarga.
+    assetProvider: partial.assetProvider ?? null,
+    // Origen y licencia del visual cuando viene de un banco (autor, URL de
+    // atribucion, licencia, fecha de descarga, termino buscado). Lo rellena el
+    // backend a partir de la ficha en disco, nunca el navegador.
+    assetCredit: partial.assetCredit ?? null,
+    // Escena apagada: conserva todo pero no entra en el montaje.
+    excluida: partial.excluida ?? false,
     narrationPath: partial.narrationPath ?? null,
     narrationText: partial.narrationText ?? null,
     narrationKey: partial.narrationKey ?? null,
     durationLocked: partial.durationLocked ?? false,
     provenance: partial.provenance ?? { kind: 'unverified', authorized: false, originalReference: null },
-    transition: TRANSITIONS.includes(partial.transition) ? partial.transition : 'fade',
+    // Transicion de ENTRADA de esta escena: { type, duration, enabled }.
+    // Admite la cadena que se guardaba antes ('fade', 'none'…) y la convierte.
+    transition: normalizarTransicion(partial.transition),
     caption: partial.caption ?? null,          // null => se usa `text`
     kenBurns: partial.kenBurns ?? 'auto',      // auto | in | out | none
-    onScreenTitle: partial.onScreenTitle ?? '',
+    // TEXTO DESTACADO sobre la imagen. Son CINCO campos y no uno porque un
+    // rotulo tiene texto, sitio, aspecto y entrada; ver core/on-screen-text.js.
+    // `normalizeOnScreenText` tambien resuelve la compatibilidad con proyectos
+    // guardados antes de que existiera `showOnScreenText`.
+    ...normalizeOnScreenText(partial),
+    // Marca de edicion manual: si la usuaria escribio el rotulo a mano, las
+    // propuestas automaticas no lo pisan al regenerar.
+    onScreenTextManual: partial.onScreenTextManual ?? false,
     notes: partial.notes ?? '',
   };
 }
@@ -59,10 +83,13 @@ export function makeProject(partial = {}) {
     exportFormats: Array.isArray(partial.exportFormats) && partial.exportFormats.length
       ? partial.exportFormats.filter((a) => ASPECTS[a])
       : [aspectRatio],
-    language: partial.language || 'es',
+    language: normalizeLanguage(partial.language),
     brief: partial.brief || '',
     script: partial.script || '',
     studio: partial.studio ?? null,
+    // Estado del editor visual: revision guardada, revision exportada y
+    // trabajo en curso. Sin esto no sobrevive a recargar. Ver project-editor/.
+    editor: partial.editor ?? null,
     scenes: (partial.scenes || []).map(makeScene),
     voice: {
       provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | none
@@ -70,6 +97,15 @@ export function makeProject(partial = {}) {
       rate: partial.voice?.rate ?? 0,                // -10..10 (SAPI)
       volume: partial.voice?.volume ?? 100,
       enabled: partial.voice?.enabled ?? true,
+      // Voz por idioma para guiones con marcas [en]/[es]. Vacio => se elige
+      // la voz por defecto del idioma entre las instaladas.
+      // `volume` es el volumen de SINTESIS (SAPI) y solo cambia al
+      // regenerar la voz. `gain` es la ganancia de MEZCLA: se aplica al
+      // montar el audio, asi que el control de volumen del editor surte
+      // efecto sin volver a sintetizar nada.
+      gain: partial.voice?.gain ?? 1,
+      en: partial.voice?.en ?? '',
+      es: partial.voice?.es ?? '',
     },
     music: {
       path: partial.music?.path ?? null,
@@ -77,14 +113,34 @@ export function makeProject(partial = {}) {
       fadeIn: partial.music?.fadeIn ?? 1.5,
       fadeOut: partial.music?.fadeOut ?? 2,
       enabled: partial.music?.enabled ?? false,
+      // La musica se repite hasta cubrir el video salvo que se desactive.
+      loop: partial.music?.loop !== false,
+      // Licencia, fuente y atribucion de la pista elegida. Ver media-library.js.
+      credit: partial.music?.credit ?? null,
+    },
+    // EFECTOS DE SONIDO elegidos por la usuaria, anclados a una escena y a un
+    // segundo dentro de ella. Nunca se anaden solos. Ver project-editor/audio.js.
+    sfx: (Array.isArray(partial.sfx) ? partial.sfx : []).map(normalizarEfecto).filter(e => e.path),
+    // Audio del video que subio la usuaria, cuando lo hay.
+    originalAudio: {
+      path: partial.originalAudio?.path ?? null,
+      enabled: partial.originalAudio?.enabled === true && Boolean(partial.originalAudio?.path),
+      volume: partial.originalAudio?.volume ?? VOLUMEN_POR_DEFECTO.original,
+      start: partial.originalAudio?.start ?? 0,
     },
     captions: {
       enabled: partial.captions?.enabled ?? true,
       burnIn: partial.captions?.burnIn ?? true,      // quemados en el video
       fontSize: partial.captions?.fontSize ?? null,  // null => calculado por aspecto
-      maxCharsPerLine: partial.captions?.maxCharsPerLine ?? 38,
+      // null => lo calcula la metrica del formato. Un 38 fijo era arbitrario y
+      // ademas anulaba el calculo: con letra mas grande caben menos caracteres,
+      // asi que el ancho de linea tiene que seguir al tamano de fuente.
+      maxCharsPerLine: partial.captions?.maxCharsPerLine ?? null,
       provider: partial.captions?.provider ?? 'auto',
       file: partial.captions?.file ?? null,
+      // Estilo global de los subtitulos: preset, tipografia, color, fondo,
+      // opacidad, contorno, posicion y alineacion. Ver core/captions-style.js.
+      style: normalizeCaptionStyle(partial.captions?.style || {}),
     },
     assets: {
       intro: partial.assets?.intro ?? null,
@@ -145,8 +201,20 @@ export function validateProject(p) {
   return { ok: errors.length === 0, errors, warnings };
 }
 
+/**
+ * Escenas que REALMENTE entran en el montaje.
+ *
+ * Una escena excluida se conserva entera en el proyecto (su texto, su voz y
+ * su imagen siguen ahi) pero no se renderiza, no se subtitula y no suena. El
+ * montaje, los subtitulos y la pista de voz tienen que mirar TODOS por aqui, o
+ * se desincronizan entre si.
+ */
+export function activeScenes(p) {
+  return (p?.scenes || []).filter((s) => !s.excluida);
+}
+
 export function totalDuration(p) {
-  return (p.scenes || []).reduce((a, s) => a + (Number(s.duration) || 0), 0);
+  return activeScenes(p).reduce((a, s) => a + (Number(s.duration) || 0), 0);
 }
 
 export function projectFile(id) {
@@ -196,6 +264,23 @@ export function loadProject(id) {
   return makeProject({ ...raw, createdAt: raw.createdAt, updatedAt: raw.updatedAt });
 }
 
+const IMAGEN = /\.(jpe?g|png|webp|gif|bmp)$/i;
+
+/**
+ * Imagen con la que se reconoce un proyecto en una lista.
+ *
+ * Se elige la primera escena incluida que tenga una imagen EN DISCO: una ruta
+ * guardada cuyo archivo ya no esta daria un recuadro roto, que identifica aun
+ * peor que no poner nada.
+ */
+function miniaturaDe(p) {
+  for (const s of p.scenes || []) {
+    if (s.excluida || !s.assetPath || !IMAGEN.test(s.assetPath)) continue;
+    try { if (fs.existsSync(abs(s.assetPath))) return s.assetPath; } catch { /* sigue buscando */ }
+  }
+  return null;
+}
+
 export function listProjects() {
   ensureDir(PATHS.projects);
   return fs.readdirSync(PATHS.projects)
@@ -214,6 +299,10 @@ export function listProjects() {
           duration: Math.round(totalDuration(p)),
           outputs: p.outputs || {},
           updatedAt: p.updatedAt,
+          // MINIATURA: la imagen de la primera escena que tenga una. Es lo
+          // unico que permite reconocer un proyecto de un vistazo cuando hay
+          // doscientos y la mitad se llaman parecido.
+          thumbnail: miniaturaDe(p),
         };
       } catch {
         return null;

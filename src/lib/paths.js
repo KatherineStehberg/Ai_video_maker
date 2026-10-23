@@ -4,22 +4,43 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+/**
+ * Carpetas que se pueden mover con una variable de entorno.
+ *
+ * Existen por las PRUEBAS: crean proyectos y renders de verdad, y si escriben
+ * en data/projects se mezclan con el trabajo real y lo entierran en la lista
+ * del editor, que ordena por fecha. En uso normal no se define ninguna y todo
+ * queda donde siempre.
+ */
+const fuera = (variable, pordefecto) => (
+  process.env[variable] ? path.resolve(process.env[variable]) : pordefecto
+);
+
+const PROYECTOS = fuera('AIVM_PROJECTS_DIR', path.join(ROOT, 'data', 'projects'));
+// Los trabajos de generacion son lo que sale en el inicio: si las pruebas los
+// escriben en data/, entierran los videos de verdad igual que los proyectos.
+const TRABAJOS = fuera('AIVM_JOBS_DIR', path.join(ROOT, 'data', 'video-generation'));
+const SALIDA = fuera('AIVM_OUTPUT_DIR', path.join(ROOT, 'output'));
+
 export const PATHS = {
   root: ROOT,
   src: path.join(ROOT, 'src'),
   ui: path.join(ROOT, 'src', 'ui'),
   data: path.join(ROOT, 'data'),
   brands: path.join(ROOT, 'data', 'brands'),
-  projects: path.join(ROOT, 'data', 'projects'),
+  projects: PROYECTOS,
+  trabajos: TRABAJOS,
   assets: path.join(ROOT, 'data', 'assets'),
   assetsImages: path.join(ROOT, 'data', 'assets', 'images'),
   assetsMusic: path.join(ROOT, 'data', 'assets', 'music'),
+  // Efectos de sonido de la biblioteca local, cada uno con su ficha de licencia.
+  assetsSfx: path.join(ROOT, 'data', 'assets', 'sfx'),
   assetsFonts: path.join(ROOT, 'data', 'assets', 'fonts'),
   assetsBrands: path.join(ROOT, 'data', 'assets', 'brands'),
   models: path.join(ROOT, 'models'),
-  output: path.join(ROOT, 'output'),
-  drafts: path.join(ROOT, 'output', 'drafts'),
-  final: path.join(ROOT, 'output', 'final'),
+  output: SALIDA,
+  drafts: path.join(SALIDA, 'drafts'),
+  final: path.join(SALIDA, 'final'),
 };
 
 export function ensureDirs() {

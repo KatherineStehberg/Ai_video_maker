@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Revisar video · Language Center Chile</title>
+<style>body{font:16px Arial,sans-serif;background:white;color:#003366;max-width:1100px;margin:24px auto;padding:0 20px}video{display:block;width:100%;background:#003366;margin:20px 0}button{font:inherit;background:#003366;color:white;border:0;border-radius:6px;padding:12px 20px;cursor:pointer}button:disabled{opacity:.5}a{color:#003366}.controls{display:flex;gap:20px;align-items:center;flex-wrap:wrap}#status{min-height:24px}</style></head>
+<body>
+<a href="/course-production.html">← Videos de cursos</a>
+<h1 id="title">Revisar video</h1>
+<video id="video" controls playsinline preload="metadata"></video>
+<div class="controls"><button id="sound" disabled>Reproducir con sonido / Play with sound</button><span id="volume" aria-live="polite"></span><a id="edit" hidden>Revisar edición</a><a id="download" hidden download>Descargar MP4</a></div>
+<p id="status" role="status">Cargando video…</p>
+<script type="module">
+const video=document.querySelector('#video');
+const status=document.querySelector('#status');
+const button=document.querySelector('#sound');
+function volume(){document.querySelector('#volume').textContent=video.muted||video.volume===0?'Sonido silenciado / Muted':`Sonido activado / Sound on · ${Math.round(video.volume*100)} %`;}
+video.addEventListener('volumechange',volume);
+video.addEventListener('error',()=>{status.textContent='No se pudo reproducir el video. '+(video.error?.message||'');});
+button.addEventListener('click',async()=>{
+ video.muted=false;video.volume=1;volume();
+ try{await video.play();status.textContent='Reproduciendo con sonido. Si no lo oyes, comprueba que esta pestaña y la salida de audio de Windows no estén silenciadas.';}
+ catch(error){status.textContent='No se pudo iniciar la reproducción: '+error.message;}
+});
+try{
+ const response=await fetch('/api/course-production');if(!response.ok)throw new Error('No se pudo consultar la cola');
+ const state=await response.json();const id=new URLSearchParams(location.search).get('id');
+ const item=state.entries.find(e=>e.id===id);
+ if(item?.status!=='review_ready'||!item.videoUrl)throw new Error('Este video todavía no está disponible para revisión.');
+ document.querySelector('#title').textContent=item.title;video.src=item.videoUrl;
+ video.muted=false;video.volume=1;volume();button.disabled=false;
+ for(const [selector,url] of [['#edit',item.reviewUrl],['#download',item.videoUrl]]){const link=document.querySelector(selector);link.href=url;link.hidden=false;}
+ status.textContent='Pulsa «Reproducir con sonido» para escuchar la narración.';
+}catch(error){status.textContent=error.message;}
+</script></body></html>

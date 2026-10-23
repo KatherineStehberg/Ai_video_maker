@@ -5,8 +5,8 @@ import '../../config.js';
 /**
  * Registro de proveedores de generación de video, desacoplado del resto.
  *
- * Hoy SÓLO el proveedor `mock` funciona: construye un video de prueba con
- * FFmpeg en local. Los demás son ranuras declaradas pero NO implementadas; al
+ * `pipeline` monta el guion con visuales, voz y subtítulos mediante FFmpeg;
+ * `mock` construye un video de prueba. `api` y `local` son ranuras NO implementadas; al
  * invocarlas fallan con un mensaje que dice exactamente qué falta. No se simula
  * ninguna conexión con un servicio real.
  *

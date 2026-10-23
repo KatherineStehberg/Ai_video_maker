@@ -78,31 +78,39 @@ export async function listVoices() {
   }
 }
 
+/** SAPI cambia de voz dentro de una misma locucion mediante SSML. */
+export const supportsSsml = true;
+
 /**
  * Sintetiza `text` a un WAV en `outFile`.
  * SAPI escribe WAV PCM; FFmpeg lo normaliza despues.
+ *
+ * Con la opcion `ssml` el contenido se narra con SpeakSsml en lugar de Speak:
+ * es lo que permite que un mismo bloque alterne voces por idioma. `Rate` y
+ * `Volume` son propiedades del sintetizador y siguen aplicando en ambos casos.
  */
-export async function synthesize(text, outFile, { voice = '', rate = 0, volume = 100 } = {}) {
+export async function synthesize(text, outFile, { voice = '', rate = 0, volume = 100, ssml = null } = {}) {
   if (!isWin) throw new Error('SAPI solo esta disponible en Windows');
-  const clean = String(text || '').trim();
-  if (!clean) throw new Error('Texto vacio para TTS');
+  const payload = String(ssml || text || '').trim();
+  if (!payload) throw new Error('Texto vacio para TTS');
 
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
 
   // El texto va por archivo temporal: evita limites de longitud y problemas de escape.
   const tmpTxt = path.join(os.tmpdir(), `avm_tts_${newId('t')}.txt`);
-  fs.writeFileSync(tmpTxt, clean, 'utf8');
+  fs.writeFileSync(tmpTxt, payload, 'utf8');
 
   const script = [
     'Add-Type -AssemblyName System.Speech',
     '$ErrorActionPreference = "Stop"',
     '$s = New-Object System.Speech.Synthesis.SpeechSynthesizer',
-    voice ? `$s.SelectVoice(${psLiteral(voice)})` : '',
+    // Con SSML la voz de cada tramo la fija el propio documento.
+    voice && !ssml ? `$s.SelectVoice(${psLiteral(voice)})` : '',
     `$s.Rate = ${Math.max(-10, Math.min(10, Math.round(Number(rate) || 0)))}`,
     `$s.Volume = ${Math.max(0, Math.min(100, Math.round(Number(volume) || 100)))}`,
     `$txt = [System.IO.File]::ReadAllText(${psLiteral(tmpTxt)}, [System.Text.Encoding]::UTF8)`,
     `$s.SetOutputToWaveFile(${psLiteral(outFile)})`,
-    '$s.Speak($txt)',
+    ssml ? '$s.SpeakSsml($txt)' : '$s.Speak($txt)',
     '$s.SetOutputToNull()',
     '$s.Dispose()',
   ].filter(Boolean).join('; ');

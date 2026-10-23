@@ -3,6 +3,7 @@ import { resolveProvider } from '../providers/llm/index.js';
 import { keywordsFrom, parseScriptOutput } from '../core/script-generator.js';
 import { estimateDuration, clamp } from '../lib/util.js';
 import { segmentarGuion, WPM_POR_DEFECTO, SEGUNDOS_POR_ESCENA } from './segmenter.js';
+import { proponerTextosDestacados } from '../core/on-screen-text.js';
 
 /**
  * Ventana de segundos por escena que toca usar con este template.
@@ -249,14 +250,16 @@ export function draftLocal(spec, template) {
     ? naturales.map(v => Math.max(1.2, v))          // el guion manda
     : repartirDuracion(naturales, objetivo, Math.min(minSec, 1.2), maxSec);
 
-  const escenas = elegidas.map((e, i) => ({
+  // Igual que en el camino LLM: el rotulo se propone solo donde aporta
+  // (gancho, secciones, cifras y cierre), no en todas las escenas.
+  const escenas = proponerTextosDestacados(elegidas.map((e, i) => ({
     role: e.role,
     text: recortarPalabras(e.text, palabrasQueCaben(maxSec, wpm)),
     onScreenTitle: e.onScreenTitle,
     visualPrompt: e.visualPrompt,
     duration: Number(duraciones[i].toFixed(2)),
     ...(e.beneficio ? { beneficio: e.beneficio } : {}),
-  }));
+  })), { tema, titulo: spec.title || '' });
 
   return { escenas, tema, source: 'plantilla-local', descartadas,
     presupuestoPalabras: automatico ? null : presupuesto, durationMode: automatico ? 'auto' : 'fija' };
@@ -341,13 +344,16 @@ export async function draftScript(spec, { templateId, provider = 'auto' } = {}) 
     const tema = extraerTema(spec.prompt);
     const naturales = lineas.map(t => Math.max(0.8, estimateDuration(t, wpmEfectivo(template))));
     const factor = automatico ? 1 : objetivo / naturales.reduce((a, b) => a + b, 0);
-    const escenas = lineas.map((text, i) => ({
+    // El rotulo se PROPONE, no se pone en todas. Titular cada escena duplica
+    // el guion entero sobre las imagenes, que es justo lo que los subtitulos
+    // ya hacen bien.
+    const escenas = proponerTextosDestacados(lineas.map((text, i) => ({
       role: template.beats[i]?.role || 'point',
       text,
       onScreenTitle: titular(text),
       visualPrompt: keywordsFrom(`${tema} ${text}`),
       duration: Number(clamp(naturales[i] * factor, Math.min(minSec, 1.2), maxSec).toFixed(2)),
-    }));
+    })), { tema, titulo: spec.title || '' });
     return { escenas, tema, source: 'llm', provider: llm.id, templateId: template.id };
   } catch (e) {
     const local = draftLocal(spec, template);

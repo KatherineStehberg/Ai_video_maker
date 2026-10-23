@@ -22,6 +22,7 @@ import { planificarDuracion, WPM_POR_DEFECTO, formatearDuracion } from './segmen
 import { normalizeLogo, normalizeVoice, normalizeMusic, normalizeSubtitles, normalizeCourse, normalizeSourceReference } from './orchestrator-contract.js';
 import { instantanea, ESTADO_LISTO, ESTADO_ERROR_RECUPERABLE, ESTADO_ERROR, ESTADO_EN_COLA } from './states.js';
 import { loadProject, saveProject } from '../core/project.js';
+import { listProjects } from '../core/project.js';
 
 /**
  * Trabajo de generación: prompt -> video -> análisis -> propuesta de edición.
@@ -58,7 +59,7 @@ export const DURATION_OPTIONS = [
 
 export { PROMPT_MAX, SCRIPT_MAX_CHARS, DURATION_LIMITS, MAX_ESCENAS };
 
-const root = path.join(PATHS.data, 'video-generation');
+const root = PATHS.trabajos;
 const jobs = new Map();
 let running = false;
 
@@ -155,6 +156,13 @@ export function normalizeSpec(input = {}) {
         role: String(e?.role ?? 'point').slice(0, 20),
         text,
         onScreenTitle: String(e?.onScreenTitle ?? '').trim().slice(0, 60),
+        // El rotulo viaja completo desde el borrador revisado: si se perdiera
+        // aqui, aceptar o quitar una propuesta en la interfaz no serviria de nada.
+        showOnScreenText: e?.showOnScreenText === undefined ? undefined : Boolean(e.showOnScreenText),
+        onScreenPosition: e?.onScreenPosition ?? undefined,
+        onScreenStyle: e?.onScreenStyle ?? undefined,
+        onScreenAnimation: e?.onScreenAnimation ?? undefined,
+        onScreenTextManual: Boolean(e?.onScreenTextManual),
         visualPrompt: String(e?.visualPrompt ?? '').trim().slice(0, 200),
         duration: Number(dur.toFixed(2)),
         seccion: e?.seccion ? String(e.seccion).slice(0, 120) : null,
@@ -379,7 +387,15 @@ export function regenerateScene(id, indice, parche = {}, { providerName = null }
     if (text.length > SCENE_TEXT_MAX) throw new Error(`La narración de la escena supera ${SCENE_TEXT_MAX} caracteres.`);
     escena.text = text;
   }
-  if (parche.onScreenTitle !== undefined) escena.onScreenTitle = String(parche.onScreenTitle).slice(0, 60);
+  if (parche.onScreenTitle !== undefined) {
+    escena.onScreenTitle = String(parche.onScreenTitle).slice(0, 60);
+    // Editar el rotulo a mano lo blinda frente a propuestas automaticas.
+    escena.onScreenTextManual = true;
+  }
+  if (parche.showOnScreenText !== undefined) escena.showOnScreenText = Boolean(parche.showOnScreenText);
+  if (parche.onScreenPosition !== undefined) escena.onScreenPosition = parche.onScreenPosition;
+  if (parche.onScreenAnimation !== undefined) escena.onScreenAnimation = parche.onScreenAnimation;
+  if (parche.onScreenStyle !== undefined) escena.onScreenStyle = parche.onScreenStyle;
   if (parche.visualPrompt !== undefined) escena.visualPrompt = String(parche.visualPrompt).slice(0, 200);
   if (parche.duration !== undefined) {
     const d = Number(parche.duration);
@@ -559,6 +575,61 @@ export function listJobs({ limit = 40 } = {}) {
   return proyectos
     .sort((a, b) => String(b.creado).localeCompare(String(a.creado)))
     .slice(0, limit);
+}
+
+/**
+ * LO QUE SE VE EN EL INICIO: los proyectos guardados, no los intentos.
+ *
+ * Antes se listaban los TRABAJOS de generacion. Eso enseñaba cada intento,
+ * incluidos los que no llegaron a producir nada, y dejaba las tarjetas sin
+ * nombre util ni forma de reconocerlas. Con doscientos, encontrar el video de
+ * ayer era imposible.
+ *
+ * Ahora manda el proyecto guardado —que siempre tiene titulo, escenas y a
+ * menudo una imagen— y el trabajo solo aporta su estado y el analisis asociado.
+ * Los intentos que no dejaron proyecto no se listan, pero se CUENTAN: no se
+ * esconde nada en silencio.
+ */
+export function listHomeProjects({ limit = 40 } = {}) {
+  const trabajos = listJobs({ limit: 2000 });
+  const porProyecto = new Map();
+  for (const j of trabajos) {
+    if (j.projectId && !porProyecto.has(j.projectId)) porProyecto.set(j.projectId, j);
+  }
+
+  const proyectos = listProjects().map((p) => {
+    const j = porProyecto.get(p.id) || null;
+    const exportados = Object.values(p.outputs || {}).filter(Boolean);
+    return {
+      // `id` es el del trabajo cuando existe: es lo que usa «Continuar».
+      id: j?.id || p.id,
+      projectId: p.id,
+      titulo: p.title || j?.titulo || 'Proyecto sin título',
+      // Miniatura servida por /file, que ya valida que la ruta este dentro del
+      // proyecto. Sin imagen se manda null y la tarjeta enseña el titulo.
+      miniatura: p.thumbnail ? `/file?path=${encodeURIComponent(p.thumbnail)}` : null,
+      // Un MP4 en disco manda sobre cualquier estado guardado: es el hecho.
+      estado: exportados.length ? 'exportado' : (j?.estado || p.status || 'borrador'),
+      exportado: exportados.length > 0,
+      escenas: p.scenes,
+      duracionReal: p.duration,
+      formato: p.aspectRatio,
+      creado: p.updatedAt,
+      progreso: j?.progreso ?? null,
+      reanudable: Boolean(j?.reanudable),
+      analysisId: j?.analysisId ?? null,
+      editId: j?.editId ?? null,
+      proveedor: j?.proveedor ?? null,
+      error: j?.error ?? null,
+    };
+  });
+
+  return {
+    proyectos: proyectos.slice(0, limit),
+    total: proyectos.length,
+    // Intentos que no dejaron ningun proyecto que abrir.
+    sinProyecto: trabajos.filter(j => !j.projectId).length,
+  };
 }
 
 /** Vista pública: idéntica al job, pero sin rutas absolutas del servidor. */
