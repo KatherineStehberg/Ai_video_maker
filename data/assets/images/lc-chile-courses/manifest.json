@@ -1,0 +1,131 @@
+{
+  "brandId": "lc-chile-courses",
+  "assets": [
+    {
+      "courseId": 56397,
+      "courseTitle": "English for Remote Work",
+      "courseSlug": "remote-work",
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "708b6da3550004f5e3933add9c2fdbfccf18ec428bf929167c6e3656bdf7cbd7",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    },
+    {
+      "courseId": 56399,
+      "courseTitle": "A1–A2 Business & Socializing",
+      "courseSlug": "business-socializing",
+      "assetPath": "data/assets/images/lc-chile-courses/business-socializing-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "79555a9185cf4ca5f53eec6e380d268b242a8a6342837420f0e1540c7e5fe692",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    },
+    {
+      "courseId": 56401,
+      "courseTitle": "Corporate English + AI",
+      "courseSlug": "corporate-english-ai",
+      "assetPath": "data/assets/images/lc-chile-courses/corporate-english-ai-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "f94a9537d21f7a43e3217b43f1e85c76773947535565b91fea36d1b16cd5330b",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    },
+    {
+      "courseId": 54346,
+      "courseTitle": "Executive Communication",
+      "courseSlug": "executive-communication",
+      "assetPath": "data/assets/images/lc-chile-courses/executive-communication-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "13f02b36df2ebae1d3071ca9a3a1460ede194ce54708851c44955d5c777b3d70",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    },
+    {
+      "courseId": 54347,
+      "courseTitle": "IELTS + English for International Opportunities",
+      "courseSlug": "ielts-international",
+      "assetPath": "data/assets/images/lc-chile-courses/ielts-international-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "62e3720828d04cb2325a94a8e3dd513b71a658d8ea910cc2f3e536b36346bfc7",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    },
+    {
+      "courseId": 54796,
+      "courseTitle": "Business English B1",
+      "courseSlug": "business-english-b1",
+      "assetPath": "data/assets/images/lc-chile-courses/business-english-b1-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "704e3578bf3f2b19697e938e0046bab5ca6a48baf9c2752ee98e30cb7ea1d92e",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    },
+    {
+      "courseId": 54826,
+      "courseTitle": "Business English B2",
+      "courseSlug": "business-english-b2",
+      "assetPath": "data/assets/images/lc-chile-courses/business-english-b2-cover.png",
+      "assetKind": "image",
+      "role": "course-cover",
+      "width": 1672,
+      "height": 941,
+      "sha256": "3205c4b96fc9394571cccba0dcdd03ed22626a685f7aa499b2010e0d0bb932ec",
+      "source": "AI-generated for Language Center Chile",
+      "recommendedUse": [
+        "opening slide",
+        "chapter introduction",
+        "closing slide"
+      ],
+      "layout": "subjects on right; space on left for titles"
+    }
+  ]
+}

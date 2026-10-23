@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "updatedAt": "2026-10-09",
+  "brandId": "lc-chile-courses",
+  "courseId": 56397,
+  "startDate": "2026-12-09",
+  "assets": [
+    {
+      "moduleId": "RPM-2026-001",
+      "moduleTitle": "Asynchronous Communication & Team Chat Etiquette",
+      "courseId": 56397,
+      "wordpressLessonId": 56404,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/async-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal",
+      "width": 1672,
+      "height": 941,
+      "sha256": "bf0b0c93e32be381e97e828f2eab5f3c9f711b74c7d5269a40e993ac09d8d26d",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    },
+    {
+      "moduleId": "RPM-2026-002",
+      "moduleTitle": "Remote Work Foundations",
+      "courseId": 56397,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/foundations-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal",
+      "width": 1672,
+      "height": 941,
+      "sha256": "f188ac1bdf123106254067598532f41586c3c2ea42464033bca7cb2442891a2a",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    },
+    {
+      "moduleId": "RPM-2026-003",
+      "moduleTitle": "AI & Productivity",
+      "courseId": 56397,
+      "wordpressLessonId": 56426,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/ai-productivity-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal",
+      "width": 1672,
+      "height": 941,
+      "sha256": "d4d6d88094b2c074181aab00d9dfbeafc8df6c86238927848a6049fbb6b9a45f",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    },
+    {
+      "moduleId": "RPM-2026-004",
+      "moduleTitle": "Professional Communication",
+      "courseId": 56397,
+      "wordpressLessonId": 56428,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/professional-communication-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal",
+      "width": 1672,
+      "height": 941,
+      "sha256": "b80959375563c2aa0feb7c58483b86d53b2ae9a6a36ee430767f4fe394df9f6c",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    },
+    {
+      "moduleId": "RPM-2026-005",
+      "moduleTitle": "Remote Collaboration",
+      "courseId": 56397,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/collaboration-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal",
+      "width": 1672,
+      "height": 941,
+      "sha256": "2c2458cf295e3dcc4c76ec9d00ad3d370aee8fa86b3ff7e46cefbfc8c4c05b9b",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    },
+    {
+      "moduleId": "RPM-2026-008",
+      "moduleTitle": "The International Resume & Action-Oriented CV",
+      "courseId": 56397,
+      "wordpressLessonId": 56432,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/international-resume-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal",
+      "width": 1672,
+      "height": 941,
+      "sha256": "1aac1cc76343855e9c31d200d490dfa95443e2937a73fb12a0f2fbda6310694f",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    },
+    {
+      "moduleId": "RPM-2026-007",
+      "moduleTitle": "Final Project Orientation",
+      "courseId": 56397,
+      "wordpressLessonId": 56434,
+      "assetPath": "data/assets/images/lc-chile-courses/remote-work/collaboration-internal.jpg",
+      "assetKind": "image",
+      "role": "lesson-internal-reused",
+      "width": 1672,
+      "height": 941,
+      "sha256": "2c2458cf295e3dcc4c76ec9d00ad3d370aee8fa86b3ff7e46cefbfc8c4c05b9b",
+      "source": "AI-generated for Language Center Chile; also assigned in WordPress"
+    }
+  ]
+}

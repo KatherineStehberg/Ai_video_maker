@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { PATHS, ensureDir, rel } from '../lib/paths.js';
 import { ffmpegRun } from '../lib/ffmpeg.js';
 
@@ -12,8 +13,28 @@ const wrap = (text, limit) => {
   return lines.join('\n');
 };
 
+// Only the opening scene uses the lesson illustration. Other scenes retain
+// their worked examples; existing projects keep their manually chosen assets.
+export function resolveCourseIllustration({ project, scene }) {
+  if (project?.brand !== 'lc-chile-courses' || project.scenes?.[0]?.id !== scene?.id) return null;
+  const file = path.join(PATHS.assetsImages, 'lc-chile-courses/remote-work/manifest.json');
+  if (!fs.existsSync(file)) return null;
+  const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const asset = manifest.assets.find(a => a.moduleTitle === project.title);
+  if (!asset) return null;
+  const absolute = path.resolve(PATHS.root, asset.assetPath);
+  const relative = path.relative(PATHS.assetsImages, absolute);
+  if (relative.startsWith('..') || path.isAbsolute(relative) || !fs.existsSync(absolute)) return null;
+  const hash = createHash('sha256').update(fs.readFileSync(absolute)).digest('hex');
+  if (hash !== asset.sha256) throw new Error(`Imagen del curso modificada: ${asset.moduleId}`);
+  return { path: asset.assetPath, provider: 'course-lesson-illustration',
+    credit: { fuente: asset.source, licencia: 'Project-owned', autor: 'Language Center Chile' } };
+}
+
 /** Original offline teaching illustrations. Narration remains the full source. */
 export async function provideCourseVisual({ project, scene, width, height }) {
+  const illustration = resolveCourseIllustration({ project, scene });
+  if (illustration) return illustration;
   const dir = ensureDir(path.join(PATHS.assetsImages, '_courses', project.id));
   const output = path.join(dir, `${scene.id}.png`);
   const filters = [];
