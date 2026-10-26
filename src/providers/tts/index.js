@@ -31,7 +31,7 @@ export function getProvider(name) {
 export async function resolveProvider(preferred = 'auto') {
   const order = preferred && preferred !== 'auto'
     ? [preferred]
-    : [...new Set([CONFIG.tts.provider, 'edge', 'elevenlabs', 'piper', 'sapi'].filter(n => n !== 'none')), 'none'];
+    : [...new Set([CONFIG.tts.provider, 'edge', 'piper', 'sapi'].filter(n => n !== 'none' && n !== 'elevenlabs')), 'none'];
 
   for (const name of order) {
     const p = REGISTRY[name];
@@ -44,6 +44,7 @@ export async function resolveProvider(preferred = 'auto') {
       log.warn(`Provider ${name} no disponible:`, e.message);
     }
   }
+  if (preferred === 'elevenlabs') throw new Error('ElevenLabs no está configurado: agrega ELEVENLABS_API_KEY en el backend.');
   return none;
 }
 

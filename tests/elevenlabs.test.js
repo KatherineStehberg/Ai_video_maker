@@ -69,6 +69,7 @@ async function mockFetch(input, init = {}) {
       alignment: {
         characters: Array.from(text),
         character_start_times_seconds: Array.from(text, (_, index) => index * 0.025),
+        character_end_times_seconds: Array.from(text, (_, index) => (index + 1) * 0.025),
       },
     });
   }
@@ -104,12 +105,13 @@ test('character alignment becomes word marks and rejects incompatible text', () 
   const marks = characterAlignmentToWordMarks(text, {
     characters: Array.from(text),
     character_start_times_seconds: Array.from(text, (_, index) => index * 0.1),
+    character_end_times_seconds: Array.from(text, (_, index) => (index + 1) * 0.1),
   });
   assert.deepEqual(marks.map(({ offset, length }) => [offset, length]), [[0, 5], [6, 6]]);
   assert.throws(() => characterAlignmentToWordMarks(text, {
     characters: ['G', 'o'],
     character_start_times_seconds: [0, 0.1],
-  }), /no coincide/);
+  }), /alineaci/);
 });
 
 test('ElevenLabs audio and word timings are cached and reused for an unchanged scene', async () => {

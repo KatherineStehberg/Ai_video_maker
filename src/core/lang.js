@@ -148,7 +148,7 @@ export function resolveVoices(project, installed = []) {
 
   const requested = String(project?.voice?.name || '').trim();
   const requestedEntry = installed.find(v => v.name === requested);
-  const requestedLang = requestedEntry ? voiceLanguage(requestedEntry) : '';
+  const requestedLang = project?.voice?.provider === 'elevenlabs' ? '' : requestedEntry ? voiceLanguage(requestedEntry) : '';
 
   // La voz principal debe hablar el idioma base. Si no, se sustituye y se avisa.
   let basePreferred = requested;
@@ -176,7 +176,7 @@ export function resolveVoices(project, installed = []) {
     en: pickVoice('en', installed, project?.voice?.en || (baseLang === 'en' ? basePreferred : '')),
   };
 
-  const base = voices[baseLang] || basePreferred || requested;
+  const base = project?.voice?.provider === 'elevenlabs' && requested ? requested : voices[baseLang] || basePreferred || requested;
   return { language, baseLang, voices, base, warnings };
 }
 

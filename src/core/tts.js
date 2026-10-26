@@ -179,7 +179,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     try {
       const synthesize = requiresTimings && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
       const marks = await synthesize(plan.plain, rawFile, {
-        voice: plan.base || project.voice?.name || '',
+        voice: (engine.id === 'elevenlabs' ? project.voice?.name : plan.base) || project.voice?.name || '',
         rate: project.voice?.rate ?? 0,
         volume: project.voice?.volume ?? 100,
         model: project.voice?.model || '',

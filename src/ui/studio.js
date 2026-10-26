@@ -21,11 +21,11 @@ async function init(){config=await api('config');for(const id of ['brand','edit-
   const byLang=code=>config.voices.filter(v=>String(v.language || '').slice(0,2).toLowerCase()===code);
   for(const [id,code] of [['voice-en','en'],['voice-es','es']]){
     const voces=byLang(code);
-    listOptions($(id),voces.length?voces.map(v=>[v.name,v.name+' · '+v.language]):[['','(ninguna voz '+code+' instalada)']]);
+    listOptions($(id),voces.length?voces.map(v=>[v.name,(v.displayName || v.name)+' · '+v.language]):[['','(ninguna voz '+code+' instalada)']]);
     const porDefecto=config.defaultVoices?.[code];
     if(porDefecto && voces.some(v=>v.name===porDefecto))$(id).value=porDefecto;
   }
-  $('voice-note').textContent=config.voices.length?'La voz se genera en el backend. Edge TTS requiere internet y envía el texto al servicio; El idioma del proyecto decide la voz por defecto; las marcas [en]/[es] cambian de voz dentro de una escena.':'No hay voz disponible. Configura SAPI/Piper o instala Python y edge-tts; elegir sin narración produce un video silencioso o sólo con música.';
+  $('voice-note').textContent=config.voices.length?'La voz se genera en el backend. ElevenLabs consume créditos. Edge TTS requiere internet y envía el texto al servicio; El idioma del proyecto decide la voz por defecto; las marcas [en]/[es] cambian de voz dentro de una escena.':'No hay voz disponible. Configura SAPI/Piper o instala Python y edge-tts; elegir sin narración produce un video silencioso o sólo con música.';
   montarSubs(config.captionStyle);
   $('projects').replaceChildren(...config.projects.map(p=>{
     const fila=document.createElement('div');fila.className='proyecto-fila';

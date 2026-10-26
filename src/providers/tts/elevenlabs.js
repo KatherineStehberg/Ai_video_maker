@@ -1,10 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { CONFIG } from '../../config.js';
-import { ffmpegRun } from '../../lib/ffmpeg.js';
+import { ffmpegRun, probeDuration } from '../../lib/ffmpeg.js';
 
+import { workDir } from '../../lib/paths.js';
+
+const pending = new Map();
 export const id = 'elevenlabs';
 export const label = 'ElevenLabs · voces naturales en línea';
 export const supportsTimings = true;
@@ -133,45 +136,27 @@ export async function listModels() {
 }
 
 function alignmentMarks(text, alignment) {
-  const characters = alignment?.characters;
+  const chars = alignment?.characters;
   const starts = alignment?.character_start_times_seconds;
-  if (!Array.isArray(characters) || !Array.isArray(starts) || characters.length !== starts.length) {
-    throw new Error('ElevenLabs no devolvió alineación compatible con el texto. No se usarán marcas de voz anteriores.');
-  }
-  const characterTimes = new Map();
-  let cursor = 0;
-  for (let i = 0; i < characters.length; i++) {
-    const character = String(characters[i]);
-    const time = starts[i];
-    if (typeof time !== 'number' || !Number.isFinite(time) || time < 0) {
-      throw new Error('ElevenLabs devolvió un timestamp de alineación inválido.');
-    }
-    const index = text.indexOf(character, cursor);
-    if (index < 0) {
-      if (/[a-z0-9]/i.test(character)) throw new Error('La alineación de ElevenLabs no coincide con el texto de la escena.');
-      continue;
-    }
-    characterTimes.set(index, time);
-    cursor = index + character.length;
-  }
+  const ends = alignment?.character_end_times_seconds;
+  if (!Array.isArray(chars) || !Array.isArray(starts) || !Array.isArray(ends) || chars.length !== starts.length || chars.length !== ends.length || chars.join('') !== text)
+    throw new Error('ElevenLabs no devolvió alineación del guion original. No se estimarán subtítulos.');
   const marks = [];
-  for (const match of text.matchAll(/\S+/gu)) {
-    const offset = match.index;
-    const length = match[0].length;
-    let time = characterTimes.get(offset);
-    if (!Number.isFinite(time)) {
-      for (let index = offset; index < offset + length && !Number.isFinite(time); index++) {
-        time = characterTimes.get(index);
-      }
-    }
-    if (!Number.isFinite(time)) throw new Error('Falta el timestamp de una palabra de la narración.');
-    marks.push({ time, offset, length });
+  let offset = 0;
+  for (let i = 0; i < chars.length; i++) {
+    if (!Number.isFinite(starts[i]) || !Number.isFinite(ends[i]) || starts[i] < 0 || ends[i] < starts[i] || (i && starts[i] < starts[i - 1])) throw new Error('Tiempos de ElevenLabs inválidos.');
+    marks.push({ time: starts[i], end: ends[i], offset, length: chars[i].length });
+    offset += chars[i].length;
   }
-  if (!marks.length) throw new Error('ElevenLabs no devolvió timestamps de palabras.');
-  return marks;
+  // Group characters into words using UTF-16 offsets (same convention as SAPI).
+  return [...text.matchAll(/\S+/gu)].map(m => {
+    const first = marks.find(x => x.offset === m.index);
+    const last = marks.find(x => x.offset + x.length === m.index + m[0].length);
+    if (!first || !last) throw new Error('Alineación de palabras inválida.');
+    return { time: first.time, end: last.end, offset: m.index, length: m[0].length };
+  });
 }
-
-async function synthesizeWithAlignment(text, outFile, {
+async function generateWithAlignment(text, outFile, {
   voice = '',
   model = '',
   language = '',
@@ -207,7 +192,7 @@ async function synthesizeWithAlignment(text, outFile, {
     body,
   });
   if (typeof result.audio_base64 !== 'string' || !result.audio_base64) throw new Error('ElevenLabs devolvió una respuesta sin audio.');
-  const marks = alignmentMarks(clean, result.alignment || result.normalized_alignment);
+  const marks = alignmentMarks(clean, result.alignment);
   const directory = path.dirname(outFile);
   fs.mkdirSync(directory, { recursive: true });
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aivm-elevenlabs-'));
@@ -218,6 +203,8 @@ async function synthesizeWithAlignment(text, outFile, {
     if (fs.statSync(source).size < 100) throw new Error('ElevenLabs devolvió un archivo de audio vacío.');
     await ffmpegRun(['-i', source, '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', converted]);
     if (fs.statSync(converted).size < 1024) throw new Error('No se pudo decodificar el audio generado por ElevenLabs.');
+    const duration = await probeDuration(converted);
+    if (!duration || marks.some(m => m.time >= duration || m.end > duration + 0.1)) throw new Error('La alineaci?n excede la duraci?n del audio.');
     fs.renameSync(converted, outFile);
     fs.writeFileSync(`${outFile}.timings.json`, JSON.stringify(marks), 'utf8');
     return marks;
@@ -225,6 +212,29 @@ async function synthesizeWithAlignment(text, outFile, {
     try { fs.unlinkSync(converted); } catch {}
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+}
+
+async function synthesizeWithAlignment(text, outFile, options = {}) {
+  if (!(await isAvailable())) throw new Error(unavailableMessage);
+  const key = createHash('sha256').update(JSON.stringify({ text, voice: options.voice, language: options.language || '', ...cacheKeyOptions(options), version: 2 })).digest('hex');
+  const dir = workDir('_elevenlabs-cache');
+  const wav = path.join(dir, key + '.wav'), json = wav + '.timings.json';
+  const generate = async () => {
+    if (fs.existsSync(wav) && fs.existsSync(json)) {
+      try {
+        const marks = JSON.parse(fs.readFileSync(json, 'utf8'));
+        const duration = await probeDuration(wav);
+        if (marks.length && marks.every(m => Number.isFinite(m.time) && m.time >= 0 && m.time < duration && m.end <= duration + 0.1)) return marks;
+      } catch {}
+    }
+    return generateWithAlignment(text, wav, options);
+  };
+  if (!pending.has(key)) pending.set(key, generate().finally(() => pending.delete(key)));
+  const marks = await pending.get(key);
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  fs.copyFileSync(wav, outFile);
+  fs.writeFileSync(outFile + '.timings.json', JSON.stringify(marks));
+  return marks;
 }
 
 export async function synthesize(text, outFile, options = {}) {

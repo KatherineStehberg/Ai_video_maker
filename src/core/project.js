@@ -100,9 +100,9 @@ export function makeProject(partial = {}) {
     voice: {
       provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | edge | elevenlabs | none
       name: partial.voice?.name ?? '',
+      model: partial.voice?.model ?? '',
       rate: partial.voice?.rate ?? 0,                // -10..10 (SAPI)
       volume: partial.voice?.volume ?? 100,
-      model: partial.voice?.model ?? '',
       settings: {
         stability: partial.voice?.settings?.stability ?? CONFIG.tts.elevenLabsVoiceSettings.stability,
         similarityBoost: partial.voice?.settings?.similarityBoost ?? CONFIG.tts.elevenLabsVoiceSettings.similarityBoost,

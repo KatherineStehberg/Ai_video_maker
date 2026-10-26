@@ -65,7 +65,7 @@ export const CONFIG = {
     piperPath: process.env.PIPER_PATH || '',
     piperModel: process.env.PIPER_MODEL || '',
     elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || '',
-    elevenLabsModel: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+    elevenLabsModel: process.env.ELEVENLABS_MODEL_ID || process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
     elevenLabsVoiceSettings: {
       stability: Number(process.env.ELEVENLABS_STABILITY || 0.42),
       similarityBoost: Number(process.env.ELEVENLABS_SIMILARITY_BOOST || 0.75),

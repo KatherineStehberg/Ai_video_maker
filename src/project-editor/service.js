@@ -346,7 +346,7 @@ export function publico(p) {
     exportFormats: p.exportFormats,
     status: p.status,
     captions: p.captions,
-    voice: { provider: p.voice?.provider, name: p.voice?.name, enabled: p.voice?.enabled !== false, gain: p.voice?.gain ?? 1, rate: p.voice?.rate ?? 0, en: p.voice?.en || '', es: p.voice?.es || '' },
+    voice: { settings: p.voice?.settings || {}, model: p.voice?.model || '', provider: p.voice?.provider, name: p.voice?.name, enabled: p.voice?.enabled !== false, gain: p.voice?.gain ?? 1, rate: p.voice?.rate ?? 0, en: p.voice?.en || '', es: p.voice?.es || '' },
     music: {
       enabled: Boolean(p.music?.enabled), path: p.music?.path || null,
       volume: p.music?.volume ?? 0.12, loop: p.music?.loop !== false, credit: p.music?.credit || null,
@@ -501,9 +501,9 @@ export async function guardar(id, patch = {}) {
     if (patch.voice.provider !== undefined && patch.voice.provider !== 'auto' && !getProvider(patch.voice.provider)) throw new Error('Proveedor de voz inválido.');
     p.voice = {
       ...p.voice,
+      ...(patch.voice.model !== undefined ? { model: String(patch.voice.model).slice(0, 120) } : {}),
       ...(patch.voice.provider !== undefined ? { provider: patch.voice.provider } : {}),
       ...(patch.voice.name !== undefined ? { name: String(patch.voice.name).slice(0, 160) } : {}),
-      ...(patch.voice.model !== undefined ? { model: String(patch.voice.model).slice(0, 120) } : {}),
       ...(patch.voice.en !== undefined ? { en: String(patch.voice.en).slice(0, 160) } : {}),
       ...(patch.voice.es !== undefined ? { es: String(patch.voice.es).slice(0, 160) } : {}),
       ...(patch.voice.rate !== undefined ? { rate: num(patch.voice.rate, -10, 10, 0) } : {}),
