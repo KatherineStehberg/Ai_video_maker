@@ -126,3 +126,28 @@ export async function synthesize(text, outFile, { voice = '', rate = 0, volume =
   }
   return outFile;
 }
+
+/** SAPI word events refer to the actual waveform; no ASR/model download. */
+export async function synthesizeWithTimings(text, outFile, { voice = '', rate = 0, volume = 100, ssml = null } = {}) {
+  if (ssml) throw new Error('Timed SAPI currently requires plain text, not mixed-language SSML.');
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  const textFile = outFile + '.source.txt';
+  fs.writeFileSync(textFile, text, 'utf8');
+  const source = new URL('./sapi-timing.cs', import.meta.url);
+  const { fileURLToPath } = await import('node:url');
+  const script = [
+    '$ErrorActionPreference = "Stop"',
+    'Add-Type -AssemblyName System.Speech',
+    'Add-Type -Path ' + psLiteral(fileURLToPath(source)) + ' -ReferencedAssemblies System.Speech',
+    '$text = [IO.File]::ReadAllText(' + psLiteral(textFile) + ', [Text.Encoding]::UTF8)',
+    '[AvmTimedSpeech]::Synthesize($text,' + psLiteral(voice) + ',' + psLiteral(outFile) + ',' + Math.max(-10, Math.min(10, Math.round(rate))) + ',' + Math.max(0, Math.min(100, Math.round(volume))) + ')',
+  ].join('; ');
+  const output = await runPowerShell(script, { timeoutMs: 300000 });
+  const marks = output.trim().split(/\r?\n/).filter(Boolean).map(line => {
+    const [time, offset, length] = line.trim().split('|').map(Number);
+    return { time, offset, length };
+  });
+  if (!marks.length || marks.some(m => !Number.isFinite(m.time) || !Number.isInteger(m.offset))) throw new Error('SAPI did not return valid speech timings.');
+  fs.writeFileSync(outFile + '.timings.json', JSON.stringify(marks, null, 2));
+  return marks;
+}

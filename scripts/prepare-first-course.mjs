@@ -1,0 +1,24 @@
+import {courseTarget} from './course-target.mjs';
+const {courseId,projectId,assetRoot,item:courseItem}=courseTarget(process.argv[2]);
+// Explicit single-course preparation. Never starts or ticks the 15-course queue.
+import fs from 'node:fs';
+import path from 'node:path';
+import {loadProject,saveProject,projectFile} from '../src/core/project.js';
+import {narrateProject,buildNarrationTrack} from '../src/core/tts.js';
+import {abs,rel,workDir} from '../src/lib/paths.js';
+import {createHash} from 'node:crypto';
+import {generateSubtitles} from '../src/core/subtitles.js';
+const id=projectId;
+const p=loadProject(id);if(!p)throw Error('Prepare the editable course first.');
+const root=path.join(workDir(id),'preparation');fs.mkdirSync(root,{recursive:true});
+const backup=path.join(root,'original-project.json');if(!fs.existsSync(backup))fs.copyFileSync(projectFile(id),backup);
+const expected=JSON.parse(fs.readFileSync('content/courses/lc-chile-20261004.json')).items.find(i=>i.id===courseId);
+if(p.scenes.map(s=>s.text).join('\n\n')!==expected.script)throw Error('Existing course has edits; review before audiovisual preparation.');
+p.voice={...p.voice,provider:'sapi',name:'Microsoft Zira Desktop',enabled:true,rate:-1,volume:100};
+const audio=await narrateProject(p,{timedCaptions:true,onProgress:e=>console.log('Narration',e.index+1+'/'+e.total)});
+if(audio.errors.length||audio.narrations.some(n=>!n))throw Error('Incomplete narration');
+p.scenes.forEach((s,i)=>{s.narrationPath=audio.narrations[i];s.duration=audio.durations[i];s.durationLocked=true;s.kenBurns='none';s.showOnScreenText=false;s.transition={type:'none',enabled:false,duration:0};});
+p.captions={...p.captions,enabled:true,burnIn:true,provider:'estimated',style:{...p.captions.style,preset:'curso',fontFamily:'Verdana',fontScale:1,position:'bottom',marginVPct:0.05,maxWidthPct:0.86}};
+saveProject(p);await buildNarrationTrack(p);p.captions.file=await generateSubtitles(p);saveProject(p);
+fs.writeFileSync(path.join(root,'narration-evidence.json'),JSON.stringify({voice:p.voice.name,scenes:p.scenes.map(s=>({id:s.id,duration:s.duration,audio:s.narrationPath,cues:s.captionTimings?.length,sha256:createHash('sha256').update(fs.readFileSync(abs(s.narrationPath))).digest('hex')}))},null,2));
+console.log(JSON.stringify({id,durations:p.scenes.map(s=>s.duration),captions:p.captions.file}));

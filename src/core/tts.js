@@ -1,3 +1,4 @@
+import { speechCues } from './speech-cues.js';
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -86,7 +87,7 @@ async function concatWavFiles(files, target, key) {
  * Si no hay motor TTS disponible, devuelve narraciones vacias y el video
  * se renderiza en silencio: el pipeline no se rompe nunca.
  */
-export async function narrateProject(project, { provider = 'auto', onProgress, force = false } = {}) {
+export async function narrateProject(project, { provider = 'auto', onProgress, force = false, timedCaptions = false } = {}) {
   const dir = path.join(workDir(project.id), 'audio');
   fs.mkdirSync(dir, { recursive: true });
 
@@ -132,27 +133,30 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     const outFile = path.join(dir, `${scene.id}.wav`);
     const narrationKey = createHash('sha256').update(JSON.stringify({
       text, engine: engine.id, voice: project.voice,
+      ...((timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? { timingVersion: 'sapi-pcm16-v2' } : {}),
       language: project.language, ssml: useSsml, base: plan.base,
     })).digest('hex');
 
     // Reutiliza audio ya generado si el texto no cambio (ahorra minutos de CPU).
-    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey) {
+    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey && (!timedCaptions || scene.captionTimings?.length)) {
       narrations.push(scene.narrationPath);
       durations.push(await probeDuration(abs(scene.narrationPath)));
       continue;
     }
 
     try {
-      await engine.synthesize(plan.plain, rawFile, {
+      const synthesize = (timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
+      const marks = await synthesize(plan.plain, rawFile, {
         voice: plan.base || project.voice?.name || '',
         rate: project.voice?.rate ?? 0,
         volume: project.voice?.volume ?? 100,
         ssml: useSsml,
+        ...(engine.supportsSegments ? { segments: plan.segments, voices: plan.voices } : {}),
       });
       // Normaliza a 48kHz estereo y recorta silencios largos de los extremos.
       await ffmpegRun([
         '-i', rawFile,
-        '-af', 'silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB,' +
+        '-af', Array.isArray(marks) && marks.length ? 'loudnorm=I=-16:TP=-1.5:LRA=11' : 'silenceremove=start_periods=1:start_silence=0.1:start_threshold=-50dB,' +
                'areverse,silenceremove=start_periods=1:start_silence=0.2:start_threshold=-50dB,areverse,' +
                'loudnorm=I=-16:TP=-1.5:LRA=11',
         '-ar', '48000', '-ac', '2',
@@ -161,6 +165,8 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       try { fs.unlinkSync(rawFile); } catch { /* temporal */ }
 
       const d = await probeDuration(outFile);
+      if (Array.isArray(marks) && marks.length) { scene.captionTimingText = text; scene.captionTimings = speechCues(text, marks, d); }
+      else { scene.captionTimings = null; scene.captionTimingText = null; }
       narrations.push(rel(outFile));
       durations.push(d);
       scene.narrationText = plan.plain; // marca de cache, ya sin tags

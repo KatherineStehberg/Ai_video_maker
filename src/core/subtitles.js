@@ -105,7 +105,13 @@ export function buildCues(project, { width = null, height = null } = {}) {
     const propio = stripLangTags(s.caption ?? '');
     const text = propio || stripLangTags(s.text ?? '');
     const dur = Number(s.duration) || 0;
-    if (text) cues.push(...cuesForScene(text, t, dur, { maxChars, maxLines }));
+    const timed = s.captionTimingText === text && s.captionTimings?.length &&
+      s.captionTimings.every((c,i,a) => c.text?.trim() && c.start >= 0 && c.end > c.start && c.end <= dur + 0.01 && (!i || Math.abs(c.start-a[i-1].end)<0.01)) &&
+      s.captionTimings.map(c=>c.text).join(' ').replace(/\s+/g,' ').trim() === text.replace(/\s+/g,' ').trim();
+    if (timed) {
+      for (const c of s.captionTimings) cues.push(...cuesForScene(c.text, t+c.start, c.end-c.start, { maxChars, maxLines }));
+      const last=cues[cues.length-1];if(last)last.end=t+dur;
+    } else if (text) cues.push(...cuesForScene(text, t, dur, { maxChars, maxLines }));
     t += dur;
   }
   return cues;

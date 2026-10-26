@@ -1,0 +1,37 @@
+[
+  {
+    "title": "Your first day in a remote team",
+    "sub": "Introduce your role, responsibilities, tools and routine",
+    "body": "<div class=\"workspace\"><div class=\"sidebar\">LC TEAM<br><small>Fictional onboarding</small><p>09:00 | Welcome call</p><p>New team member</p></div><div class=\"chat\"><div class=\"label\">SIMULATED SCREEN DEMO | FICTIONAL WORKPLACE</div><div class=\"bubble step\"><b>Manager | Welcome</b><p>Join our video call and introduce yourself.</p></div><div class=\"bubble step\"><b>Your introduction</b><p>Who am I? What do I do? How do I work?</p></div><div class=\"callout step\">A clear introduction builds confidence and shared expectations.</div></div><img class=\"illustration\" src=\"../remote-work/foundations-internal.jpg\"></div><div class=\"bottom step\">Start with your role. Explain your work. Ask useful questions.</div>"
+  },
+  {
+    "title": "Six foundations of remote work",
+    "sub": "Connect each term with a concrete workplace meaning",
+    "body": "<div class=\"terms\"><article class=\"step\"><h2 style=\"font-size:32px\">Remote work</h2><p>Work outside a traditional office</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Distributed team</h2><p>Colleagues in different locations</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Onboarding</h2><p>Integrating a new employee</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Check-in</h2><p>A brief meeting or update</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Deadline</h2><p>When a task must be completed</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Deliverable</h2><p>The completed output you provide</p></article></div><div class=\"bottom step\">A deadline is the time. A deliverable is the completed output.</div>"
+  },
+  {
+    "title": "Choose the right preposition",
+    "sub": "Use work as, work in and work for to describe different facts",
+    "body": "<div class=\"steps\"><div class=\"mini-card wide step\"><b>01</b><h2>WORK AS</h2><p style=\"font-size:27px\">I work as a UX designer.</p></div><div class=\"mini-card wide step\"><b>02</b><h2>WORK IN</h2><p style=\"font-size:27px\">I work in marketing.</p></div><div class=\"mini-card wide step\"><b>03</b><h2>WORK FOR</h2><p style=\"font-size:27px\">I work for a remote-first startup.</p></div></div><div class=\"message step\" style=\"min-height:160px;margin-top:22px\"><div class=\"label\">RESPONSIBILITY + ROUTINE</div><p style=\"font-size:28px\">I am responsible for generating weekly reports.<br>I usually start work at nine and review my tasks first.</p></div><div class=\"bottom step\">AS = job title | IN = field | FOR = employer</div>"
+  },
+  {
+    "title": "Build a clear professional introduction",
+    "sub": "Valentina Torres | Fictional example for learning",
+    "body": "<div class=\"terms\"><article class=\"step\"><h2 style=\"font-size:32px\">Name + role</h2><p>Valentina Torres | Data analyst</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Company</h2><p>A fintech company in Santiago</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Team</h2><p>A distributed remote team</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Responsibilities</h2><p>Weekly reports + business intelligence</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Routine</h2><p>Review tasks, then join a check-in</p></article><article class=\"step\"><h2 style=\"font-size:32px\">Positive closing</h2><p>Excited to be part of the project</p></article></div><div class=\"bottom step\">Name, role, company, responsibilities, routine, positive closing.</div>"
+  },
+  {
+    "title": "Ask useful onboarding questions",
+    "sub": "Clarify expectations while keeping a professional tone",
+    "body": "<div class=\"workspace\"><div class=\"sidebar\">TEAM CHAT<br><small>Fictional onboarding</small><p># welcome</p><p># questions</p></div><div class=\"chat\" style=\"width:1400px\"><div class=\"label\">SIMULATED SCREEN DEMO | NO REAL ACCOUNT DATA</div><div class=\"bubble step\"><p>Could you tell me more about my responsibilities?</p></div><div class=\"bubble step\"><p>What tools does the team use?</p></div><div class=\"bubble step\"><p>Who should I contact if I have a question?</p></div></div></div><div class=\"bottom step\">I am looking forward to working with the team.</div>"
+  },
+  {
+    "title": "Pause, choose, then check",
+    "sub": "I work ___ a content writer ___ a digital marketing agency.",
+    "body": "<div class=\"comparison\"><article class=\"step\" data-at=\"9.41\"><div class=\"label\">YOUR ANSWER</div><h2>I work <span style=\"color:#0055a4\">as</span> a content writer <span style=\"color:#0055a4\">for</span> a digital marketing agency.</h2></article><article class=\"step\" data-at=\"16\"><div class=\"label\">USE THESE FORMS</div><p>work <b>as</b> a project manager<br>responsible <b>for</b><br>I usually <b>start</b></p></article></div><div class=\"message step\" data-at=\"22\" style=\"min-height:150px\"><div class=\"label\">COMPARE AND CORRECT</div><p style=\"font-size:28px\">Replace \"work in a project manager\", \"responsible of\" and \"I usually starts\" with the forms above.</p></div><div class=\"bottom step\" data-at=\"27\">Pause before checking the answer. Practise each corrected sentence aloud.</div>"
+  },
+  {
+    "title": "Write your remote work profile",
+    "sub": "Use at least three structures from this lesson",
+    "body": "<div class=\"steps\"><div class=\"mini-card wide step\"><b>01</b><h2>WHO YOU ARE</h2><p style=\"font-size:27px\">I work as...</p></div><div class=\"mini-card wide step\"><b>02</b><h2>RESPONSIBILITIES</h2><p style=\"font-size:27px\">I am responsible for...</p></div><div class=\"mini-card wide step\"><b>03</b><h2>TOOLS</h2><p style=\"font-size:27px\">The tools I use are...</p></div><div class=\"mini-card wide step\"><b>04</b><h2>DAILY ROUTINE</h2><p style=\"font-size:27px\">I usually start by...</p></div></div><div class=\"message\"><div class=\"label\">SIMULATED PROFILE COMPOSER | FICTIONAL EXAMPLE</div><p class=\"typed\" data-text=\"I work as a content writer for a digital agency. I am responsible for weekly articles. I use shared documents and team chat. I usually start by reviewing my tasks.\"></p></div><div class=\"bottom step\">Record yourself. Check clarity. Keep the profile with your course practice work.</div>"
+  }
+]

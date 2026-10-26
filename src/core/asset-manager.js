@@ -7,6 +7,8 @@ import { ASPECTS } from '../config.js';
 import { slugify } from '../lib/util.js';
 import { logger } from '../lib/logger.js';
 import { busquedaDeEscena } from './keywords.js';
+import { buscarVideos, importarVideo } from '../project-editor/video-library.js';
+import { generateWanClip, wanConfig } from '../providers/video-generation/wan.js';
 
 const log = logger('assets');
 
@@ -76,20 +78,53 @@ export function saveUpload(filename, buffer, { brand = null, kind = 'image' } = 
  * Cae en cascada por los providers y termina en el generador FFmpeg,
  * que nunca falla. Nunca sobreescribe un asset elegido por el usuario.
  */
-export async function ensureSceneAssets(project, brandObj, { provider = 'auto', onProgress, force = false } = {}) {
+export async function ensureSceneAssets(project, brandObj, { provider = 'auto', onProgress, force = false, sceneIds = null } = {}) {
   const { width, height } = ASPECTS[project.aspectRatio] || ASPECTS['9:16'];
   const results = [];
+  const mode = project.visualMode || 'prefer-video';
+  if (mode === 'wan') {
+    const pending = project.scenes.filter(s => (!sceneIds || sceneIds.includes(s.id)) && !s.excluida && (force || !s.assetPath || !fs.existsSync(abs(s.assetPath))));
+    if (pending.length > wanConfig().maxScenes) throw new Error(`Wan admite hasta ${wanConfig().maxScenes} escenas pendientes por operación. Genera primero un video corto o regenera escenas individualmente.`);
+    if (pending.length && !wanConfig().configured) throw new Error('Wan no está configurado. Consulta README; no se sustituirá por imágenes.');
+  }
 
   for (let i = 0; i < project.scenes.length; i++) {
     const scene = project.scenes[i];
+    if (sceneIds && !sceneIds.includes(scene.id)) continue;
+    if (mode === 'wan' && scene.excluida) continue;
     onProgress?.({ step: 'assets', index: i, total: project.scenes.length, sceneId: scene.id });
 
     if (!force && scene.assetPath && fs.existsSync(abs(scene.assetPath))) {
+      if (project.visualMode === 'video-only' && assetKind(scene.assetPath) !== 'video') throw new Error(`Escena ${i + 1}: el recurso elegido es una imagen. Elige un clip o cambia el modo visual.`);
       results.push({ sceneId: scene.id, path: scene.assetPath, provider: 'existing' });
       continue;
     }
 
-    const found = await provideImage(
+    let found = null;
+    scene.visualWarning = null;
+    const consulta = scene.visualPrompt || busquedaDeEscena(scene.text, { tema: project.title || '' }) || scene.text;
+    if (mode === 'wan') {
+      found = await generateWanClip({ prompt: scene.visualPrompt || scene.text,
+        referencePath: scene.wanReferencePath || (assetKind(scene.assetPath) === 'image' ? scene.assetPath : null),
+        aspect: project.aspectRatio, force, variant: scene.wanRevision || 0 });
+    }
+    if (mode !== 'wan' && mode !== 'images' && provider === 'auto') {
+      const clips = await buscarVideos({ consulta, aspecto: project.aspectRatio, idioma: project.language });
+      const usados = new Set(project.scenes.filter(s => s.id !== scene.id).map(s => String(s.assetCredit?.idRemoto || '')));
+      const candidato = clips.resultados?.find(v => !usados.has(v.id));
+      if (candidato) {
+        try {
+          const clip = await importarVideo({ id: candidato.id, consulta, aspecto: project.aspectRatio });
+          found = { path: clip.path, provider: 'pexels-video', credit: clip.credito };
+        } catch (e) { scene.visualWarning = e.message; }
+      }
+      if (!found) scene.visualWarning = scene.visualWarning || clips.motivo || 'No se encontró un clip distinto para esta escena.';
+      else scene.visualWarning = null;
+      if (!found && mode === 'video-only') {
+        throw new Error(`Escena ${i + 1}: ${scene.visualWarning} El modo solo video no sustituye clips por imágenes.`);
+      }
+    }
+    if (!found) found = await provideImage(
       {
         // Sin instruccion visual se buscan las palabras clave de la escena, no
         // la frase entera: un buscador de imagenes con una frase de narracion

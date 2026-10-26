@@ -1,4 +1,4 @@
-import { listAllVoices, resolveProvider } from '../providers/tts/index.js';
+import { resolveProvider } from '../providers/tts/index.js';
 
 /**
  * Selección de voz para narrar en español.
@@ -83,6 +83,6 @@ export async function vozDisponible() {
       aviso: 'No hay motor de voz disponible: el video se montará sin narración.', alternativas: [] };
   }
   let voces = [];
-  try { voces = await listAllVoices(); } catch { voces = []; }
+  try { voces = await motor.listVoices(); } catch { voces = []; }
   return { ...elegirVoz(voces), motor: motor.id };
 }

@@ -5,9 +5,15 @@ data/studio-imports/
 data/video-edits/
 data/video-generation/
 data/course-production/
-.env
-.env.local
+.env*
+!.env*.example
 *.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+*-credentials.json
+service-account*.json
 
 # Node
 node_modules/
@@ -43,6 +49,10 @@ data/assets/**/*
 # Temporales de trabajo
 .tmp/
 tmp/
+.cache/
+.parcel-cache/
+.vite/
+.next/
 *.log
 
 # Modelos locales (Piper, Whisper, etc.) - jamas al repo

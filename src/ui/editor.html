@@ -217,6 +217,19 @@
         <div class="tarjeta" data-paso-panel="voz" hidden>
           <h2>Voz y recursos</h2>
           <dl class="ficha" id="voz-ficha"></dl>
+          <label>Recursos visuales <select id="gen-visual-mode">
+            <option value="prefer-video">Preferir clips con movimiento real</option>
+            <option value="video-only">Solo clips; detener si faltan</option>
+            <option value="images">Imágenes</option>
+            <option value="wan">Video generado con IA · Wan</option>
+          </select></label>
+          <p class="ayuda">Pexels aporta clips existentes. Wan crea clips originales cortos desde el prompt visual de cada escena; necesita un motor conectado y puede repetir el clip para cubrir la narración.</p>
+          <p class="ayuda" id="gen-wan-note">Wan: configuración pendiente.</p>
+          <label>Idioma de la narración <select id="gen-language"><option value="es">Español</option><option value="en">English</option><option value="bilingual">Bilingüe: español e inglés</option></select></label>
+          <label>Voz <select id="gen-voice"><option value="auto">Automática por idioma</option><option value="none">Sin narración</option></select></label>
+          <button type="button" id="gen-voice-preview">Escuchar muestra</button>
+          <audio id="gen-voice-audio" controls hidden></audio>
+          <p class="ayuda" id="gen-voice-note">Edge TTS requiere Python, edge-tts e internet; envía el texto al servicio de voz. SAPI y Piper funcionan localmente.</p>
           <p class="aviso aviso-atencion" id="voz-aviso" hidden></p>
           <div class="rejilla-2">
             <label>Volumen de narración <input type="range" id="vol-voz" min="0" max="100" value="100"></label>

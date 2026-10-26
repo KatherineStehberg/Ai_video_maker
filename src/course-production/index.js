@@ -1,3 +1,4 @@
+import { preparedCourseVideo } from './prepared.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { PATHS, abs } from '../lib/paths.js';
@@ -6,6 +7,8 @@ import { listAllVoices } from '../providers/tts/index.js';
 import { createJob, getJob, listJobs, normalizeSpec, resumeJob } from '../generation/jobs.js';
 import { normalizeOrchestratorInput, specDesdeContrato } from '../generation/orchestrator-contract.js';
 import { loadProject } from '../core/project.js';
+import { findCourseProject, prepareCourseProject } from './editing.js';
+import { resolveSafeAsset } from '../core/asset-manager.js';
 import { createCourseQueue } from './queue.js';
 
 export const packFile = path.join(PATHS.root, 'content/courses/lc-chile-20261004.json');
@@ -86,13 +89,48 @@ export function startCourseProduction(server) {
   server.once('close', () => clearInterval(timer));
 }
 
+let environmentCheck;
+let environmentCheckedAt = 0;
 export async function courseProductionRoute(req, res, url) {
-  if (url.pathname !== '/api/course-production') return false;
+  const projectRoute = url.pathname.match(/^\/api\/course-production\/projects\/([A-Z0-9-]+)$/);
+  if (url.pathname !== '/api/course-production' && !projectRoute) return false;
   const local = /^(::1|::ffff:127\.|127\.)/.test(req.socket.remoteAddress || '') && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.host || '');
-  const status = !local ? 403 : req.method !== 'GET' ? 405 : 200;
+  let status = !local ? 403 : req.method !== (projectRoute ? 'POST' : 'GET') ? 405 : 200;
+  if (status === 200 && projectRoute && (req.headers['x-course-request'] !== '1' || (req.headers.origin && req.headers.origin !== 'http://' + req.headers.host))) status = 403;
   let body;
-  try { body = status === 200 ? { ...getCourseQueue().snapshot(), startupError } : { error: 'Consulta local mediante GET requerida' }; }
-  catch(error) { body = { error: error.message }; }
-  res.writeHead(body.error && status===200 ? 503 : status, { 'content-type': 'application/json; charset=utf-8', 'cache-control':'no-store' });
+  try {
+    if (status !== 200) body = { error: 'Solicitud local autorizada requerida' };
+    else {
+      const snapshot = getCourseQueue().snapshot();
+      const pack = loadPack();
+      if (projectRoute) {
+        const p = prepareCourseProject(pack, projectRoute[1], snapshot.entries.find(e => e.id === projectRoute[1]));
+        body = { projectId: p.id, editUrl: '/project-editor.html?id=' + encodeURIComponent(p.id) };
+      } else {
+        // Checking capabilities must never tick the production queue.
+        if (!environmentCheck || Date.now() - environmentCheckedAt > 15000) {
+          environmentCheckedAt = Date.now();
+          environmentCheck = preflight().catch(error => ({ ok: false, reasons: ['Error al comprobar el entorno: ' + error.message] }));
+        }
+        const environment = await environmentCheck;
+        body = { ...snapshot, environment, productionEnabled: process.env.COURSE_PRODUCTION_ENABLED !== '0', startupError,
+          entries: snapshot.entries.map(entry => {
+            const item = pack.items.find(i => i.id === entry.id);
+            let project = null, projectError = null;
+            try { project = findCourseProject(item, entry); } catch (e) { projectError = e.message; }
+            const prepared = project && preparedCourseVideo(project);
+            const filePath = project && (project.outputs?.[project.aspectRatio] || project.outputPath);
+            const file = filePath && resolveSafeAsset(filePath);
+            const valid = entry.status === 'review_ready' && entry.proof?.ok && file && fs.existsSync(file) && fs.statSync(file).size > 0 &&
+              (!project.editor || project.editor.revision === project.editor.exportedRevision);
+            return { ...entry, status: prepared ? 'review_ready' : project?.metadata?.courseRenderProof ? (project.metadata.courseRenderProof.speechTimingVerified ? 'draft' : 'timing_review') : entry.status,
+              projectId: project?.id || null, projectError,
+              editUrl: project ? '/project-editor.html?id=' + encodeURIComponent(project.id) : null,
+              videoUrl: prepared ? prepared.videoUrl : valid ? '/file?path=' + encodeURIComponent(filePath) : null };
+          }) };
+      }
+    }
+  } catch (error) { status = 503; body = { error: error.message }; }
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   res.end(JSON.stringify(body)); return true;
 }

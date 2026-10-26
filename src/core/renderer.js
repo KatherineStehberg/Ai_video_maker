@@ -141,7 +141,7 @@ async function renderSceneClip(scene, index, ctx, { extra = 0 } = {}) {
   const inputArgs = [];
 
   if (kind === 'video') {
-    inputArgs.push('-i', srcAbs);
+    inputArgs.push('-stream_loop', '-1', '-i', srcAbs);
     filters.push(
       `scale=${W}:${H}:force_original_aspect_ratio=increase`,
       `crop=${W}:${H}`,

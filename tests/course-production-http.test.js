@@ -14,7 +14,8 @@ test('real server exposes the prepared queue and dashboard without starting prod
  const base=`http://127.0.0.1:${server.address().port}`;
  const response=await fetch(base+'/api/course-production');assert.equal(response.status,200);
  const state=await response.json();assert.equal(state.entries.length,15);assert.ok(state.entries.every(e=>e.status==='pending'));
- const dashboard=await fetch(base+'/course-production.html');assert.equal(dashboard.status,200);assert.match(await dashboard.text(),/Revisar edición/);
+ const dashboard=await fetch(base+'/course-production.html');assert.equal(dashboard.status,200);assert.ok((await dashboard.text()).includes('/course-production.js'));
+ const ui=await fetch(base+'/course-production.js');assert.match(await ui.text(),/Editar proyecto/);
  const post=await fetch(base+'/api/course-production',{method:'POST'});assert.equal(post.status,405);
  const wrongHost=await new Promise((resolve,reject)=>{
    http.get(base+'/api/course-production',{headers:{Host:'example.com'}},res=>{res.resume();resolve(res.statusCode);}).on('error',reject);
