@@ -1,6 +1,7 @@
 import * as sapi from './sapi.js';
 import * as piper from './piper.js';
 import * as edge from './edge.js';
+import * as elevenlabs from './elevenlabs.js';
 import { CONFIG } from '../../config.js';
 import { logger } from '../../lib/logger.js';
 
@@ -20,7 +21,7 @@ const none = {
   },
 };
 
-const REGISTRY = { sapi, piper, edge, none };
+const REGISTRY = { sapi, piper, edge, elevenlabs, none };
 
 export function getProvider(name) {
   return REGISTRY[name] || null;
@@ -30,7 +31,7 @@ export function getProvider(name) {
 export async function resolveProvider(preferred = 'auto') {
   const order = preferred && preferred !== 'auto'
     ? [preferred]
-    : [...new Set([CONFIG.tts.provider, 'edge', 'piper', 'sapi'].filter(n => n !== 'none')), 'none'];
+    : [...new Set([CONFIG.tts.provider, 'edge', 'piper', 'sapi'].filter(n => n !== 'none' && n !== 'elevenlabs')), 'none'];
 
   for (const name of order) {
     const p = REGISTRY[name];
@@ -41,13 +42,14 @@ export async function resolveProvider(preferred = 'auto') {
       log.warn(`Provider ${name} no disponible:`, e.message);
     }
   }
+  if (preferred === 'elevenlabs') throw new Error('ElevenLabs no está configurado: agrega ELEVENLABS_API_KEY en el backend.');
   return none;
 }
 
 /** Todas las voces de todos los providers disponibles. */
 export async function listAllVoices() {
   const out = [];
-  for (const name of ['edge', 'piper', 'sapi']) {
+  for (const name of ['elevenlabs', 'edge', 'piper', 'sapi']) {
     const p = REGISTRY[name];
     try {
       if (await p.isAvailable()) out.push(...(await p.listVoices()));

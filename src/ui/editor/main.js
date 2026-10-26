@@ -932,7 +932,7 @@ void (async () => { try {
   const res = await fetch('/api/voices');
   if (!res.ok) throw new Error('No se pudo consultar el catálogo.');
   const voices = await res.json();
-  for (const v of voices) $('gen-voice').append(new Option(`${v.name} · ${v.language} · ${v.provider}`, `${v.provider}|${v.name}`));
+  for (const v of voices) $('gen-voice').append(new Option(`${v.displayName || v.name} · ${v.language} · ${v.provider}`, `${v.provider}|${v.name}`));
   if (!voices.length) $('gen-voice-note').textContent = 'No hay voces disponibles. Instala Python y edge-tts para voces en línea, o configura SAPI/Piper para narración local.';
 } catch (e) { $('gen-voice-note').textContent = e.message; } })();
 

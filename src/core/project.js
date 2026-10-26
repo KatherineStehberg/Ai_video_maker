@@ -100,6 +100,7 @@ export function makeProject(partial = {}) {
     voice: {
       provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | none
       name: partial.voice?.name ?? '',
+      model: partial.voice?.model ?? '',
       rate: partial.voice?.rate ?? 0,                // -10..10 (SAPI)
       volume: partial.voice?.volume ?? 100,
       enabled: partial.voice?.enabled ?? true,

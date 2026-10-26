@@ -710,7 +710,7 @@ function bloqueNarracion({ s, acc, p }) {
   idioma.addEventListener('change', () => acc.cambiar('language', idioma.value));
   voz.append(campo('Idioma de la narración', idioma));
   const voces = s.capacidades?.voices || [];
-  const opciones = voces.map(v => [`${v.provider}|${v.name}`, `${v.name} · ${v.language} · ${v.provider}`]);
+  const opciones = voces.map(v => [`${v.provider}|${v.name}`, `${v.displayName || v.name} · ${v.language} · ${v.provider}`]);
   const actual = `${p.voice?.provider}|${p.voice?.name}`;
   if (!opciones.some(v => v[0] === actual)) opciones.unshift([actual, p.voice?.name || 'Selecciona una voz']);
   const selector = lista(opciones, actual);
@@ -719,12 +719,19 @@ function bloqueNarracion({ s, acc, p }) {
     acc.elegirVoz(nombre.join('|'), provider);
   });
   voz.append(campo('Voz para la narración', selector));
-  voz.append(el('p', 'ayuda', 'Edge TTS envía el texto a un servicio en línea. Guardar y exportar regenera la narración con la voz elegida.'));
+  voz.append(el('p', 'ayuda', 'ElevenLabs y Edge TTS envían el texto al servicio de voz. ElevenLabs consume créditos; escucha una muestra antes de exportar. Guardar y exportar regenera la narración con la voz elegida.'));
   voz.append(boton('Escuchar muestra de voz', 'btn-mini', () => acc.probarVoz(), { deshabilitado: !p.voice?.name || s.trabajando }));
   const muestra = s.biblioteca?.voz;
   if (muestra?.url) { const audio = document.createElement('audio'); audio.src = muestra.url; audio.controls = true; audio.style.width = '100%'; voz.append(audio); }
   if (muestra?.motivo) voz.append(el('p', 'ayuda', muestra.motivo));
-  if (!voces.length) voz.append(el('p', 'ayuda', 'No hay voces disponibles. Para Edge TTS instala Python y ejecuta python -m pip install edge-tts; después reinicia el servidor.'));
+  if (!voces.length) voz.append(el('p', 'ayuda', 'Para ElevenLabs configura ELEVENLABS_API_KEY en el .env del backend y reinicia. Para Edge TTS instala Python y ejecuta python -m pip install edge-tts; después reinicia el servidor.'));
+
+  if (p.voice?.provider === 'elevenlabs') {
+    const modelo = entrada({ tipo: 'text', valor: p.voice?.model || '' });
+    modelo.placeholder = 'Modelo del backend (por defecto)';
+    modelo.addEventListener('change', () => acc.cambiar('voice.model', modelo.value));
+    voz.append(campo('Modelo ElevenLabs', modelo));
+  }
 
   const gan = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: p.voice?.gain ?? 1 });
   const ganTexto = el('span', 'mini', `${Math.round((p.voice?.gain ?? 1) * 100)} %`);

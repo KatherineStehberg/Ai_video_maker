@@ -132,7 +132,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     const rawFile = path.join(dir, `${scene.id}.raw.wav`);
     const outFile = path.join(dir, `${scene.id}.wav`);
     const narrationKey = createHash('sha256').update(JSON.stringify({
-      text, engine: engine.id, voice: project.voice,
+      text, engine: engine.id, voice: project.voice, providerConfig: engine.cacheIdentity?.(project.voice),
       ...((timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? { timingVersion: 'sapi-pcm16-v2' } : {}),
       language: project.language, ssml: useSsml, base: plan.base,
     })).digest('hex');
@@ -145,9 +145,10 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     }
 
     try {
-      const synthesize = (timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
+      const synthesize = (engine.alwaysTimings || timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
       const marks = await synthesize(plan.plain, rawFile, {
-        voice: plan.base || project.voice?.name || '',
+        model: project.voice?.model,
+        voice: (engine.id === 'elevenlabs' ? project.voice?.name : plan.base) || project.voice?.name || '',
         rate: project.voice?.rate ?? 0,
         volume: project.voice?.volume ?? 100,
         ssml: useSsml,
@@ -165,7 +166,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       try { fs.unlinkSync(rawFile); } catch { /* temporal */ }
 
       const d = await probeDuration(outFile);
-      if (Array.isArray(marks) && marks.length) { scene.captionTimingText = text; scene.captionTimings = speechCues(text, marks, d); }
+      if (Array.isArray(marks) && marks.length) { scene.captionTimingText = plan.plain; scene.captionTimings = speechCues(plan.plain, marks, d); }
       else { scene.captionTimings = null; scene.captionTimingText = null; }
       narrations.push(rel(outFile));
       durations.push(d);
@@ -177,6 +178,7 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       scene.narrationVoices = [...new Set(plan.segments.map(s => plan.voices[s.lang] || plan.base))];
     } catch (e) {
       log.error(`Escena ${i + 1} sin narracion:`, e.message);
+      if (engine.id === 'elevenlabs') throw e;
       errors.push({ sceneId: scene.id, error: e.message });
       narrations.push(null);
       durations.push(null);
@@ -233,11 +235,11 @@ export async function buildNarrationTrack(project) {
 }
 
 /** Prueba rapida de voz: genera un WAV corto para escuchar en la UI. */
-export async function previewVoice(text, { provider = 'auto', voice = '', rate = 0 } = {}) {
+export async function previewVoice(text, { provider = 'auto', voice = '', rate = 0, model } = {}) {
   const engine = await resolveProvider(provider);
   if (engine.id === 'none') throw new Error('No hay motor TTS disponible');
   const dir = workDir('_preview');
   const out = path.join(dir, `voice_${Date.now()}.wav`);
-  await engine.synthesize(String(text || '').slice(0, 400), out, { voice, rate });
+  await engine.synthesize(String(text || '').slice(0, 400), out, { voice, rate, model });
   return rel(out);
 }

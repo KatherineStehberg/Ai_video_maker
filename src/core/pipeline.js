@@ -124,7 +124,7 @@ export async function runPipeline(project, {
         onProgress: (p) => emit('narration', 38 + Math.round((p.index / p.total) * 12), `Voz ${p.index + 1}/${p.total}`, { index: p.index, total: p.total }),
       });
       report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0, voice: res.voice || null, voices: res.voices || null };
-      if (project.voice?.enabled !== false && project.voice?.provider === 'edge' && (res.provider === 'none' || res.errors?.length)) throw new Error('No se pudo generar la voz Edge TTS. Revisa la instalación y la conexión; no se exportará un video silencioso como si estuviera listo.');
+      if (project.voice?.enabled !== false && ['edge', 'elevenlabs'].includes(project.voice?.provider) && (res.provider === 'none' || res.errors?.length)) throw new Error('No se pudo generar la voz en línea. Revisa la instalación y la conexión; no se exportará un video silencioso como si estuviera listo.');
       // Desajuste entre idioma declarado y voz elegida: ya corregido, pero visible.
       if (res.warnings?.length) report.warnings.push(...res.warnings);
       if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {
