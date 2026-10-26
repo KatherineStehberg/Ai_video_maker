@@ -5,17 +5,10 @@ import '../../config.js';
 /**
  * Registro de proveedores de generación de video, desacoplado del resto.
  *
-<<<<<<< HEAD
- * `pipeline` monta el guion con visuales, voz y subtítulos mediante FFmpeg;
- * `mock` construye un video de prueba. `api` y `local` son ranuras NO implementadas; al
- * invocarlas fallan con un mensaje que dice exactamente qué falta. No se simula
- * ninguna conexión con un servicio real.
-=======
- * `pipeline` monta guion, recursos, voz y subtítulos. El modo visual `wan`
- * genera clips mediante el adaptador wan.js antes del montaje. `mock` sólo
- * construye un video de prueba. `api` y `local` siguen siendo ranuras
- * genéricas pendientes; no son las conexiones de Wan.
->>>>>>> abb3c4c (feat: integrate Wan motion generation for scenes)
+ * `pipeline` monta el guion con visuales, voz y subtítulos mediante FFmpeg.
+ * El modo visual `wan` genera clips mediante su adaptador antes del montaje;
+ * `mock` construye un video de prueba. `api` y `local` son ranuras genéricas
+ * pendientes, no conexiones de Wan.
  *
  * ---------------------------------------------------------------------------
  * CÓMO AÑADIR UN PROVEEDOR REAL
