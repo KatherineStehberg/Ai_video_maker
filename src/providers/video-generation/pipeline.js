@@ -216,8 +216,9 @@ export const pipelineProvider = {
         ? { provider: 'none', name: '', enabled: false }
         : { provider: vozPedida?.provider && vozPedida.provider !== 'auto' ? vozPedida.provider : (voz.provider || 'auto'),
           name: vozPedida?.name || voz.nombre || '',
+          model: vozPedida?.model || '',
           rate: vozPedida?.rate ?? 0,
-          enabled: voz.provider !== 'none' },
+          enabled: vozPedida?.provider === 'elevenlabs' || voz.provider !== 'none' },
       music: musica?.path
         ? { enabled: musica.enabled !== false, path: musica.path, volume: musica.volume ?? 0.12 }
         : { enabled: Boolean(spec.musicPath), path: spec.musicPath || null, volume: 0.12 },

@@ -196,8 +196,8 @@ const acc = {
   async probarVoz() {
     try {
       const p = proyectoVisible(s);
-      const r = await api.probarVoz({ provider: p.voice?.provider, voice: p.voice?.name, rate: p.voice?.rate,
-        text: p.language === 'en' ? 'Hello. This is a sample of the voice for your video.' : 'Hola, esta es una muestra de la voz para tu video.' });
+      const r = await api.probarVoz({ provider: p.voice?.provider, voice: p.voice?.name, rate: p.voice?.rate, model: p.voice?.model,
+        text: String(p.scenes?.[0]?.text || (p.language === 'en' ? 'Welcome to this lesson.' : 'Bienvenidos a esta lección.')).slice(0, 400) });
       fijarBiblioteca('voz', { url: r.url, motivo: null });
     } catch (e) { fijarBiblioteca('voz', { url: null, motivo: e.message }); }
   },

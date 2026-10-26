@@ -131,7 +131,8 @@ export function normalizeVoice(voice) {
   if (typeof voice === 'string') return { provider: 'auto', name: texto(voice, 120, 'voice'), rate: 0, enabled: true };
   const rate = Number(voice.rate ?? 0);
   return {
-    provider: enumOpcional(voice.provider, ['auto', 'sapi', 'piper', 'edge', 'none'], 'voice.provider') || 'auto',
+    provider: enumOpcional(voice.provider, ['auto', 'sapi', 'piper', 'edge', 'elevenlabs', 'none'], 'voice.provider') || 'auto',
+    model: texto(voice.model, 120, 'voice.model'),
     name: texto(voice.name, 120, 'voice.name'),
     rate: Number.isFinite(rate) ? Math.max(-10, Math.min(10, rate)) : 0,
     enabled: voice.enabled !== false,
