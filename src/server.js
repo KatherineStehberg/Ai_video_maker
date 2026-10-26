@@ -198,6 +198,7 @@ async function handleApi(req, res, url) {
     })));
   }
   if (p[0] === 'voices') return ok(res, await ttsProviders.listAllVoices());
+  if (p[0] === 'tts' && p[1] === 'capabilities') return ok(res, await ttsProviders.catalog());
 
   if (p[0] === 'brands') {
     if (method === 'GET' && !p[1]) return ok(res, listBrands());

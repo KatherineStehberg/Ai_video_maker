@@ -4,6 +4,7 @@ import {
   mensajeGuionLargo, mensajePromptLargo,
 } from './limits.js';
 import { normalizeCaptionStyle } from '../core/captions-style.js';
+import { CONFIG } from '../config.js';
 
 /**
  * CONTRATO DE ENTRADA para el Orquestador KSL.
@@ -125,16 +126,32 @@ export function normalizeOrchestratorInput(input = {}) {
   };
 }
 
-/** Voz: motor y nombre. Nunca lleva claves; el TTS es local. */
+/** Voz: motor, selección y ajustes de síntesis. Nunca lleva claves. */
 export function normalizeVoice(voice) {
   if (!voice) return { provider: 'auto', name: null, rate: 0, enabled: true };
   if (typeof voice === 'string') return { provider: 'auto', name: texto(voice, 120, 'voice'), rate: 0, enabled: true };
   const rate = Number(voice.rate ?? 0);
   return {
-    provider: enumOpcional(voice.provider, ['auto', 'sapi', 'piper', 'edge', 'none'], 'voice.provider') || 'auto',
+    provider: enumOpcional(voice.provider, ['auto', 'sapi', 'piper', 'edge', 'elevenlabs', 'none'], 'voice.provider') || 'auto',
     name: texto(voice.name, 120, 'voice.name'),
     rate: Number.isFinite(rate) ? Math.max(-10, Math.min(10, rate)) : 0,
+    model: texto(voice.model, 120, 'voice.model'),
+    settings: normalizeElevenLabsSettings(voice.settings),
     enabled: voice.enabled !== false,
+  };
+}
+
+function normalizeElevenLabsSettings(settings = {}) {
+  const bounded = (value, fallback, min = 0, max = 1) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+  };
+  return {
+    stability: bounded(settings.stability, CONFIG.tts.elevenLabsVoiceSettings.stability),
+    similarityBoost: bounded(settings.similarityBoost, CONFIG.tts.elevenLabsVoiceSettings.similarityBoost),
+    style: bounded(settings.style, CONFIG.tts.elevenLabsVoiceSettings.style),
+    speed: bounded(settings.speed, CONFIG.tts.elevenLabsVoiceSettings.speed, 0.7, 1.2),
+    useSpeakerBoost: settings.useSpeakerBoost ?? CONFIG.tts.elevenLabsVoiceSettings.useSpeakerBoost,
   };
 }
 

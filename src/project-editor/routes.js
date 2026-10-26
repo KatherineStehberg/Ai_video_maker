@@ -67,7 +67,13 @@ export async function projectEditorRoute(req, res, url) {
 
     if (req.method === 'POST' && seg[0] === 'preview-voice') {
       const b = await leerJson(req);
-      const file = await previewVoice(b.text || 'Hola, esta es una prueba de voz.', { provider: b.provider || 'auto', voice: b.voice || '', rate: b.rate || 0 });
+      const file = await previewVoice(b.text || 'Hola, esta es una prueba de voz.', {
+        provider: b.provider || 'auto',
+        voice: b.voice || '',
+        rate: b.rate ?? 0,
+        model: b.model || '',
+        settings: b.settings || {},
+      });
       send(res, 200, { url: `/file?path=${encodeURIComponent(file)}` }); return true;
     }
     if (seg[0] === 'library') {

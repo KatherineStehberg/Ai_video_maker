@@ -15,7 +15,7 @@ import { ASPECTS } from '../config.js';
 import { PATHS, abs, rel } from '../lib/paths.js';
 import { ffmpegRun } from '../lib/ffmpeg.js';
 import { resolveSafeAsset } from '../core/asset-manager.js';
-import { listAllVoices } from '../providers/tts/index.js';
+import { catalog as ttsCatalog } from '../providers/tts/index.js';
 import { LANGUAGES, DEFAULT_VOICES, normalizeLanguage, resolveVoices } from '../core/lang.js';
 
 const importsDir=path.join(PATHS.data,'studio-imports');
@@ -60,7 +60,7 @@ export function updateStudio(id,input){
   if(input.aspectRatio!==undefined){if(!ASPECTS[input.aspectRatio])throw new Error('Formato inválido');p.aspectRatio=input.aspectRatio;p.exportFormats=[input.aspectRatio];}
   if(input.style!==undefined){if(!styles.includes(input.style))throw new Error('Estilo inválido');p.studio.style=input.style;}
   if(input.language!==undefined){if(!LANGUAGES.includes(input.language))throw new Error('Idioma inválido');p.language=input.language;}
-  if(input.voice){p.studio.networkPolicy=input.voice.provider==='edge'?'online-voice':'local-only';if(!['sapi','piper','edge','none'].includes(input.voice.provider))throw new Error('Proveedor de voz no admitido');p.voice={provider:input.voice.provider,name:String(input.voice.name || ''),enabled:input.voice.provider!=='none',rate:Math.max(-10,Math.min(10,Number(input.voice.rate)||0)),volume:100,en:String(input.voice.en || ''),es:String(input.voice.es || '')};}
+  if(input.voice){p.studio.networkPolicy=['edge','elevenlabs'].includes(input.voice.provider)?'online-voice':'local-only';if(!['sapi','piper','edge','elevenlabs','none'].includes(input.voice.provider))throw new Error('Proveedor de voz no admitido');p.voice={...p.voice,provider:input.voice.provider,name:String(input.voice.name || ''),model:String(input.voice.model || ''),settings:{...p.voice.settings,...(input.voice.settings || {})},enabled:input.voice.provider!=='none',rate:Math.max(-10,Math.min(10,Number(input.voice.rate)||0)),volume:100,en:String(input.voice.en || ''),es:String(input.voice.es || '')};}
   if(input.references)p.studio.references=input.references.map(r=>({kind:['drive','github','other'].includes(r.kind)?r.kind:'other',originalReference:reference(r.originalReference),access:'reference-only',label:String(r.label || '').slice(0,200)}));
   if(input.scenes){
     if(!Array.isArray(input.scenes)||!input.scenes.length||input.scenes.length>40)throw new Error('Se requieren entre 1 y 40 escenas');
@@ -108,7 +108,7 @@ export function importTarget(name,kind,originalReference,authorized){
   fs.mkdirSync(importsDir,{recursive:true});const file=path.join(importsDir,randomUUID()+ext);
   return {file,manifest:{path:rel(file),name:path.basename(name),kind,authorized:true,originalReference:reference(originalReference)||`local:${path.basename(name)}`,access:'local-import',importedAt:new Date().toISOString()}};
 }
-export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,captionStyle:captionStyleOptions(),onScreen:{positions:POSICIONES_DESTACADO,animations:ANIMACIONES_DESTACADO},voices:await listAllVoices(),languages:LANGUAGES,defaultVoices:DEFAULT_VOICES,providers:{mode:'local-render-optional-online-voice',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
+export async function capabilities(){const tts=await ttsCatalog();return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,captionStyle:captionStyleOptions(),onScreen:{positions:POSICIONES_DESTACADO,animations:ANIMACIONES_DESTACADO},voices:tts.voices,voiceErrors:tts.errors,voiceModels:tts.models,voiceProviders:tts.providers,elevenLabsModel:tts.elevenLabsModel,elevenLabsVoiceSettings:tts.elevenLabsVoiceSettings,languages:LANGUAGES,defaultVoices:DEFAULT_VOICES,providers:{mode:'local-render-optional-online-voice',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
 async function background(p,task){
   try{await task();p.studio.job.status='complete';p.studio.job.progress=100;}
   catch(e){p.studio.job.status='failed';p.studio.job.error=e.message;p.status='failed';}

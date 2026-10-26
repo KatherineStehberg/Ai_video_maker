@@ -710,7 +710,10 @@ function bloqueNarracion({ s, acc, p }) {
   idioma.addEventListener('change', () => acc.cambiar('language', idioma.value));
   voz.append(campo('Idioma de la narración', idioma));
   const voces = s.capacidades?.voices || [];
-  const opciones = voces.map(v => [`${v.provider}|${v.name}`, `${v.name} · ${v.language} · ${v.provider}`]);
+  const opciones = voces.map(v => [`${v.provider}|${v.id || v.name}`, `${v.label || v.name} · ${v.language} · ${v.provider}`]);
+  if (!s.capacidades?.elevenLabsConfigured && !opciones.some(([value]) => value.startsWith('elevenlabs|'))) {
+    opciones.push(['elevenlabs|', 'ElevenLabs · configura ELEVENLABS_API_KEY para cargar tus voces']);
+  }
   const actual = `${p.voice?.provider}|${p.voice?.name}`;
   if (!opciones.some(v => v[0] === actual)) opciones.unshift([actual, p.voice?.name || 'Selecciona una voz']);
   const selector = lista(opciones, actual);
@@ -719,12 +722,41 @@ function bloqueNarracion({ s, acc, p }) {
     acc.elegirVoz(nombre.join('|'), provider);
   });
   voz.append(campo('Voz para la narración', selector));
-  voz.append(el('p', 'ayuda', 'Edge TTS envía el texto a un servicio en línea. Guardar y exportar regenera la narración con la voz elegida.'));
-  voz.append(boton('Escuchar muestra de voz', 'btn-mini', () => acc.probarVoz(), { deshabilitado: !p.voice?.name || s.trabajando }));
+  voz.append(el('p', 'ayuda', 'ElevenLabs envía el texto al servicio de voz y puede consumir créditos. El resto de proveedores conserva su comportamiento.'));
+  if (p.voice?.provider === 'elevenlabs') {
+    const models = s.capacidades?.voiceModels?.elevenlabs || [];
+    const selectedModel = p.voice?.model || s.capacidades?.elevenLabsModel || models[0]?.id || '';
+    const modelSelect = lista(models.map(model => [
+      model.id,
+      `${model.name}${model.languages?.length ? ` · ${model.languages.join(', ')}` : ''}`,
+    ]), selectedModel);
+    modelSelect.addEventListener('change', () => acc.cambiar('voice.model', modelSelect.value));
+    voz.append(campo('Modelo de voz ElevenLabs', modelSelect, 'El modelo elegido y sus ajustes se guardan en este proyecto.'));
+    const settings = p.voice?.settings || {};
+    const addSetting = (key, label, min, max, step, value, hint) => {
+      const control = entrada({ tipo: 'range', min, max, step, valor: value });
+      const readout = el('span', 'mini', Number(value).toFixed(2));
+      control.addEventListener('input', () => { readout.textContent = Number(control.value).toFixed(2); });
+      control.addEventListener('change', () => acc.cambiar(`voice.settings.${key}`, Number(control.value)));
+      voz.append(campo(label, control, hint), readout);
+    };
+    addSetting('stability', 'Expresividad natural', 0, 1, 0.01, settings.stability ?? 0.42, 'Un valor menor permite más variación expresiva.');
+    addSetting('speed', 'Ritmo de profesor', 0.7, 1.2, 0.01, settings.speed ?? 0.92, 'Menos de 1.00 ralentiza suavemente; no se acelera para encajar en la duración anterior.');
+    if (models.find(model => model.id === selectedModel)?.canUseStyle !== false) {
+      addSetting('style', 'Énfasis expresivo', 0, 1, 0.01, settings.style ?? 0.25, 'Aumenta moderadamente la expresividad de la voz.');
+    }
+    addSetting('similarityBoost', 'Fidelidad de voz', 0, 1, 0.01, settings.similarityBoost ?? 0.75, 'Conserva el carácter de la voz seleccionada.');
+    const catalogError = s.capacidades?.voiceErrors?.elevenlabs;
+    if (catalogError) voz.append(el('p', 'ayuda', `No se pudo cargar el catálogo ElevenLabs: ${catalogError}`));
+    if (!s.capacidades?.elevenLabsConfigured) {
+      voz.append(el('p', 'ayuda', 'Añade ELEVENLABS_API_KEY en .env y reinicia AI Video Maker para cargar las voces de tu cuenta.'));
+    }
+  }
+  voz.append(boton('Escuchar muestra de esta escena', 'btn-mini', () => acc.probarVoz(), { deshabilitado: !p.voice?.name || s.trabajando }));
   const muestra = s.biblioteca?.voz;
   if (muestra?.url) { const audio = document.createElement('audio'); audio.src = muestra.url; audio.controls = true; audio.style.width = '100%'; voz.append(audio); }
   if (muestra?.motivo) voz.append(el('p', 'ayuda', muestra.motivo));
-  if (!voces.length) voz.append(el('p', 'ayuda', 'No hay voces disponibles. Para Edge TTS instala Python y ejecuta python -m pip install edge-tts; después reinicia el servidor.'));
+  if (!voces.length) voz.append(el('p', 'ayuda', 'No se pudo cargar ningún catálogo de voces. Revisa el proveedor elegido y su mensaje de configuración.'));
 
   const gan = entrada({ tipo: 'range', min: 0, max: 2, step: 0.05, valor: p.voice?.gain ?? 1 });
   const ganTexto = el('span', 'mini', `${Math.round((p.voice?.gain ?? 1) * 100)} %`);

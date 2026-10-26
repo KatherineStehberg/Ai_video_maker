@@ -40,7 +40,7 @@ import {
   normalizeOnScreenStyle, POSICIONES_DESTACADO, ANIMACIONES_DESTACADO,
   TAMANOS_DESTACADO, FONDOS_DESTACADO, PALABRAS_DESTACADO, resumenDestacados,
 } from '../core/on-screen-text.js';
-import { listAllVoices, getProvider } from '../providers/tts/index.js';
+import { catalog as ttsCatalog, getProvider } from '../providers/tts/index.js';
 import { LANGUAGES } from '../core/lang.js';
 import { getStorage } from './storage.js';
 import { wanConfig } from '../providers/video-generation/wan.js';
@@ -378,13 +378,20 @@ export async function listar() {
 
 /** Opciones reales que la interfaz puede ofrecer. Nada inventado. */
 export async function capacidades() {
+  const tts = await ttsCatalog();
   return {
     wan: wanConfig(),
     aspects: ASPECTS,
     brands: listBrands(),
     templates: listTemplates(),
     languages: LANGUAGES,
-    voices: await listAllVoices(),
+    voices: tts.voices,
+    voiceErrors: tts.errors,
+    voiceModels: tts.models,
+    voiceProviders: tts.providers,
+    elevenLabsConfigured: Boolean(tts.providers.elevenlabs?.available),
+    elevenLabsModel: tts.elevenLabsModel,
+    elevenLabsVoiceSettings: tts.elevenLabsVoiceSettings,
     captionStyle: captionStyleOptions(),
     onScreen: {
       positions: POSICIONES_DESTACADO,
@@ -435,6 +442,17 @@ const num = (v, min, max, porDefecto) => {
 export async function guardar(id, patch = {}) {
   const p = await cargarProyecto(id);
   if (activos.has(id)) throw new Error('Hay una operación en curso sobre este proyecto; espera a que termine.');
+  const narrationSettings = () => JSON.stringify({
+    language: p.language,
+    provider: p.voice?.provider,
+    name: p.voice?.name,
+    model: p.voice?.model,
+    settings: p.voice?.settings,
+    rate: p.voice?.rate,
+    en: p.voice?.en,
+    es: p.voice?.es,
+  });
+  const previousNarrationSettings = narrationSettings();
 
   const ed = bloqueEditor(p);
   if (patch.revision !== undefined && Number(patch.revision) !== ed.revision) {
@@ -485,9 +503,20 @@ export async function guardar(id, patch = {}) {
       ...p.voice,
       ...(patch.voice.provider !== undefined ? { provider: patch.voice.provider } : {}),
       ...(patch.voice.name !== undefined ? { name: String(patch.voice.name).slice(0, 160) } : {}),
+      ...(patch.voice.model !== undefined ? { model: String(patch.voice.model).slice(0, 120) } : {}),
       ...(patch.voice.en !== undefined ? { en: String(patch.voice.en).slice(0, 160) } : {}),
       ...(patch.voice.es !== undefined ? { es: String(patch.voice.es).slice(0, 160) } : {}),
       ...(patch.voice.rate !== undefined ? { rate: num(patch.voice.rate, -10, 10, 0) } : {}),
+      ...(patch.voice.settings !== undefined ? {
+        settings: {
+          ...p.voice.settings,
+          ...(patch.voice.settings.stability !== undefined ? { stability: num(patch.voice.settings.stability, 0, 1, 0.42) } : {}),
+          ...(patch.voice.settings.similarityBoost !== undefined ? { similarityBoost: num(patch.voice.settings.similarityBoost, 0, 1, 0.75) } : {}),
+          ...(patch.voice.settings.style !== undefined ? { style: num(patch.voice.settings.style, 0, 1, 0.25) } : {}),
+          ...(patch.voice.settings.speed !== undefined ? { speed: num(patch.voice.settings.speed, 0.7, 1.2, 0.92) } : {}),
+          ...(patch.voice.settings.useSpeakerBoost !== undefined ? { useSpeakerBoost: Boolean(patch.voice.settings.useSpeakerBoost) } : {}),
+        },
+      } : {}),
       ...(patch.voice.enabled !== undefined ? { enabled: Boolean(patch.voice.enabled) } : {}),
       // Ganancia de MEZCLA, no de sintesis: se aplica al montar el audio, asi
       // que cambia el volumen sin tener que regenerar la voz.
@@ -553,7 +582,17 @@ export async function guardar(id, patch = {}) {
       if (cambio.text !== undefined) {
         const texto = String(cambio.text).trim();
         if (!texto) throw new Error(`La escena ${vieja.id} se quedaría sin narración.`);
-        vieja.text = texto.slice(0, 4000);
+        const nextText = texto.slice(0, 4000);
+        if (nextText !== vieja.text) {
+          vieja.text = nextText;
+          vieja.narrationPath = null;
+          vieja.narrationKey = null;
+          vieja.narrationText = null;
+          vieja.narrationVoices = [];
+          vieja.narrationLangs = [];
+          vieja.captionTimings = null;
+          vieja.captionTimingText = null;
+        }
       }
       if (cambio.caption !== undefined) vieja.caption = cambio.caption === null ? null : String(cambio.caption).slice(0, 4000);
       if (cambio.visualPrompt !== undefined) vieja.visualPrompt = String(cambio.visualPrompt).slice(0, 300);
@@ -628,6 +667,18 @@ export async function guardar(id, patch = {}) {
     }
     // `makeScene` vuelve a normalizar (rotulo acortado, valores validos).
     p.scenes = p.scenes.map(s => makeScene(s));
+  }
+
+  if (narrationSettings() !== previousNarrationSettings) {
+    for (const scene of p.scenes) {
+      scene.narrationPath = null;
+      scene.narrationKey = null;
+      scene.narrationText = null;
+      scene.narrationVoices = [];
+      scene.narrationLangs = [];
+      scene.captionTimings = null;
+      scene.captionTimingText = null;
+    }
   }
 
   // Editar invalida la aprobacion previa y deja el MP4 anterior como viejo.

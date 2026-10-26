@@ -12,7 +12,12 @@ const option=(value,text)=>{const o=document.createElement('option');o.value=val
 const fileUrl=p=>'/file?path='+encodeURIComponent(p);
 function listOptions(el,items){el.replaceChildren(...items.map(([v,t])=>option(v,t)));}
 async function init(){config=await api('config');for(const id of ['brand','edit-brand'])listOptions($(id),config.brands.map(b=>[b.id,b.name]));$('brand').value='personal';listOptions($('template'),config.templates.map(t=>[t.id,t.name]));for(const id of ['format','edit-format'])listOptions($(id),Object.entries(config.aspects).map(([id,a])=>[id,id+' · '+a.label]));$('format').value='9:16';
-  listOptions($('voice'),[['none','Sin narración (explícito)'],...config.voices.map(v=>[v.provider+'|'+v.name,v.name+' · '+v.language])]);
+  const voiceOptions=config.voices.map(v=>[v.provider+'|'+(v.id||v.name),`${v.label||v.name} · ${v.language} · ${v.provider}`]);
+  if(!config.voiceProviders?.elevenlabs?.available)voiceOptions.push(['elevenlabs|','ElevenLabs · configura ELEVENLABS_API_KEY']);
+  listOptions($('voice'),[['none','Sin narración (explícito)'],...voiceOptions]);
+  listOptions($('voice-model'),(config.voiceModels?.elevenlabs||[]).map(m=>[m.id,m.name]));
+  $('voice-model').value=config.elevenLabsModel||$('voice-model').value;
+  $('voice').addEventListener('change',()=>{$('voice-model-wrap').hidden=!$('voice').value.startsWith('elevenlabs|');});
   const byLang=code=>config.voices.filter(v=>String(v.language || '').slice(0,2).toLowerCase()===code);
   for(const [id,code] of [['voice-en','en'],['voice-es','es']]){
     const voces=byLang(code);
@@ -110,7 +115,7 @@ function draw(){
   if(project.voice.es)$('voice-es').value=project.voice.es;
   $('voice-rate').value=project.voice.rate ?? 0;
   $('lang-voices').hidden=!project.voice.enabled;
-  $('voice').value=project.voice.enabled?project.voice.provider+'|'+project.voice.name:'none';$('music').value=project.music.path || '';$('music-volume').value=project.music.volume;$('captions').checked=project.captions.enabled;if(project.captions.style)pintarEstiloSubs(project.captions.style);
+  $('voice').value=project.voice.enabled?project.voice.provider+'|'+project.voice.name:'none';$('voice-model').value=project.voice.model||config.elevenLabsModel||config.voiceModels?.elevenlabs?.[0]?.id||'';$('voice-model-wrap').hidden=project.voice.provider!=='elevenlabs';$('music').value=project.music.path || '';$('music-volume').value=project.music.volume;$('captions').checked=project.captions.enabled;if(project.captions.style)pintarEstiloSubs(project.captions.style);
   $('references').value=project.studio.references.map(r=>r.originalReference).join('\n');$('approve').checked=!!project.studio.approvedScriptHash;
   $('scenes').replaceChildren(...project.scenes.map((s,i)=>{
     const box=document.createElement('article');box.className='scene';box.dataset.id=s.id;const h=document.createElement('h3');h.textContent=`Escena ${i+1}`;
@@ -125,7 +130,7 @@ function draw(){
   }));
   $('manifest').href=`/api/studio/projects/${project.id}/manifest`;displayJob();displayOutputs();
 }
-function payload(){const v=$('voice').value.split('|');return {revision:project.studio.revision,brand:$('edit-brand').value,aspectRatio:$('edit-format').value,style:$('style').value,language:$('edit-language').value,voice:{provider:v[0],name:v[1] || '',en:$('voice-en').value,es:$('voice-es').value,rate:Number($('voice-rate').value)},music:{path:$('music').value,volume:Number($('music-volume').value)},captions:$('captions').checked,approveScript:$('approve').checked,references:$('references').value.split('\n').map(s=>s.trim()).filter(Boolean).map(url=>({kind:url.includes('drive.google')?'drive':url.includes('github.com')?'github':'other',originalReference:url})),scenes:[...document.querySelectorAll('.scene')].map(box=>{
+function payload(){const v=$('voice').value.split('|');return {revision:project.studio.revision,brand:$('edit-brand').value,aspectRatio:$('edit-format').value,style:$('style').value,language:$('edit-language').value,voice:{provider:v[0],name:v[1] || '',model:$('voice-model').value,en:$('voice-en').value,es:$('voice-es').value,rate:Number($('voice-rate').value)},music:{path:$('music').value,volume:Number($('music-volume').value)},captions:$('captions').checked,approveScript:$('approve').checked,references:$('references').value.split('\n').map(s=>s.trim()).filter(Boolean).map(url=>({kind:url.includes('drive.google')?'drive':url.includes('github.com')?'github':'other',originalReference:url})),scenes:[...document.querySelectorAll('.scene')].map(box=>{
   const v={};for(const el of box.querySelectorAll('[data-field]'))v[el.dataset.field]=el.type==='checkbox'?el.checked:el.value;
   const titulo=String(v.onScreenTitle||'').trim();
   return {id:box.dataset.id,text:v.text,caption:v.caption,duration:Number(v.duration),assetPath:v.assetPath,

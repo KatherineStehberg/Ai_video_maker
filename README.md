@@ -355,10 +355,10 @@ cacheada. Un clip corto se repite hasta cubrir su escena; su audio original no
 se mezcla con la narración. La vista previa del editor también reproduce el
 movimiento del clip, silenciado, junto a la voz y la música.
 
-**Voces:** además de SAPI y Piper, hay un proveedor opcional **Edge TTS** con
-catálogo consultado al servicio, español (Chile primero) e inglés. No aparece
-como disponible si no se puede consultar su catálogo. Requiere Python, FFmpeg
-e internet:
+**Voces:** SAPI y Piper funcionan localmente. También están disponibles Edge
+TTS y **ElevenLabs** como proveedores opcionales. Edge consulta su catálogo al
+servicio, prioriza español (Chile) e incluye inglés; requiere Python, FFmpeg e
+internet:
 
 ```powershell
 python -m pip install -r requirements-voices.txt
@@ -371,28 +371,38 @@ externo: el texto se envía fuera del equipo, su disponibilidad puede cambiar y
 no hay garantía de servicio. No requiere clave de API. Las voces locales siguen
 estando disponibles.
 
+ElevenLabs requiere conexión y una clave propia en `.env`; no se envía la clave
+al navegador ni se usa el proveedor hasta que se selecciona explícitamente.
+Configura `ELEVENLABS_API_KEY` y reinicia el servidor. El editor permite elegir
+voz, modelo y expresividad; guarda esos ajustes por proyecto. La síntesis usa
+alineación de palabras para sincronizar subtítulos con la voz. Si falla la
+autenticación, cuota o alineación, la exportación informa el error y no cambia
+silenciosamente a otra voz. Las solicitudes generan consumo en la cuenta de
+ElevenLabs.
+
 El selector de idioma y voz y **Escuchar muestra** están tanto en el generador
 como en **Audio → Narración** del editor visual. Al guardar y exportar se rehace
-la narración cuyo texto, voz o idioma cambió. Las marcas `[en]...[/en]` y
+la narración cuyo texto, voz, modelo o idioma cambió. Las marcas `[en]...[/en]` y
 `[es]...[/es]` alternan voces también con Edge. Si falla una voz Edge elegida,
 la producción falla con un mensaje: no declara terminado un MP4 silencioso.
 
 La API de generación y el contrato del Orquestador admiten
 `visualMode: "prefer-video" | "video-only" | "images"` y
-`voice: { provider: "edge", name: "<nombre del catálogo>", enabled: true }`.
+`voice: { provider: "edge", name: "<nombre del catálogo>", enabled: true }` o
+`voice: { provider: "elevenlabs", name: "<voice_id>", model: "eleven_multilingual_v2", enabled: true }`.
 
 Verificación específica:
 
 ```powershell
-npm test -- tests/moving-clips.test.js tests/edge-voices.test.js
+npm test -- tests/moving-clips.test.js tests/edge-voices.test.js tests/elevenlabs.test.js
 ```
 
 Las pruebas de clips simulan Pexels sin claves reales, pero descargan un MP4
 real de prueba, lo verifican con ffprobe, lo montan y comprueban variación de
-frames y duración. Las pruebas de voces simulan el servicio externo, ejecutan
-Python y FFmpeg reales y verifican muestras WAV, alternancia de idiomas,
-persistencia y rechazo del éxito silencioso. No acreditan la calidad audible
-de las voces del servicio en vivo.
+frames y duración. Las pruebas de voces simulan los servicios externos,
+ejecutan Python y FFmpeg reales y verifican muestras WAV, alternancia de
+idiomas, persistencia, alineación y rechazo del éxito silencioso. No acreditan
+la calidad audible de las voces del servicio en vivo.
 
 Prueba adicional de controles DOM (no sustituye una prueba en navegador real):
 

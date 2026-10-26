@@ -64,6 +64,15 @@ export const CONFIG = {
     provider: process.env.TTS_PROVIDER || (process.platform === 'win32' ? 'sapi' : 'none'),
     piperPath: process.env.PIPER_PATH || '',
     piperModel: process.env.PIPER_MODEL || '',
+    elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+    elevenLabsModel: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+    elevenLabsVoiceSettings: {
+      stability: Number(process.env.ELEVENLABS_STABILITY || 0.42),
+      similarityBoost: Number(process.env.ELEVENLABS_SIMILARITY_BOOST || 0.75),
+      style: Number(process.env.ELEVENLABS_STYLE || 0.25),
+      speed: Number(process.env.ELEVENLABS_SPEED || 0.92),
+      useSpeakerBoost: process.env.ELEVENLABS_SPEAKER_BOOST !== '0',
+    },
   },
 
   subtitles: {
@@ -91,7 +100,12 @@ export function publicConfig() {
       model: CONFIG.llm.model || CONFIG.llm.ollamaModel,
       hasApiKey: Boolean(CONFIG.llm.apiKey),
     },
-    tts: { provider: CONFIG.tts.provider, piperConfigured: Boolean(CONFIG.tts.piperPath) },
+    tts: {
+      provider: CONFIG.tts.provider,
+      piperConfigured: Boolean(CONFIG.tts.piperPath),
+      elevenLabsConfigured: Boolean(CONFIG.tts.elevenLabsApiKey),
+      elevenLabsModel: CONFIG.tts.elevenLabsModel,
+    },
     subtitles: { provider: CONFIG.subtitles.provider },
     image: { provider: CONFIG.image.provider, hasPexelsKey: Boolean(CONFIG.image.pexelsKey) },
     render: CONFIG.render,

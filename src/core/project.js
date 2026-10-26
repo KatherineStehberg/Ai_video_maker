@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PATHS, ensureDir, rel, abs } from '../lib/paths.js';
 import { newId, slugify, nowISO, estimateDuration, clamp } from '../lib/util.js';
-import { ASPECTS } from '../config.js';
+import { ASPECTS, CONFIG } from '../config.js';
 import { SCENE_DURATION_LIMITS } from '../generation/limits.js';
 import { normalizeLanguage } from './lang.js';
 import { normalizeCaptionStyle } from './captions-style.js';
@@ -98,10 +98,18 @@ export function makeProject(partial = {}) {
     editor: partial.editor ?? null,
     scenes: (partial.scenes || []).map(makeScene),
     voice: {
-      provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | none
+      provider: partial.voice?.provider ?? 'auto',   // auto | sapi | piper | edge | elevenlabs | none
       name: partial.voice?.name ?? '',
       rate: partial.voice?.rate ?? 0,                // -10..10 (SAPI)
       volume: partial.voice?.volume ?? 100,
+      model: partial.voice?.model ?? '',
+      settings: {
+        stability: partial.voice?.settings?.stability ?? CONFIG.tts.elevenLabsVoiceSettings.stability,
+        similarityBoost: partial.voice?.settings?.similarityBoost ?? CONFIG.tts.elevenLabsVoiceSettings.similarityBoost,
+        style: partial.voice?.settings?.style ?? CONFIG.tts.elevenLabsVoiceSettings.style,
+        speed: partial.voice?.settings?.speed ?? CONFIG.tts.elevenLabsVoiceSettings.speed,
+        useSpeakerBoost: partial.voice?.settings?.useSpeakerBoost ?? CONFIG.tts.elevenLabsVoiceSettings.useSpeakerBoost,
+      },
       enabled: partial.voice?.enabled ?? true,
       // Voz por idioma para guiones con marcas [en]/[es]. Vacio => se elige
       // la voz por defecto del idioma entre las instaladas.

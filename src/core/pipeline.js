@@ -125,6 +125,10 @@ export async function runPipeline(project, {
       });
       report.steps.narration = { provider: res.provider, errors: res.errors?.length || 0, voice: res.voice || null, voices: res.voices || null };
       if (project.voice?.enabled !== false && project.voice?.provider === 'edge' && (res.provider === 'none' || res.errors?.length)) throw new Error('No se pudo generar la voz Edge TTS. Revisa la instalación y la conexión; no se exportará un video silencioso como si estuviera listo.');
+      if (project.voice?.enabled !== false && project.voice?.provider === 'elevenlabs' && (res.provider !== 'elevenlabs' || res.errors?.length)) {
+        const detail = res.errors?.[0]?.error;
+        throw new Error(detail ? `ElevenLabs no pudo generar la narración: ${detail}` : 'ElevenLabs no generó la narración. No se cambiará automáticamente a otra voz.');
+      }
       // Desajuste entre idioma declarado y voz elegida: ya corregido, pero visible.
       if (res.warnings?.length) report.warnings.push(...res.warnings);
       if(project.studio && project.voice?.enabled && (res.provider==='none' || res.errors?.length)) {

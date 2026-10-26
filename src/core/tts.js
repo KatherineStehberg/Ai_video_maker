@@ -129,27 +129,62 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     const plan = narrationPlan(text, project, installed);
     const useSsml = engine.supportsSsml ? plan.ssml : null;
 
-    const rawFile = path.join(dir, `${scene.id}.raw.wav`);
-    const outFile = path.join(dir, `${scene.id}.wav`);
+    const providerOptions = engine.cacheKeyOptions?.(project.voice) || null;
+    const voiceForCache = engine.id === 'elevenlabs'
+      ? { provider: engine.id, name: project.voice?.name, ...providerOptions }
+      : project.voice;
     const narrationKey = createHash('sha256').update(JSON.stringify({
-      text, engine: engine.id, voice: project.voice,
-      ...((timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? { timingVersion: 'sapi-pcm16-v2' } : {}),
+      text, engine: engine.id, voice: voiceForCache,
+      ...(engine.id !== 'elevenlabs' && providerOptions ? { providerOptions } : {}),
+      ...(engine.id === 'elevenlabs' ? { timingVersion: 'elevenlabs-alignment-v1' } :
+        (timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? { timingVersion: 'sapi-pcm16-v2' } : {}),
       language: project.language, ssml: useSsml, base: plan.base,
     })).digest('hex');
+    const rawFile = path.join(dir, `${scene.id}-${narrationKey}.raw.wav`);
+    const outFile = path.join(dir, `${scene.id}-${narrationKey}.wav`);
 
     // Reutiliza audio ya generado si el texto no cambio (ahorra minutos de CPU).
-    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey && (!timedCaptions || scene.captionTimings?.length)) {
+    const requiresTimings = engine.supportsTimings || Boolean((timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings);
+    if (!force && scene.narrationPath && fs.existsSync(abs(scene.narrationPath)) && scene.narrationKey === narrationKey && (!requiresTimings || scene.captionTimings?.length)) {
       narrations.push(scene.narrationPath);
       durations.push(await probeDuration(abs(scene.narrationPath)));
       continue;
     }
 
+    const cachedTimingsFile = `${rawFile}.timings.json`;
+    if (!force && fs.existsSync(outFile) && (!requiresTimings || fs.existsSync(cachedTimingsFile))) {
+      const duration = await probeDuration(outFile);
+      if (duration) {
+        try {
+          if (requiresTimings) {
+            const marks = JSON.parse(fs.readFileSync(cachedTimingsFile, 'utf8'));
+            scene.captionTimingText = plan.plain;
+            scene.captionTimings = speechCues(plan.plain, marks, duration);
+          } else {
+            scene.captionTimings = null;
+            scene.captionTimingText = null;
+          }
+          scene.narrationPath = rel(outFile);
+          scene.narrationKey = narrationKey;
+          scene.narrationText = plan.plain;
+          narrations.push(scene.narrationPath);
+          durations.push(duration);
+          continue;
+        } catch (error) {
+          log.warn(`Alineación cacheada inválida para ${scene.id}; se regenerará: ${error.message}`);
+        }
+      }
+    }
+
     try {
-      const synthesize = (timedCaptions || scene.captionTimings?.length) && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
+      const synthesize = requiresTimings && engine.synthesizeWithTimings ? engine.synthesizeWithTimings : engine.synthesize;
       const marks = await synthesize(plan.plain, rawFile, {
         voice: plan.base || project.voice?.name || '',
         rate: project.voice?.rate ?? 0,
         volume: project.voice?.volume ?? 100,
+        model: project.voice?.model || '',
+        settings: project.voice?.settings || {},
+        language: plan.baseLang,
         ssml: useSsml,
         ...(engine.supportsSegments ? { segments: plan.segments, voices: plan.voices } : {}),
       });
@@ -165,9 +200,10 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
       try { fs.unlinkSync(rawFile); } catch { /* temporal */ }
 
       const d = await probeDuration(outFile);
-      if (Array.isArray(marks) && marks.length) { scene.captionTimingText = text; scene.captionTimings = speechCues(text, marks, d); }
+      if (Array.isArray(marks) && marks.length) { scene.captionTimingText = plan.plain; scene.captionTimings = speechCues(plan.plain, marks, d); }
       else { scene.captionTimings = null; scene.captionTimingText = null; }
-      narrations.push(rel(outFile));
+      scene.narrationPath = rel(outFile);
+      narrations.push(scene.narrationPath);
       durations.push(d);
       scene.narrationText = plan.plain; // marca de cache, ya sin tags
       scene.narrationKey = narrationKey;
@@ -178,6 +214,13 @@ export async function narrateProject(project, { provider = 'auto', onProgress, f
     } catch (e) {
       log.error(`Escena ${i + 1} sin narracion:`, e.message);
       errors.push({ sceneId: scene.id, error: e.message });
+      scene.narrationPath = null;
+      scene.narrationKey = null;
+      scene.narrationText = null;
+      scene.narrationVoices = [];
+      scene.narrationLangs = [];
+      scene.captionTimings = null;
+      scene.captionTimingText = null;
       narrations.push(null);
       durations.push(null);
     }
@@ -233,11 +276,11 @@ export async function buildNarrationTrack(project) {
 }
 
 /** Prueba rapida de voz: genera un WAV corto para escuchar en la UI. */
-export async function previewVoice(text, { provider = 'auto', voice = '', rate = 0 } = {}) {
+export async function previewVoice(text, { provider = 'auto', voice = '', rate = 0, model = '', settings = {} } = {}) {
   const engine = await resolveProvider(provider);
   if (engine.id === 'none') throw new Error('No hay motor TTS disponible');
   const dir = workDir('_preview');
   const out = path.join(dir, `voice_${Date.now()}.wav`);
-  await engine.synthesize(String(text || '').slice(0, 400), out, { voice, rate });
+  await engine.synthesize(String(text || '').slice(0, 400), out, { voice, rate, model, settings });
   return rel(out);
 }

@@ -569,7 +569,12 @@ function leerFormulario() {
     platform: $('gen-platform').value.trim() || null,
     music: $('gen-tono').value.trim() || null,
     visualMode: $('gen-visual-mode').value,
-    voice: seleccionVoz === 'none' ? { provider: 'none', enabled: false } : seleccionVoz === 'auto' ? undefined : { provider: providerVoz, name: nombreVoz.join('|'), enabled: true },
+    voice: seleccionVoz === 'none' ? { provider: 'none', enabled: false } : seleccionVoz === 'auto' ? undefined : {
+      provider: providerVoz,
+      name: nombreVoz.join('|'),
+      model: providerVoz === 'elevenlabs' ? $('gen-voice-model').value : '',
+      enabled: true,
+    },
     // SUBTITULOS. Este campo faltaba: la casilla existia en la pantalla pero
     // nunca viajaba al backend, asi que desactivarla no hacia nada y el video
     // salia subtitulado igual. Ahora manda lo que diga la casilla.
@@ -586,7 +591,7 @@ $('gen-voice-preview').addEventListener('click', async () => {
     const selected = b.voice || (borrador?.voz ? { provider: borrador.voz.provider, name: borrador.voz.nombre } : null);
     if (!selected?.name) throw new Error('Elige una voz del catálogo para escuchar la muestra.');
     const res = await fetch('/api/project-editor/preview-voice', { method: 'POST', headers: { 'content-type': 'application/json', 'x-editor-request': '1' },
-      body: JSON.stringify({ provider: selected.provider, voice: selected.name, text: selected.name.startsWith('en-') ? 'Hello. This is a sample of the voice for your video.' : 'Hola. Esta es una muestra de la voz para tu video.' }) });
+      body: JSON.stringify({ provider: selected.provider, voice: selected.name, model: b.voice?.model, text: $('gen-language').value === 'en' ? 'Hello. This is a short sample of the voice for your video.' : 'Hola. Esta es una muestra breve de la voz para tu video.' }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo generar la muestra.');
     $('gen-voice-audio').src = data.url; $('gen-voice-audio').hidden = false;
@@ -594,6 +599,10 @@ $('gen-voice-preview').addEventListener('click', async () => {
   finally { button.disabled = false; }
 });
 $('gen-voice').addEventListener('change', () => { $('gen-voice-audio').pause(); $('gen-voice-audio').hidden = true; });
+function actualizarModeloVoz() {
+  $('wrap-gen-voice-model').hidden = !$('gen-voice').value.startsWith('elevenlabs|');
+}
+$('gen-voice').addEventListener('change', actualizarModeloVoz);
 
 $('gen-duration').addEventListener('change', () => {
   $('wrap-duracion-custom').hidden = $('gen-duration').value !== 'custom';
@@ -929,11 +938,16 @@ try {
 
 // El catálogo remoto no bloquea el arranque del editor.
 void (async () => { try {
-  const res = await fetch('/api/voices');
+  const res = await fetch('/api/tts/capabilities');
   if (!res.ok) throw new Error('No se pudo consultar el catálogo.');
-  const voices = await res.json();
-  for (const v of voices) $('gen-voice').append(new Option(`${v.name} · ${v.language} · ${v.provider}`, `${v.provider}|${v.name}`));
-  if (!voices.length) $('gen-voice-note').textContent = 'No hay voces disponibles. Instala Python y edge-tts para voces en línea, o configura SAPI/Piper para narración local.';
+  const catalog = await res.json();
+  const voices = catalog.voices || [];
+  for (const v of voices) $('gen-voice').append(new Option(`${v.label || v.name} · ${v.language} · ${v.provider}`, `${v.provider}|${v.id || v.name}`));
+  if (!catalog.providers?.elevenlabs?.available) $('gen-voice').append(new Option('ElevenLabs · requiere clave API local', 'elevenlabs|'));
+  const models = catalog.models?.elevenlabs || [];
+  $('gen-voice-model').replaceChildren(...models.map(m => new Option(`${m.name}${m.languages?.length ? ` · ${m.languages.join(', ')}` : ''}`, m.id)));
+  if (!voices.length) $('gen-voice-note').textContent = catalog.errors?.elevenlabs || 'No hay voces disponibles. Configura ElevenLabs, instala edge-tts o habilita voces locales SAPI/Piper.';
+  actualizarModeloVoz();
 } catch (e) { $('gen-voice-note').textContent = e.message; } })();
 
 // Marcas disponibles (si el backend las expone); si no, una opción neutra.

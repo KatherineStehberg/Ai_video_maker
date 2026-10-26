@@ -290,7 +290,7 @@ export function estimarCosto(borrador = {}, spec = {}) {
         ? (process.env.WAN_BACKEND === 'space' ? 'Wan en Space externo (cuota y condiciones del Space)' : 'Wan local (requiere GPU instalada)')
         : (process.env.PEXELS_API_KEY ? 'Pexels (free tier)' : 'fondos generados con FFmpeg'),
       pago: spec.visualMode === 'wan' && process.env.WAN_BACKEND === 'space' },
-    { pieza: 'Voz', proveedor: 'SAPI/Piper local o Edge TTS en línea, según selección y disponibilidad', pago: false },
+    { pieza: 'Voz', proveedor: 'SAPI/Piper local, Edge TTS o ElevenLabs según selección y disponibilidad', pago: spec.voice?.provider === 'elevenlabs' },
     { pieza: 'Subtítulos', proveedor: 'estimados en local', pago: false },
     { pieza: 'Montaje', proveedor: 'FFmpeg local', pago: false },
   ];

@@ -10,6 +10,7 @@ import { loadProject } from '../core/project.js';
 import { findCourseProject, prepareCourseProject } from './editing.js';
 import { resolveSafeAsset } from '../core/asset-manager.js';
 import { createCourseQueue } from './queue.js';
+import { CONFIG } from '../config.js';
 
 export const packFile = path.join(PATHS.root, 'content/courses/lc-chile-20261004.json');
 export const loadPack = () => JSON.parse(fs.readFileSync(packFile, 'utf8'));
@@ -20,7 +21,7 @@ export function courseSpec(item, voice) {
   const contract = normalizeOrchestratorInput({
     projectId: `course:${item.id}:${item.scriptSha256}`, brandId: 'lc-chile-courses',
     title: item.title, script: item.script, format: '16:9', platform: 'lms', style: 'corporativo',
-    voice: { provider: voice.provider, name: voice.name, enabled: true, rate: -1 },
+    voice: { provider: voice.provider, name: voice.name, model: voice.model, settings: voice.settings, enabled: true, rate: -1 },
     sourceReference: { kind: 'url', id: item.sources[0], name: item.id },
     music: { enabled: false }, subtitles: { enabled: true, burnIn: true, language: 'en', style: { preset: 'curso' } },
     course: item.course,
@@ -34,11 +35,18 @@ export function courseSpec(item, voice) {
 export async function preflight() {
   const ff = await resolveFfmpeg();
   const voices = await listAllVoices();
-  const voice = voices.find(v => /^en(?:[-_]|$)/i.test(v.language || v.locale || v.name || '') && ['sapi','piper'].includes(v.provider));
+  const english = voices.filter(v => /^en(?:[-_]|$)/i.test(v.language || v.locale || v.name || '') && ['sapi','piper','elevenlabs'].includes(v.provider));
+  const voice = english.find(v => v.provider === CONFIG.tts.provider) || english.find(v => ['sapi','piper'].includes(v.provider)) || english.find(v => v.provider === 'elevenlabs');
   const reasons = [];
   if (!ff.ffmpeg || !ff.ffprobe) reasons.push('Se necesitan FFmpeg y ffprobe para producir y verificar los MP4.');
-  if (!voice) reasons.push('Se necesita una voz local en inglés (SAPI o Piper). No se producirán videos silenciosos ni con una voz de otro idioma.');
-  return { ok: reasons.length === 0, reasons, voice: voice ? { name: voice.name, provider: voice.provider, language: voice.language } : null };
+  if (!voice) reasons.push('Se necesita una voz en inglés: SAPI/Piper local o ElevenLabs con clave configurada. No se producirán videos silenciosos ni con voz de otro idioma.');
+  return { ok: reasons.length === 0, reasons, voice: voice ? {
+    name: voice.name,
+    provider: voice.provider,
+    language: voice.language,
+    model: voice.provider === 'elevenlabs' ? CONFIG.tts.elevenLabsModel : '',
+    settings: voice.provider === 'elevenlabs' ? CONFIG.tts.elevenLabsVoiceSettings : undefined,
+  } : null };
 }
 
 async function verify(job, item) {
