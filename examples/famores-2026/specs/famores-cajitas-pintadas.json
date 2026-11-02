@@ -1,0 +1,51 @@
+{
+  "kicker": "CAJITAS",
+  "compact": true,
+  "title": [
+    "Cajitas de mascotas",
+    "pintadas"
+  ],
+  "sku": "FAM-MAS-PIN-03 · 06 · 08",
+  "photos": [
+    {
+      "src": "img/pin06.jpg",
+      "label": "Sin logo"
+    },
+    {
+      "src": "img/pin06logo.jpg",
+      "label": "Con logo en la tapa"
+    }
+  ],
+  "bullets": [
+    "Mascotas pintadas a mano",
+    "Cajas de 3, 6 u 8 divisiones",
+    "Caja de madera · tul · empaquetado",
+    "Con logo: Famores o tu empresa en la tapa"
+  ],
+  "price": {
+    "headers": [
+      "Caja",
+      "Sin logo",
+      "Con logo"
+    ],
+    "rows": [
+      [
+        "3 div.",
+        22500,
+        29500
+      ],
+      [
+        "6 div.",
+        41500,
+        48500
+      ],
+      [
+        "8 div.",
+        52000,
+        59000
+      ]
+    ],
+    "note": "Precios finales en CLP, IVA incluido"
+  },
+  "duration": 18
+}
