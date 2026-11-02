@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Famores 2026 — video en movimiento (sin narración)</title>
+<style>
+:root{--cream:#F6EBDD;--brown:#3B2A1E;--teal:#1B7F7F;--red:#B5452F;--sand:#E9D7C0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#1f1610;overflow:hidden}
+body{font-family:"DejaVu Sans","Helvetica Neue",Arial,sans-serif;color:var(--brown)}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;background:var(--cream);overflow:hidden;transform-origin:0 0}
+.blob{position:absolute;border-radius:50%;opacity:.55}
+.b1{width:900px;height:900px;background:#EFD9BF;left:-380px;top:-300px}
+.b2{width:700px;height:700px;background:#DCEBE8;right:-300px;bottom:180px}
+.dots{position:absolute;inset:0;background-image:radial-gradient(rgba(59,42,30,.09) 2px,transparent 2.5px);background-size:36px 36px}
+/* intro */
+#intro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px}
+#intro img{width:360px}
+#intro .tag{font-size:40px;letter-spacing:12px;font-weight:700;color:var(--teal)}
+#intro .line{width:0;height:6px;background:var(--red);border-radius:3px}
+/* header */
+#head{position:absolute;left:70px;right:70px;top:70px;display:flex;align-items:center;justify-content:space-between}
+#head img{height:120px}
+#head .kick{background:var(--teal);color:#fff;font-weight:700;font-size:30px;letter-spacing:3px;padding:14px 28px;border-radius:40px}
+#title{position:absolute;left:70px;right:70px;top:240px}
+#title h1{font-size:88px;line-height:1.02;font-weight:800;letter-spacing:-2px}
+#title h1 span{display:block;overflow:hidden}
+#title h1 span i{display:block;font-style:normal}
+#title .sku{margin-top:22px;font-size:30px;font-weight:700;color:var(--red);letter-spacing:2px}
+/* photo */
+#photo{position:absolute;left:70px;right:70px;top:560px;height:760px;background:#fff;border-radius:44px;overflow:hidden;box-shadow:0 30px 60px rgba(59,42,30,.18)}
+#photo .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#photo .ph img{max-width:92%;max-height:88%;object-fit:contain}
+#photo .lbl{position:absolute;left:30px;top:30px;background:var(--brown);color:var(--cream);font-weight:700;font-size:30px;padding:12px 24px;border-radius:30px}
+/* bullets */
+#bul{position:absolute;left:70px;right:70px;top:1370px;display:flex;flex-direction:column;gap:20px}
+.chip{display:flex;align-items:center;gap:22px;font-size:38px;font-weight:600}
+.chip b{flex:none;width:52px;height:52px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px}
+/* price */
+#price{position:absolute;left:70px;right:70px;top:1340px;background:var(--brown);color:var(--cream);border-radius:40px;padding:44px 50px}
+#price .single{display:flex;align-items:baseline;justify-content:space-between}
+#price .single .l{font-size:40px;font-weight:600}
+#price .single .v{font-size:110px;font-weight:800;color:#FFD9A8;letter-spacing:-2px}
+#price table{width:100%;border-collapse:collapse;font-size:40px}
+#price th{font-size:28px;letter-spacing:2px;color:#E9C9A2;text-align:right;padding-bottom:16px;font-weight:700}
+#price th:first-child{text-align:left}
+#price td{padding:12px 0;border-top:2px solid rgba(246,235,221,.15);text-align:right;font-weight:800;color:#FFD9A8}
+#price td:first-child{text-align:left;color:var(--cream);font-weight:600}
+#price .note{margin-top:22px;font-size:26px;color:#E9C9A2}
+/* cta */
+#cta{position:absolute;left:0;right:0;bottom:0;height:250px;background:var(--teal);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#cta .big{font-size:52px;font-weight:800}
+#cta .small{font-size:32px;font-weight:600;opacity:.95}
+.progress{position:absolute;left:0;top:0;height:10px;width:100%;background:var(--red);transform-origin:0 50%}
+body.capture{background:var(--cream)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="dots"></div>
+  <div id="intro"><img src="img/logo.png" alt="Famores"><div class="line"></div><div class="tag">COLECCIÓN 2026</div></div>
+  <div id="head"><img src="img/logo.png" alt="Famores"><div class="kick" id="kick"></div></div>
+  <div id="title"><h1 id="h1"></h1><div class="sku" id="sku"></div></div>
+  <div id="photo"></div>
+  <div id="bul"></div>
+  <div id="price"></div>
+  <div id="cta"><div class="big">famores.com</div><div class="small">WhatsApp +56 9 6205 2499 · @famoresporelmundo</div></div>
+  <div class="progress"></div>
+</div>
+<!--GSAP-->
+<script>
+const spec={{SPEC_JSON}};
+const D=spec.duration||18;
+function fit(){const s=Math.min(innerWidth/1080,innerHeight/1920);const st=document.getElementById('stage');st.style.transform='scale('+s+')';st.style.left=((innerWidth-1080*s)/2)+'px'};fit();addEventListener('resize',fit);
+const $=id=>document.getElementById(id);
+$('kick').textContent=spec.kicker;
+if(spec.compact){$('photo').style.height='620px';$('price').style.top='1240px';$('bul').style.top='1240px';$('h1').style.fontSize='74px'}
+$('h1').innerHTML=spec.title.map(t=>'<span><i>'+t+'</i></span>').join('');
+$('sku').textContent=spec.sku;
+$('photo').innerHTML=spec.photos.map((p,i)=>'<div class="ph" id="ph'+i+'"><img src="'+p.src+'" alt="'+p.label+'">'+(p.label?'<div class="lbl">'+p.label+'</div>':'')+'</div>').join('');
+$('bul').innerHTML=spec.bullets.map((b,i)=>'<div class="chip"><b>'+(i+1)+'</b><span>'+b+'</span></div>').join('');
+const fmt=n=>'$'+Math.round(n).toLocaleString('es-CL').replace(/,/g,'.');
+const nums=[];
+if(spec.price.rows){
+  let h='<table><tr><th>'+spec.price.headers.join('</th><th>')+'</th></tr>';
+  spec.price.rows.forEach(r=>{h+='<tr><td>'+r[0]+'</td>'+r.slice(1).map(v=>{nums.push(v);return '<td class="num" data-i="'+(nums.length-1)+'">'+fmt(v)+'</td>'}).join('')+'</tr>'});
+  $('price').innerHTML=h+'</table><div class="note">'+spec.price.note+'</div>';
+}else{nums.push(spec.price.value);$('price').innerHTML='<div class="single"><div class="l">'+spec.price.label+'</div><div class="v num" data-i="0">'+fmt(spec.price.value)+'</div></div><div class="note">'+spec.price.note+'</div>'}
+const cells=[...document.querySelectorAll('.num')];
+const counter={p:0};
+function paint(){cells.forEach(c=>{c.textContent=fmt(nums[+c.dataset.i]*counter.p)})}
+/* initial state */
+gsap.set(['#head','#title','#photo','#bul','#price','#cta'],{autoAlpha:0});
+gsap.set('#title h1 i',{yPercent:110});
+gsap.set('.ph',{autoAlpha:0});
+gsap.set('.chip',{autoAlpha:0,x:-60});
+gsap.set('.progress',{scaleX:0});
+gsap.set('#intro img',{scale:.88,autoAlpha:1});gsap.set('#intro .tag',{autoAlpha:0,y:30});
+const tl=gsap.timeline({paused:true,defaults:{ease:'power3.out'}});
+/* 0–2.4 intro */
+tl.to('#intro img',{scale:1,duration:.9,ease:'back.out(1.6)'},0.1)
+  .to('#intro .line',{width:320,duration:.7},0.6)
+  .to('#intro .tag',{autoAlpha:1,y:0,duration:.6},0.8)
+  .to('#intro',{autoAlpha:0,scale:1.08,duration:.6,ease:'power2.in'},2.0);
+/* 2.4 head + title */
+tl.to('#head',{autoAlpha:1,duration:.6},2.4).from('#head',{y:-40,duration:.6},2.4)
+  .to('#title',{autoAlpha:1,duration:.01},2.5)
+  .to('#title h1 i',{yPercent:0,duration:.8,stagger:.15},2.5)
+  .from('#sku',{autoAlpha:0,x:-40,duration:.6},3.1);
+/* photo reveal + ken burns, alternate photos if several */
+tl.to('#photo',{autoAlpha:1,duration:.01},3.0)
+  .fromTo('#photo',{clipPath:'inset(0 0 100% 0 round 44px)'},{clipPath:'inset(0 0 0% 0 round 44px)',duration:1.0,ease:'power2.inOut'},3.0);
+const n=spec.photos.length, photoStart=3.0, photoEnd=D-1.0, seg=(photoEnd-photoStart)/n;
+spec.photos.forEach((p,i)=>{const at=photoStart+i*seg;
+  tl.to('#ph'+i,{autoAlpha:1,duration:i?0.6:0.01},at)
+    .fromTo('#ph'+i+' img',{scale:1.0},{scale:1.08,duration:seg+0.6,ease:'none'},at);
+  if(i>0)tl.to('#ph'+(i-1),{autoAlpha:0,duration:.6},at);
+  if(p.label)tl.from('#ph'+i+' .lbl',{autoAlpha:0,y:-20,duration:.5},at+.3);
+});
+/* bullets 4.2 – 8.6 */
+tl.to('#bul',{autoAlpha:1,duration:.01},4.2).to('.chip',{autoAlpha:1,x:0,duration:.6,stagger:.35},4.3)
+  .to('#bul',{autoAlpha:0,y:-30,duration:.5},spec.bulletsEnd||8.6);
+/* price with count-up */
+const pAt=(spec.bulletsEnd||8.6)+0.3;
+tl.to('#price',{autoAlpha:1,duration:.01},pAt).from('#price',{y:80,scale:.96,duration:.8},pAt)
+  .to(counter,{p:1,duration:1.4,ease:'power2.out',onUpdate:paint},pAt+.2);
+/* CTA */
+tl.to('#cta',{autoAlpha:1,duration:.01},pAt+1.8).from('#cta',{yPercent:100,duration:.8},pAt+1.8)
+  .to('#cta .big',{scale:1.06,duration:.5,yoyo:true,repeat:1,ease:'sine.inOut'},pAt+2.8);
+tl.to('.progress',{scaleX:1,duration:D,ease:'none'},0);
+tl.set({},{},D);
+window.renderAt=t=>{tl.pause();tl.time(Math.min(t,D),false);paint()};
+window.animation=tl;window.duration=D;
+if(location.search.includes('capture')){document.body.classList.add('capture');window.renderAt(0)}
+else if(matchMedia('(prefers-reduced-motion: reduce)').matches){window.renderAt(D*0.8)}
+else{tl.repeat(-1).repeatDelay(1).play()}
+</script>
+</body>
+</html>
