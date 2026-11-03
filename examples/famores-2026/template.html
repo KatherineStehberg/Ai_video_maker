@@ -88,7 +88,7 @@ if(spec.price.rows){
   $('price').innerHTML=h+'</table><div class="note">'+spec.price.note+'</div>';
 }else{nums.push(spec.price.value);$('price').innerHTML='<div class="single"><div class="l">'+spec.price.label+'</div><div class="v num" data-i="0">'+fmt(spec.price.value)+'</div></div><div class="note">'+spec.price.note+'</div>'}
 const cells=[...document.querySelectorAll('.num')];
-const counter={p:0};
+const counter={p:1}; /* precio final desde el primer cuadro: nunca mostrar $0 */
 function paint(){cells.forEach(c=>{c.textContent=fmt(nums[+c.dataset.i]*counter.p)})}
 /* initial state */
 gsap.set(['#head','#title','#photo','#bul','#price','#cta'],{autoAlpha:0});
@@ -121,7 +121,7 @@ spec.photos.forEach((p,i)=>{const at=photoStart+i*seg;
 /* bullets 4.2 – 8.6 */
 tl.to('#bul',{autoAlpha:1,duration:.01},4.2).to('.chip',{autoAlpha:1,x:0,duration:.6,stagger:.35},4.3)
   .to('#bul',{autoAlpha:0,y:-30,duration:.5},spec.bulletsEnd||8.6);
-/* price with count-up */
+/* price: sin conteo desde $0 */
 const pAt=(spec.bulletsEnd||8.6)+0.3;
 tl.to('#price',{autoAlpha:1,duration:.01},pAt).from('#price',{y:80,scale:.96,duration:.8},pAt)
   .to(counter,{p:1,duration:1.4,ease:'power2.out',onUpdate:paint},pAt+.2);
