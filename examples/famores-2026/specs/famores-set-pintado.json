@@ -1,0 +1,26 @@
+{
+  "kicker": "SET STANDARD",
+  "title": [
+    "Set Standard",
+    "pintado"
+  ],
+  "sku": "FAM-STD-PIN-14",
+  "photos": [
+    {
+      "src": "img/set_pin.jpg",
+      "label": ""
+    }
+  ],
+  "bullets": [
+    "14 figuras de madera pintadas a mano",
+    "Rostros neutros",
+    "Dos grupos de siete integrantes",
+    "Tamaños 4×10 · 4×8,5 · 4×6 · 2×4 cm"
+  ],
+  "price": {
+    "label": "Set completo",
+    "value": 48000,
+    "note": "Precios finales en CLP, IVA incluido"
+  },
+  "duration": 18
+}

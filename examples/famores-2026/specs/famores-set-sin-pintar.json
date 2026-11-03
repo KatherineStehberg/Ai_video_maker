@@ -1,0 +1,26 @@
+{
+  "kicker": "SET STANDARD",
+  "title": [
+    "Set Standard",
+    "sin pintar"
+  ],
+  "sku": "FAM-STD-NAT-14",
+  "photos": [
+    {
+      "src": "img/set_nat_crop.jpg",
+      "label": ""
+    }
+  ],
+  "bullets": [
+    "14 figuras en madera natural",
+    "Listas para usar o personalizar",
+    "Dos grupos de siete integrantes",
+    "Cuatro tamaños"
+  ],
+  "price": {
+    "label": "Set completo",
+    "value": 30000,
+    "note": "Precios finales en CLP, IVA incluido"
+  },
+  "duration": 18
+}

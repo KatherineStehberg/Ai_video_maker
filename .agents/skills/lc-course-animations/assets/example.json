@@ -1,0 +1,28 @@
+{
+  "id": "05_presentacion_negocios",
+  "course": "BUSINESS ENGLISH",
+  "title": "Make your presentation easy to follow.",
+  "sub": "Guide your audience from purpose to action",
+  "names": [
+    "Open",
+    "Explain",
+    "Connect",
+    "Close"
+  ],
+  "hints": [
+    "Set the purpose",
+    "Make one clear point",
+    "Show why it matters",
+    "Ask for the next step"
+  ],
+  "examples": [
+    "Today I’ll show you how we can improve our handover.",
+    "A shared checklist makes responsibilities clearer.",
+    "This helps the team spot missing information earlier.",
+    "Let’s test the checklist in our next team meeting."
+  ],
+  "question": "Your turn: present one improvement in four sentences.",
+  "tip": "Open → Explain → Connect → Close",
+  "mode": "pitch",
+  "duration": 32
+}
