@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from '../src/server.js';
 import { ffmpegRun } from '../src/lib/ffmpeg.js';
 import { probe, analyzeLocal } from '../src/analysis/local.js';
@@ -219,6 +219,41 @@ test('exportación vertical 9:16 de un original sin audio', { timeout: 300000 },
   assert.equal(report.measured.codec, 'h264');
   near(report.measured.duration, 2, 0.15, 'duración de salida sin audio');
   assert.equal(await hash(fixture), before);
+});
+
+test('añade música CC0 a un video sin audio y limita la pista a la duración del montaje', { timeout: 300000 }, async () => {
+  await fs.mkdir(dir, { recursive: true });
+  const fixture = path.join(dir, 'music-source.mp4');
+  await ffmpegRun(['-f', 'lavfi', '-i', 'color=c=teal:s=320x180:r=30:d=2',
+    '-an', '-c:v', 'libx264', '-threads', '1', '-pix_fmt', 'yuv420p', fixture]);
+  const track = path.join(process.cwd(), 'data', 'assets', 'music', `test-tone-${randomUUID()}.wav`);
+  const license = `${track}.json`;
+  try {
+    await ffmpegRun(['-f', 'lavfi', '-i', 'sine=frequency=440:duration=1:sample_rate=44100', '-c:a', 'pcm_s16le', track]);
+    await fs.writeFile(license, JSON.stringify({
+      titulo: 'Tono de prueba', licencia: 'CC0 1.0', fuente: 'Fixture generado para tests',
+    }), 'utf8');
+
+    const metadata = await probe(fixture);
+    const proposal = planEdit({
+      id: 'cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa', status: 'complete', metadata,
+      local: { scenes: [], onsets: [], beats: [], tempo: null, ramps: [] },
+    }, { format: '16:9', approvalRequired: false });
+    proposal.sourceVideo = path.relative(process.cwd(), fixture).split(path.sep).join('/');
+    proposal.music = {
+      path: path.relative(process.cwd(), track).split(path.sep).join('/'),
+      volume: 0.16,
+    };
+
+    const report = await exportEdit(proposal);
+    assert.equal(report.measured.audioTracks, 1);
+    assert.equal(report.audio.music.title, 'Tono de prueba');
+    assert.equal(report.audio.music.license, 'CC0 1.0');
+    assert.equal(report.duration.withinTolerance, true);
+  } finally {
+    await fs.rm(track, { force: true });
+    await fs.rm(license, { force: true });
+  }
 });
 
 test('HTTP: crear, aprobar, exportar y descargar; rechazo sin aprobación', { timeout: 300000 }, async () => {

@@ -7,6 +7,7 @@ import { planEdit } from './plan.js';
 import { exportEdit } from './export.js';
 import { validateProposal, relayout, round6, SPEED_LIMITS } from './schema.js';
 import { ASPECTS } from '../config.js';
+import { listarMusica, creditoDeMusica } from '../project-editor/media-library.js';
 
 const root = path.join(PATHS.data, 'video-edits');
 const UUID = /^[\da-f-]{36}$/;
@@ -31,6 +32,29 @@ async function readJson(req, limit = 1024 * 1024) {
 
 const file = id => path.join(root, `${id}.json`);
 export const saveProposal = p => { ensureDir(root); fs.writeFileSync(file(p.id), JSON.stringify(p, null, 2), 'utf8'); return p; };
+function normalizeMusic(music) {
+  if (music === null) return null;
+  if (!music || typeof music.path !== 'string' || !music.path.trim()) {
+    throw new Error('Selecciona una pista de música válida.');
+  }
+  const volume = Number(music.volume ?? 0.16);
+  if (!Number.isFinite(volume) || volume < 0 || volume > 1) {
+    throw new Error('El volumen de la música debe estar entre 0 y 1.');
+  }
+  const credit = creditoDeMusica(music.path);
+  return { path: credit.archivoLocal, volume, credit };
+}
+
+function setProposalMusic(proposal, music) {
+  proposal.music = music;
+  proposal.warnings = (proposal.warnings || []).filter(w => !w.startsWith('El original no tiene pista de audio'));
+  if (proposal.audioMode !== 'stretch') {
+    proposal.warnings.push(music
+      ? `El original no tiene pista de audio. Se añadirá «${music.credit.titulo}» como música de fondo (${music.credit.licencia}).`
+      : 'El original no tiene pista de audio: la exportación será un MP4 sin audio.');
+  }
+}
+
 export function loadProposal(id) {
   if (!UUID.test(id || '')) return null;
   try { return JSON.parse(fs.readFileSync(file(id), 'utf8')); } catch { return null; }
@@ -46,6 +70,10 @@ export async function editsRoute(req, res, url) {
   const parts = url.pathname.split('/').filter(Boolean);   // ['api','video-edits',id?,action?]
   try {
     if (req.method === 'GET' && parts.length === 2) { reply(res, 200, { formats: Object.keys(ASPECTS), aspects: ASPECTS }); return true; }
+    if (req.method === 'GET' && parts.length === 3 && parts[2] === 'music') {
+      reply(res, 200, await listarMusica({ consulta: url.searchParams.get('q') || '' }));
+      return true;
+    }
 
     // Crear propuesta a partir de un análisis existente.
     if (req.method === 'POST' && parts.length === 2) {
@@ -60,6 +88,7 @@ export async function editsRoute(req, res, url) {
         enableSpeedRamps: body.enableSpeedRamps ?? true,
         approvalRequired: body.approvalRequired ?? true,
       });
+      if (body.music !== undefined && body.music !== null) setProposalMusic(proposal, normalizeMusic(body.music));
       saveProposal(proposal);
       reply(res, 201, proposal);
       return true;
@@ -83,25 +112,31 @@ export async function editsRoute(req, res, url) {
      */
     if (req.method === 'PATCH' && !action) {
       const body = await readJson(req);
-      if (!Array.isArray(body.segments) || !body.segments.length) throw new Error('Se requiere al menos un segmento; una propuesta vacía no se puede exportar');
-      let previous = -1;
-      const segments = body.segments.map(entry => {
-        const index = Number(entry.index);
-        if (!Number.isInteger(index) || index < 0 || index >= proposal.segments.length) throw new Error(`Índice de segmento fuera de rango: ${entry.index}`);
-        if (index <= previous) throw new Error('Los segmentos deben enviarse en orden y sin repetir');
-        previous = index;
-        const source = proposal.segments[index];
-        const speed = entry.speed === undefined ? source.speed : Number(entry.speed);
-        if (!Number.isFinite(speed) || speed < SPEED_LIMITS.min || speed > SPEED_LIMITS.max) {
-          throw new Error(`Velocidad ${entry.speed} fuera del rango admitido ${SPEED_LIMITS.min}–${SPEED_LIMITS.max}×`);
-        }
-        const setptsFactor = round6(1 / speed);
-        const changed = Math.abs(speed - source.speed) > 1e-6;
-        return { ...source, setptsFactor, speed: 1 / setptsFactor, reason: changed ? 'ajuste-manual' : source.reason };
-      });
-      proposal.segments = relayout(segments);
-      proposal.estimatedDuration = round6(proposal.segments.at(-1).end);
-      validateProposal(proposal, { duration: proposal.sourceDuration });
+      const updatesSegments = Object.hasOwn(body, 'segments');
+      const updatesMusic = Object.hasOwn(body, 'music');
+      if (!updatesSegments && !updatesMusic) throw new Error('Indica los segmentos o la pista de música que quieres actualizar.');
+      if (updatesSegments) {
+        if (!Array.isArray(body.segments) || !body.segments.length) throw new Error('Se requiere al menos un segmento; una propuesta vacía no se puede exportar');
+        let previous = -1;
+        const segments = body.segments.map(entry => {
+          const index = Number(entry.index);
+          if (!Number.isInteger(index) || index < 0 || index >= proposal.segments.length) throw new Error(`Índice de segmento fuera de rango: ${entry.index}`);
+          if (index <= previous) throw new Error('Los segmentos deben enviarse en orden y sin repetir');
+          previous = index;
+          const source = proposal.segments[index];
+          const speed = entry.speed === undefined ? source.speed : Number(entry.speed);
+          if (!Number.isFinite(speed) || speed < SPEED_LIMITS.min || speed > SPEED_LIMITS.max) {
+            throw new Error(`Velocidad ${entry.speed} fuera del rango admitido ${SPEED_LIMITS.min}–${SPEED_LIMITS.max}×`);
+          }
+          const setptsFactor = round6(1 / speed);
+          const changed = Math.abs(speed - source.speed) > 1e-6;
+          return { ...source, setptsFactor, speed: 1 / setptsFactor, reason: changed ? 'ajuste-manual' : source.reason };
+        });
+        proposal.segments = relayout(segments);
+        proposal.estimatedDuration = round6(proposal.segments.at(-1).end);
+        validateProposal(proposal, { duration: proposal.sourceDuration });
+      }
+      if (updatesMusic) setProposalMusic(proposal, body.music === null ? null : normalizeMusic(body.music));
       proposal.approval = { status: proposal.approvalRequired ? 'pendiente' : 'no-requerida', at: null, by: null };
       proposal.export = null;
       if (proposal.syncStatus === 'validado') proposal.syncStatus = 'propuesto';

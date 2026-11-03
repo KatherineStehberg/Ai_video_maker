@@ -32,6 +32,8 @@ const api = createApi();
 let state = initialState();
 let analysisPoll = null, generationPoll = null;
 let pendingSegments = null;      // selección del panel aún sin aplicar
+let musicTracks = [];
+let musicLibraryError = null;
 let borrador = null;             // guion y escenas revisables antes de producir
 let guionOriginal = null;        // para el botón «Restaurar»
 let seccion = 'inicio';
@@ -191,6 +193,7 @@ function render() {
   pintarGuion();
   pintarVoz();
   pintarResumen();
+  pintarMusica();
   pintarTablas();
   pintarDescargas();
 
@@ -322,6 +325,84 @@ function pintarResumen() {
   $('file-facts-subir').replaceChildren(fichaArchivo);
 }
 
+function pintarMusica() {
+  const proposal = state.proposal;
+  const select = $('music-track');
+  const preview = $('music-preview');
+  const volume = $('music-volume');
+  const saved = proposal?.music || null;
+  const selectedPath = saved?.path || '';
+  select.replaceChildren(
+    new Option('Sin música de fondo', ''),
+    ...musicTracks.map(track => new Option(
+      `${track.titulo} · ${track.genero} · ${track.licencia}`,
+      track.path,
+    )),
+  );
+  select.value = selectedPath;
+  select.disabled = !proposal || musicTracks.length === 0;
+  volume.disabled = !proposal || !select.value;
+  volume.value = String(saved?.volume ?? 0.16);
+  $('music-volume-label').textContent = `${Math.round(Number(volume.value) * 100)} %`;
+
+  const selected = musicTracks.find(track => track.path === select.value);
+  preview.hidden = !selected;
+  if (selected && preview.src !== new URL(selected.url, location.href).href) preview.src = selected.url;
+  if (!selected) {
+    preview.pause();
+    preview.removeAttribute('src');
+    preview.load();
+  }
+
+  const note = $('music-note');
+  if (musicLibraryError) note.textContent = `No se pudo cargar la biblioteca de música: ${musicLibraryError}`;
+  else if (!musicTracks.length) note.textContent = 'No hay pistas locales con licencia declarada.';
+  else if (selected) {
+    const sourceHasAudio = proposal?.audioMode === 'stretch';
+    note.textContent = `${selected.ambiente || selected.genero} · ${selected.licencia}. `
+      + (sourceHasAudio ? 'Se mezclará con el audio original.' : 'El video no trae audio; se añadirá esta pista.');
+  } else {
+    note.textContent = proposal?.audioMode === 'stretch'
+      ? 'El video conservará su audio original.'
+      : 'El video no trae audio. Elige una pista si quieres añadir música.';
+  }
+
+  const changed = Boolean(proposal) && (selectedPath !== select.value
+    || Math.abs(Number(volume.value) - (saved?.volume ?? 0.16)) > 1e-6);
+  $('btn-apply-music').disabled = !proposal || !changed;
+  if (proposal && selectedPath && !selected) {
+    $('btn-apply-music').disabled = false;
+    $('btn-apply-music').textContent = 'Quitar pista no disponible';
+  } else {
+    $('btn-apply-music').textContent = 'Aplicar música';
+  }
+}
+
+function actualizarVistaMusica() {
+  const selected = musicTracks.find(track => track.path === $('music-track').value);
+  $('music-volume-label').textContent = `${Math.round(Number($('music-volume').value) * 100)} %`;
+  const preview = $('music-preview');
+  preview.pause();
+  preview.hidden = !selected;
+  if (selected) {
+    preview.src = selected.url;
+    $('music-note').textContent = `${selected.ambiente || selected.genero} · ${selected.licencia}. `
+      + (state.proposal?.audioMode === 'stretch'
+        ? 'Se mezclará con el audio original.'
+        : 'El video no trae audio; se añadirá esta pista.');
+  } else {
+    preview.removeAttribute('src');
+    preview.load();
+    $('music-note').textContent = state.proposal?.audioMode === 'stretch'
+      ? 'El video conservará su audio original.'
+      : 'El video no trae audio. Elige una pista si quieres añadir música.';
+  }
+  const saved = state.proposal?.music || null;
+  $('btn-apply-music').disabled = !state.proposal
+    || ((saved?.path || '') === $('music-track').value
+      && Math.abs(Number($('music-volume').value) - (saved?.volume ?? 0.16)) <= 1e-6);
+}
+
 const celda = (tr, txt) => { const td = document.createElement('td'); td.textContent = txt; tr.append(td); };
 
 function pintarTablas() {
@@ -450,6 +531,24 @@ $('btn-reset-segments').addEventListener('click', () => {
   renderSegments($('segments-list'), state.proposal, { onChange: alCambiarSegmentos });
   actualizarBotonesSegmentos(readSegments($('segments-list')));
   messages.setStatus('Cambios descartados.');
+});
+
+$('music-track').addEventListener('change', actualizarVistaMusica);
+$('music-volume').addEventListener('input', actualizarVistaMusica);
+$('btn-apply-music').addEventListener('click', async () => {
+  if (!state.proposal) return;
+  const track = musicTracks.find(item => item.path === $('music-track').value);
+  const music = track ? { path: track.path, volume: Number($('music-volume').value) } : null;
+  $('btn-apply-music').disabled = true;
+  messages.setStatus('Actualizando la música de fondo…');
+  try {
+    const proposal = await api.updateMusic(state.proposal.id, music);
+    dispatch({ type: 'proposal-ready', proposal });
+    exportPlayer.clear();
+    messages.setStatus(music
+      ? `«${track.titulo}» añadida. Aprueba de nuevo antes de exportar.`
+      : 'Música quitada. Aprueba de nuevo antes de exportar.');
+  } catch (e) { dispatch({ type: 'error', error: e.message }); }
 });
 
 // ================================================= IDEA Y GUION
@@ -858,6 +957,10 @@ $('btn-propose').addEventListener('click', async () => {
   messages.setStatus('Preparando el montaje…');
   try {
     const raw = $('target-duration').value.trim();
+    const music = state.analysis.metadata.audio?.length
+      ? null
+      : musicTracks.find(track => track.titulo === 'Calma luminosa')
+        || musicTracks.find(track => /ambiental/i.test(track.genero || ''));
     const proposal = await api.createProposal({
       videoJobId: state.analysisId,
       format: $('format').value,
@@ -865,6 +968,7 @@ $('btn-propose').addEventListener('click', async () => {
       syncMode: $('sync-mode').value,
       enableSpeedRamps: $('ramps').checked,
       approvalRequired: true,
+      music: music ? { path: music.path, volume: 0.16 } : null,
     });
     dispatch({ type: 'proposal-ready', proposal });
     irA('crear'); irPaso('editor');
@@ -909,6 +1013,13 @@ try {
     : 'Todo se procesa en este equipo y sin coste.';
 } catch (e) {
   $('config-hint').textContent = `No se pudo conectar con el servidor: ${e.message}`;
+}
+
+try {
+  const library = await api.musicLibrary();
+  musicTracks = library.pistas || [];
+} catch (e) {
+  musicLibraryError = e.message;
 }
 
 try {
@@ -961,6 +1072,27 @@ try {
   if ([...$('gen-marca').options].some(o => o.value === 'personal')) $('gen-marca').value = 'personal';
 } catch { $('gen-marca').replaceChildren(new Option('Personal', 'personal')); }
 
-irA('inicio');
-irPaso('idea');
+const savedProposalId = new URLSearchParams(location.search).get('proposal');
+if (savedProposalId) {
+  try {
+    const proposal = await api.getProposal(savedProposalId);
+    const analysis = await api.getAnalysis(proposal.videoJobId);
+    if (analysis.status !== 'complete') throw new Error('El análisis de esta propuesta ya no está disponible.');
+    dispatch({ type: 'restore-proposal', proposal, analysis, file: {
+      name: 'Video cargado', size: analysis.bytes || 1, type: 'video/mp4',
+    } });
+    sourcePlayer.load(api.previewUrl(analysis.id));
+    irA('crear');
+    irPaso('exportar');
+    messages.setStatus('Propuesta recuperada. Revisa la música, aprueba y exporta.');
+  } catch (e) {
+    messages.setError(`No se pudo recuperar la propuesta: ${e.message}`);
+    irA('inicio');
+    irPaso('idea');
+  }
+} else {
+  irA('inicio');
+  irPaso('idea');
+}
+
 render();

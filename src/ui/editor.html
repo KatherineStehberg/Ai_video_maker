@@ -338,6 +338,19 @@
         <div class="tarjeta" data-paso-panel="exportar" hidden>
           <h2>Antes de exportar</h2>
           <div class="resumen" id="export-resumen"></div>
+          <div class="tarjeta" id="music-controls">
+            <h3>Música de fondo</h3>
+            <label>Pista con licencia libre
+              <select id="music-track" disabled><option value="">Cargando biblioteca…</option></select>
+            </label>
+            <audio id="music-preview" controls preload="none" hidden></audio>
+            <label>Volumen de la música
+              <input type="range" id="music-volume" min="0" max="0.5" step="0.01" value="0.16" disabled>
+              <span class="mini" id="music-volume-label">16 %</span>
+            </label>
+            <p class="ayuda" id="music-note">Elige una pista para escucharla antes de aprobar.</p>
+            <button class="btn btn-mini" id="btn-apply-music" disabled>Aplicar música</button>
+          </div>
           <p class="ayuda" id="approval-hint" style="margin-top:var(--e3)"></p>
           <div class="escena-botones">
             <button class="btn btn-ok btn-grande" id="btn-approve" disabled>Aprobar versión</button>

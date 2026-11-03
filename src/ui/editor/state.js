@@ -106,13 +106,20 @@ export function reduce(current, action) {
     case 'analysis-progress':
       return { ...next, state: 'analizando', progress: action.progress ?? next.progress, stage: action.stage ?? next.stage };
     case 'analysis-complete':
-      return { ...next, state: 'analisis-completado', analysis: action.analysis, progress: 100, stage: null, busy: false, error: null };
+      return { ...next, state: 'analisis-completado', analysisId: action.analysis.id, analysis: action.analysis, progress: 100, stage: null, busy: false, error: null };
+    case 'restore-proposal': {
+      const approved = !action.proposal.approvalRequired || action.proposal.approval?.status === 'aprobada';
+      return { ...initialState(), mode: 'subir', file: action.file,
+        analysisId: action.analysis.id, analysis: action.analysis, proposal: action.proposal,
+        state: approved ? 'aprobado' : 'aprobacion-pendiente', progress: 100 };
+    }
     case 'proposal-start':
       return { ...next, state: 'creando-propuesta', busy: true, error: null, exportResult: null };
     case 'proposal-ready': {
       const proposal = action.proposal;
       const approved = !proposal.approvalRequired || proposal.approval?.status === 'aprobada';
-      return { ...next, state: approved ? 'aprobado' : 'aprobacion-pendiente', proposal, busy: false, error: null };
+      return { ...next, state: approved ? 'aprobado' : 'aprobacion-pendiente',
+        proposal, exportResult: null, busy: false, error: null };
     }
     case 'approved':
       return { ...next, state: 'aprobado', proposal: action.proposal, busy: false, error: null };

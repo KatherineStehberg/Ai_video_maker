@@ -8,6 +8,7 @@ import { ffmpegRun } from '../lib/ffmpeg.js';
 import { probe } from '../analysis/local.js';
 import { ASPECTS } from '../config.js';
 import { SPEED_LIMITS, validateProposal, assertFormat, estimateDuration } from './schema.js';
+import { creditoDeMusica } from '../project-editor/media-library.js';
 
 const num = v => Number(v.toFixed(6));
 
@@ -21,9 +22,10 @@ const num = v => Number(v.toFixed(6));
  */
 export function buildFilterGraph(proposal, metadata, { fit = 'pad' } = {}) {
   const { width, height } = proposal.dimensions;
-  const withAudio = proposal.audioMode === 'stretch';
+  const withSourceAudio = proposal.audioMode === 'stretch';
+  const withMusic = Boolean(proposal.music?.path);
   const videoIn = `0:${metadata.videoStream}`;
-  const audioIn = withAudio ? `0:${metadata.audio[0].index}` : null;
+  const audioIn = withSourceAudio ? `0:${metadata.audio[0].index}` : null;
   const parts = [], labels = [];
 
   proposal.segments.forEach((s, i) => {
@@ -32,21 +34,36 @@ export function buildFilterGraph(proposal, metadata, { fit = 'pad' } = {}) {
     }
     parts.push(`[${videoIn}]trim=start=${num(s.sourceStart)}:end=${num(s.sourceEnd)},setpts=(PTS-STARTPTS)*${num(s.setptsFactor)}[v${i}]`);
     labels.push(`[v${i}]`);
-    if (withAudio) {
+    if (withSourceAudio) {
       parts.push(`[${audioIn}]atrim=start=${num(s.sourceStart)}:end=${num(s.sourceEnd)},asetpts=PTS-STARTPTS,atempo=${num(s.speed)}[a${i}]`);
       labels.push(`[a${i}]`);
     }
   });
 
   const n = proposal.segments.length;
-  parts.push(`${labels.join('')}concat=n=${n}:v=1:a=${withAudio ? 1 : 0}[vc]${withAudio ? '[ac]' : ''}`);
+  parts.push(`${labels.join('')}concat=n=${n}:v=1:a=${withSourceAudio ? 1 : 0}[vc]${withSourceAudio ? '[ac]' : ''}`);
+
+  let audioLabel = withSourceAudio ? '[ac]' : null;
+  if (withMusic) {
+    const duration = proposal.estimatedDuration;
+    const fadeIn = Math.min(1, duration / 3);
+    const fadeOut = Math.min(2, duration / 3);
+    const fadeOutStart = Math.max(0, duration - fadeOut);
+    parts.push(`[1:a:0]atrim=duration=${num(duration)},asetpts=PTS-STARTPTS,volume=${num(proposal.music.volume)},afade=t=in:st=0:d=${num(fadeIn)},afade=t=out:st=${num(fadeOutStart)}:d=${num(fadeOut)}[music]`);
+    if (withSourceAudio) {
+      parts.push(`[ac][music]amix=inputs=2:duration=first:dropout_transition=2,alimiter=limit=0.95[aout]`);
+    } else {
+      parts.push('[music]anull[aout]');
+    }
+    audioLabel = '[aout]';
+  }
 
   const geometry = fit === 'crop'
     ? `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`
     : `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
   parts.push(`[vc]${geometry},setsar=1,fps=${proposal.outputFps},format=yuv420p[vout]`);
 
-  return { filter: parts.join(';'), withAudio };
+  return { filter: parts.join(';'), withAudio: withSourceAudio || withMusic, audioLabel };
 }
 
 /**
@@ -63,6 +80,12 @@ export async function exportEdit(proposal, { fit = 'pad', onProgress } = {}) {
   if (!fs.existsSync(source)) throw new Error('No se encuentra el video original de la propuesta');
   const metadata = await probe(source);
   validateProposal(proposal, { duration: metadata.duration });
+  let musicPath = null;
+  if (proposal.music?.path) {
+    const credit = creditoDeMusica(proposal.music.path);
+    proposal.music = { ...proposal.music, path: credit.archivoLocal, credit };
+    musicPath = path.resolve(PATHS.root, credit.archivoLocal);
+  }
 
   proposal.outputFps = Number.isFinite(metadata.fps) && metadata.fps > 0
     ? Math.min(120, Math.max(1, Math.round(metadata.fps))) : 30;
@@ -70,10 +93,12 @@ export async function exportEdit(proposal, { fit = 'pad', onProgress } = {}) {
   const dir = ensureDir(path.join(PATHS.output, 'video-edits', proposal.id));
   const safeFormat = proposal.format.replace(':', 'x');       // '9:16' no es un nombre válido en Windows
   const target = path.join(dir, `${proposal.id}_${safeFormat}.mp4`);
-  const { filter, withAudio } = buildFilterGraph(proposal, metadata, { fit });
+  const { filter, withAudio, audioLabel } = buildFilterGraph(proposal, metadata, { fit });
 
-  const args = ['-i', source, '-filter_complex', filter, '-map', '[vout]'];
-  if (withAudio) args.push('-map', '[ac]', '-c:a', 'aac', '-b:a', '192k');
+  const args = ['-i', source];
+  if (musicPath) args.push('-stream_loop', '-1', '-i', musicPath);
+  args.push('-filter_complex', filter, '-map', '[vout]');
+  if (withAudio) args.push('-map', audioLabel, '-c:a', 'aac', '-b:a', '192k');
   else args.push('-an');
   args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', target);
 
@@ -93,7 +118,15 @@ export async function exportEdit(proposal, { fit = 'pad', onProgress } = {}) {
     requested: { format: proposal.format, width: proposal.dimensions.width, height: proposal.dimensions.height, fps: proposal.outputFps },
     measured: { duration: measured.duration, fps: measured.fps, width: measured.width, height: measured.height, codec: measured.codec, frameRateMode: measured.frameRateMode, audioTracks: measured.audio.length },
     duration: { estimated, measured: measured.duration, deltaSeconds, withinTolerance, toleranceSeconds: Math.max(0.1, frameTolerance) },
-    audio: { mode: proposal.audioMode, timeStretched: proposal.segments.some(s => Math.abs(s.speed - 1) > 1e-6) },
+    audio: {
+      mode: proposal.audioMode,
+      timeStretched: proposal.segments.some(s => Math.abs(s.speed - 1) > 1e-6),
+      music: proposal.music ? {
+        title: proposal.music.credit.titulo,
+        license: proposal.music.credit.licencia,
+        volume: proposal.music.volume,
+      } : null,
+    },
     sourceUntouched: true,
     warnings: [],
   };
@@ -113,7 +146,7 @@ export async function exportEdit(proposal, { fit = 'pad', onProgress } = {}) {
     format: proposal.format, syncStatus: proposal.syncStatus, approval: proposal.approval,
     timeTransform: proposal.timeTransform,
     segments: proposal.segments, ramps: proposal.ramps, analysis: proposal.analysis,
-    export: report, warnings: proposal.warnings,
+    music: proposal.music || null, export: report, warnings: proposal.warnings,
   }, null, 2), 'utf8');
 
   return report;

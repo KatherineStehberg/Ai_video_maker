@@ -46,6 +46,29 @@ en JSON o CSV.
 
 ---
 
+## Edición de video existente
+
+### `GET /api/video-edits/music?q=calma`
+
+Devuelve pistas locales cuya ficha declara una licencia válida. Cada pista
+incluye título, ambiente, licencia, URL de escucha y ruta local; no se ofrecen
+archivos sin licencia declarada.
+
+### `PATCH /api/video-edits/:id`
+
+Además de actualizar segmentos, permite agregar o quitar música de fondo:
+
+```json
+{ "music": { "path": "data/assets/music/calma-luminosa.mp3", "volume": 0.16 } }
+```
+
+Usa `{ "music": null }` para quitarla. El backend vuelve a comprobar la licencia
+y el archivo, mezcla la música con el audio original cuando existe y la recorta
+al largo del video. Todo cambio invalida la aprobación y la exportación
+anteriores; hay que aprobar de nuevo antes de exportar.
+
+---
+
 ## Generación de video con IA
 
 Flujo alternativo a la subida: un prompt produce un video que **se encadena

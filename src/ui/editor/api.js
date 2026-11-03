@@ -51,6 +51,12 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
 
     getProposal: (id) => call(`${ENDPOINTS.edits}/${encodeURIComponent(id)}`),
 
+    musicLibrary: (query = '') => call(`${ENDPOINTS.edits}/music?q=${encodeURIComponent(query)}`),
+
+    updateMusic: (id, music) => call(`${ENDPOINTS.edits}/${encodeURIComponent(id)}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ music }),
+    }),
+
     /**
      * Guarda los segmentos editados. El backend recalcula la línea de salida,
      * invalida la aprobación y descarta el informe de exportación anterior.
