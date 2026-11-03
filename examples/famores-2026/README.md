@@ -13,12 +13,12 @@ Precios finales en CLP, IVA incluido.
 
 ## Cómo se hizo (mismo método que la skill `lc-course-animations`)
 
-- `template.html`: plantilla Famores (crema/café/teal) con línea de tiempo GSAP determinista: intro logo → título + SKU → revelado de foto con zoom lento (alterna *sin logo / con logo* en cajitas) → atributos → precio con conteo → contacto (famores.com · WhatsApp +56 9 6205 2499 · @famoresporelmundo).
+- `template.html`: plantilla Famores (crema/café/teal) con línea de tiempo GSAP determinista: intro logo → título + SKU → revelado de foto con zoom lento (alterna *sin logo / con logo* en cajitas) → atributos → precio final sin conteo desde $0 → contacto (famores.com · WhatsApp +56 9 6205 2499 · @famoresporelmundo).
 - `build.cjs`: inyecta el bloque GSAP 3.15.0 (con su aviso de licencia) desde `.agents/skills/lc-course-animations/assets/four-step.html` y el spec JSON.
 - `render.cjs`: copia del render de la skill con tamaño parametrizable (`VIDEO_W`, `VIDEO_H`). Mismas verificaciones: 5 capturas QA, ≥3 distintas, ffprobe (h264, yuv420p, 24/1, nº de cuadros), decodificación completa, `qa.json` con SHA-256.
 - `img/` (no versionado aquí: binarios): fotos del Catálogo Famores 2026 en Gamma (`7mqu5t4b46c2nh0`) y logo. Nombres esperados:
   - `set_pin.jpg` ← set pintado (agent-uploads/TLYXGpoTCNxjlDbevVSz3.png)
-  - `set_nat_crop.jpg` ← set sin pintar (agent-uploads/2-asDUImF-Yr15wDooEHx.png), recorte de la fila de tamaños
+  - `set_nat_crop.jpg` ← set sin pintar (agent-uploads/2-asDUImF-Yr15wDooEHx.png), recorte completo de la fila de tamaños con las bases de las figuras, sin la burbuja «Más grandes» (sin respaldo). Original: `Famores_Set_Sin_Pintar_14_Figuras_Sin_Precio.png` en la carpeta Drive de Almazen y Famores
   - `pin06.jpg`, `pin06logo.jpg`, `nat06.jpg`, `nat06logo.jpg` ← fotos FAM-MAS-PIN-06 / NAT-06 sin y con logo (960×960)
   - `logo.png` ← logo Famores con fondo transparente
 
@@ -37,5 +37,7 @@ VIDEO_W=1080 VIDEO_H=1920 node render.cjs famores-set-pintado.html ../../tmp/fam
 | famores-set-sin-pintar.mp4 | 432 | 18s | `48a16140046b3cdf1276c48e67876531796f65a804111a5ba6cba73a28fc82ba` |
 | famores-cajitas-pintadas.mp4 | 432 | 18s | `30c72c7990882362d7d77b27c2552fdbbc2892e73ac0489842737506391c980b` |
 | famores-cajitas-sin-pintar.mp4 | 432 | 18s | `1c6e89deb77b9f29cc2f8f8c4f1d67e31d7c6431dc99e8a854bac538b5d3bd29` |
+
+Corrección 2026-11-03: los MP4 vigentes están en el artifact privado «Famores — flyers 2026» (sin `$0` y con el set sin pintar completo). Los SHA-256 de la tabla corresponden al render del 2026-11-01, ya reemplazado.
 
 Los MP4 **no se versionan en Git** (indicación de la skill: producir fuera de Git y usar el MP4 como clip en el editor multipista). Estado: preparado → renderizado → revisado (capturas QA inspeccionadas). No publicados en redes.
