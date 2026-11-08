@@ -16,6 +16,15 @@ import { resolveSafeAsset } from '../core/asset-manager.js';
 import { listAllVoices } from '../providers/tts/index.js';
 
 const importsDir=path.join(PATHS.data,'studio-imports');
+const famoresMusic = {
+  path: 'data/assets/music/Famores_New_Age_Esperanza.mp3',
+  name: 'Famores · Esperanza (New Age)',
+  kind: 'music',
+  authorized: true,
+  originalReference: 'local:original-famores-new-age-esperanza',
+  access: 'bundled',
+};
+
 export const styles=['clean','dynamic','minimal'];
 const active=new Set();
 export const scriptHash=p=>createHash('sha256').update(p.scenes.map(s=>s.text).join('\n')).digest('hex');
@@ -64,7 +73,10 @@ export function updateStudio(id,input){
     p.script=p.scenes.map(s=>'## '+s.text).join('\n');
   }
   if(input.music){
-    const musicPath=input.music.path || null;const provenance=musicPath?importedAsset(musicPath):null;
+    const musicPath = input.music.path || null;
+    const provenance = musicPath === famoresMusic.path && resolveSafeAsset(musicPath)
+      ? famoresMusic
+      : musicPath ? importedAsset(musicPath) : null;
     if(provenance && provenance.kind!=='music')throw new Error('Recurso no musical');
     p.music={...p.music,path:musicPath,enabled:!!musicPath,volume:Math.max(0,Math.min(1,Number(input.music.volume ?? .12))),provenance};
   }
@@ -81,7 +93,7 @@ export function importTarget(name,kind,originalReference,authorized){
   fs.mkdirSync(importsDir,{recursive:true});const file=path.join(importsDir,randomUUID()+ext);
   return {file,manifest:{path:rel(file),name:path.basename(name),kind,authorized:true,originalReference:reference(originalReference)||`local:${path.basename(name)}`,access:'local-import',importedAt:new Date().toISOString()}};
 }
-export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,voices:await listAllVoices(),providers:{mode:'local-only',paidGenerationEnabled:false},imports:imports(),projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
+export async function capabilities(){return {brands:listBrands(),templates:listTemplates(),aspects:ASPECTS,styles,voices:await listAllVoices(),providers:{mode:'local-only',paidGenerationEnabled:false},imports:[...(resolveSafeAsset(famoresMusic.path) ? [famoresMusic] : []), ...imports()],projects:listProjects().filter(p=>loadProject(p.id)?.studio)};}
 async function background(p,task){
   try{await task();p.studio.job.status='complete';p.studio.job.progress=100;}
   catch(e){p.studio.job.status='failed';p.studio.job.error=e.message;p.status='failed';}
