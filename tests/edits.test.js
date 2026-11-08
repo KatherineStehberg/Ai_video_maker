@@ -356,3 +356,38 @@ test('volumen de música por defecto: pista única a 100 %, bajo audio original 
   assert.equal(defaultMusicVolume({ audioMode: 'none' }), 1);
   assert.equal(defaultMusicVolume({ audioMode: 'stretch' }), 0.16);
 });
+
+test('un video subido se convierte en proyecto del editor visual (una vez, con su música)', { timeout: 120000 }, async () => {
+  const { proyectoDesdeSubida } = await import('../src/edits/visual-project.js');
+  const { loadProject } = await import('../src/core/project.js');
+  const id = randomUUID();
+  const analysisDir = path.join(process.cwd(), 'data', 'analyses', id);
+  const clip = path.join(process.cwd(), 'data', 'assets', 'uploads', `${id}.mp4`);
+  let projectId = null;
+  try {
+    await fs.mkdir(analysisDir, { recursive: true });
+    await ffmpegRun(['-f', 'lavfi', '-i', 'color=c=teal:s=180x320:r=30:d=2',
+      '-an', '-c:v', 'libx264', '-threads', '1', '-pix_fmt', 'yuv420p', '-f', 'mp4', path.join(analysisDir, 'original')]);
+    await fs.writeFile(path.join(analysisDir, 'analysis.json'), JSON.stringify({
+      id, status: 'complete', fileName: 'prueba-subida.mp4',
+      metadata: { duration: 2, width: 180, height: 320, audio: [] },
+    }), 'utf8');
+
+    const p = proyectoDesdeSubida(id);
+    projectId = p.id;
+    assert.equal(p.title, 'prueba-subida');
+    assert.equal(p.aspectRatio, '9:16');
+    assert.equal(p.voice.enabled, false);
+    assert.equal(p.scenes.length, 1);
+    assert.equal(p.scenes[0].assetKind, 'video');
+    assert.match(p.scenes[0].assetPath, /\.mp4$/);   // el renderer reconoce el clip por la extensión
+    assert.equal(p.scenes[0].duration, 2);
+    assert.ok(loadProject(p.id));
+    // Idempotente: la segunda llamada devuelve el mismo proyecto.
+    assert.equal(proyectoDesdeSubida(id).id, p.id);
+  } finally {
+    await fs.rm(analysisDir, { recursive: true, force: true });
+    await fs.rm(clip, { force: true });
+    if (projectId) await fs.rm(path.join(process.cwd(), 'data', 'projects', `${projectId}.json`), { force: true });
+  }
+});
