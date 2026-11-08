@@ -348,3 +348,11 @@ test('HTTP: crear, aprobar, exportar y descargar; rechazo sin aprobación', { ti
     assert.equal(await hash(fixture), before);
   } finally { await new Promise(r => server.close(r)); }
 });
+
+test('volumen de música por defecto: pista única a 100 %, bajo audio original a 16 %', async () => {
+  const { defaultMusicVolume } = await import('../src/edits/routes.js');
+  // Sin audio original la música es lo único que suena: al 16 % el MP4 quedaba
+  // en torno a -33 dB, prácticamente mudo.
+  assert.equal(defaultMusicVolume({ audioMode: 'none' }), 1);
+  assert.equal(defaultMusicVolume({ audioMode: 'stretch' }), 0.16);
+});

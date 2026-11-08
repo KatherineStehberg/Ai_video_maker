@@ -410,6 +410,40 @@ function actualizarVistaMusica() {
       && Math.abs(Number($('music-volume').value) - (saved?.volume ?? volumenMusicaPorDefecto(state.proposal))) <= 1e-6);
 }
 
+/**
+ * VISTA PREVIA CON MÚSICA. El reproductor muestra el video original: si no trae
+ * audio, sin esto el montaje se veía mudo aunque la exportación lleve música.
+ * La pista elegida suena a la par, en el instante del montaje que corresponde
+ * (los tramos descartados la silencian) y con el volumen del control.
+ */
+function instanteMontaje(t) {
+  for (const s of state.proposal?.segments || []) {
+    if (t >= s.sourceStart && t < s.sourceEnd) return s.start + (t - s.sourceStart) * s.setptsFactor;
+  }
+  return null;
+}
+
+function sincronizarMusica() {
+  const video = $('source-player');
+  const audio = $('music-preview');
+  const track = musicTracks.find(item => item.path === $('music-track').value);
+  const t = track && !video.paused && !video.ended ? instanteMontaje(video.currentTime) : null;
+  if (t === null) {
+    if (audio.dataset.sync) { audio.pause(); delete audio.dataset.sync; }
+    return;
+  }
+  if (audio.src !== new URL(track.url, location.href).href) audio.src = track.url;
+  audio.volume = Number($('music-volume').value);
+  // La exportación repite la pista si el video es más largo.
+  const objetivo = audio.duration > 0 ? t % audio.duration : t;
+  if (Math.abs(audio.currentTime - objetivo) > 0.3) audio.currentTime = objetivo;
+  audio.dataset.sync = '1';
+  if (audio.paused) audio.play().catch(() => {});
+}
+for (const evento of ['play', 'pause', 'seeked', 'timeupdate', 'ended']) {
+  $('source-player').addEventListener(evento, sincronizarMusica);
+}
+
 const celda = (tr, txt) => { const td = document.createElement('td'); td.textContent = txt; tr.append(td); };
 
 function pintarTablas() {
@@ -1093,9 +1127,17 @@ $('btn-propose').addEventListener('click', async () => {
   messages.setStatus('Preparando el montaje…');
   try {
     const raw = $('target-duration').value.trim();
+    // Una pista etiquetada con una palabra del nombre del video (p. ej. la de
+    // Famores para «famores-set-pintado.mp4») manda sobre la pista genérica.
+    const palabras = new Set(String(state.analysis.fileName || state.file?.name || '').toLowerCase().split(/[^a-z0-9áéíóúñü]+/));
+    const propia = musicTracks
+      .map(track => ({ track, n: (track.etiquetas || []).filter(e => palabras.has(String(e).toLowerCase())).length }))
+      .filter(x => x.n > 0)
+      .sort((a, b) => b.n - a.n)[0]?.track;
     const music = state.analysis.metadata.audio?.length
       ? null
-      : musicTracks.find(track => track.titulo === 'Calma luminosa')
+      : propia
+        || musicTracks.find(track => track.titulo === 'Calma luminosa')
         || musicTracks.find(track => /ambiental/i.test(track.genero || ''));
     const proposal = await api.createProposal({
       videoJobId: state.analysisId,
