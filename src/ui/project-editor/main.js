@@ -380,7 +380,17 @@ async function exportar() {
     s = { ...s, trabajando: true, error: null };
     pintar();
     await api.exportar(s.id);
-    await seguirTrabajo('Exportando el MP4…');
+    if (!(await seguirTrabajo('Exportando el MP4…'))) return;
+    // Un «Listo.» suelto no se veía: se muestra el MP4 recién hecho y se dice
+    // dónde quedó, con el botón «Descargar MP4» al lado del reproductor.
+    const salida = s.derivado?.salida;
+    if (salida?.url) {
+      pausar();
+      s = { ...s, fuentePreview: 'mp4' };
+      pintar();
+      const d = s.derivado.dimensiones;
+      mensaje(`MP4 listo${d ? ` · ${d.width}×${d.height}` : ''} · ${Math.round(s.derivado.duracion || 0)} s. Se ve en el reproductor; «Descargar MP4» lo guarda. Archivo: ${salida.path}`);
+    }
   } catch (e) { fallo(e); }
 }
 
@@ -396,9 +406,10 @@ async function seguirTrabajo(etiqueta) {
   });
   const fin = await sondeo.done;
   s = { ...s, trabajando: false };
-  if (fin?.job?.status === 'failed') { fallo(new Error(fin.job.error || 'La operación falló.')); return; }
+  if (fin?.job?.status === 'failed') { fallo(new Error(fin.job.error || 'La operación falló.')); return false; }
   await recargar();
   mensaje('Listo.');
+  return true;
 }
 
 async function recargar() {
@@ -628,6 +639,11 @@ function pintarReproductor() {
   const hayMp4 = Boolean(s.derivado?.salida?.url);
   $('ver-mp4').hidden = !hayMp4;
   $('ver-mp4').textContent = s.fuentePreview === 'mp4' ? 'Ver vista previa' : 'Ver MP4 exportado';
+  $('descargar-mp4').hidden = !hayMp4;
+  if (hayMp4) {
+    $('descargar-mp4').href = `${s.derivado.salida.url}&download=1`;
+    $('descargar-mp4').title = s.derivado.salida.path;
+  }
 }
 
 function pintarCabecera() {
