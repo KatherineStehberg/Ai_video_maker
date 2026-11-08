@@ -152,18 +152,42 @@ for (const boton of $('pasos').querySelectorAll('.paso')) {
 function pintarEnlaceEditor() {
   const enlace = $('ir-editor-visual');
   if (!enlace) return;
-  const projectId = state.generation?.projectId || state.generation?.spec?.projectId || null;
+  const projectId = state.generation?.projectId || state.generation?.spec?.projectId
+    || state.analysis?.projectId || null;
+  const subidaSinProyecto = !projectId && state.mode === 'subir' && state.analysis?.status === 'complete';
   if (projectId) {
     enlace.href = `/project-editor.html?id=${encodeURIComponent(projectId)}`;
     enlace.classList.remove('btn-sutil');
     enlace.removeAttribute('aria-disabled');
     $('editor-visual-nota').textContent = 'Se abre en esta misma pestaña. Los cambios se guardan en el proyecto.';
+  } else if (subidaSinProyecto) {
+    // Un video subido no tiene escenas: al pulsar se crea su proyecto (ver abajo).
+    enlace.href = '#';
+    enlace.classList.remove('btn-sutil');
+    enlace.removeAttribute('aria-disabled');
+    $('editor-visual-nota').textContent = 'Se creará un proyecto con este video como escena, con su música. Se abre en esta misma pestaña.';
   } else {
     enlace.href = '#';
     enlace.setAttribute('aria-disabled', 'true');
     $('editor-visual-nota').textContent = 'Disponible en cuanto el video se haya montado.';
   }
 }
+
+$('ir-editor-visual')?.addEventListener('click', async event => {
+  const enlace = event.currentTarget;
+  if (enlace.getAttribute('href') !== '#') return;      // enlace normal a un proyecto
+  event.preventDefault();
+  if (enlace.getAttribute('aria-disabled') === 'true' || !state.analysisId) return;
+  enlace.setAttribute('aria-disabled', 'true');
+  messages.setStatus('Preparando el proyecto del editor visual…');
+  try {
+    const { projectId } = await api.visualProjectForUpload(state.analysisId);
+    location.href = `/project-editor.html?id=${encodeURIComponent(projectId)}`;
+  } catch (e) {
+    enlace.removeAttribute('aria-disabled');
+    dispatch({ type: 'error', error: `No se pudo abrir el editor visual: ${e.message}` });
+  }
+});
 
 function render() {
   const etiqueta = STATE_LABELS[state.state] || state.state;
