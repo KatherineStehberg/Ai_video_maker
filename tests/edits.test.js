@@ -382,6 +382,7 @@ test('un video subido se convierte en proyecto del editor visual (una vez, con s
     assert.equal(p.scenes[0].assetKind, 'video');
     assert.match(p.scenes[0].assetPath, /\.mp4$/);   // el renderer reconoce el clip por la extensión
     assert.equal(p.scenes[0].duration, 2);
+    assert.equal(p.cta, null);                        // sin el rótulo de la marca sobre el cierre del video
     assert.ok(loadProject(p.id));
     // Idempotente: la segunda llamada devuelve el mismo proyecto.
     assert.equal(proyectoDesdeSubida(id).id, p.id);

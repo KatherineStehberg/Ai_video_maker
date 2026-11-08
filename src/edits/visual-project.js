@@ -103,6 +103,9 @@ export function proyectoDesdeSubida(analysisId) {
     } : undefined,
   });
   project.source = { kind: 'upload', analysisId, fileName: nombre, editId: montaje?.id ?? null };
+  // El video subido ya trae su cierre: sin el rótulo de la marca encima
+  // (con «Conoce Famores» tapaba el precio en los últimos segundos).
+  project.cta = null;
   saveProject(project);
 
   a.projectId = project.id;
