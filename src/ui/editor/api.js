@@ -109,6 +109,11 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
 
     /** Proyectos guardados, para la pantalla de inicio. No borra nada. */
     listProjects: () => call('/api/video-generation/projects'),
+
+    /** «Videos en la cola»: en proceso, en espera y montajes sin exportar. */
+    queue: () => call('/api/video-generation/queue'),
+    /** Quita un render que todavía no empezó. Uno en curso no se interrumpe. */
+    cancelRender: (id) => call(`/api/jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   };
 }
 
@@ -121,6 +126,8 @@ export function uploadVideo(file, { onProgress, XHR = globalThis.XMLHttpRequest,
     const xhr = new XHR();
     xhr.open('POST', `${baseUrl}${ENDPOINTS.analysis}`);
     xhr.setRequestHeader('x-analysis-upload', '1');   // exigido por el backend
+    // Nombre del archivo, para reconocer la subida en «Proyectos recientes».
+    if (file?.name) xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name));
     if (xhr.upload) {
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable && onProgress) onProgress((e.loaded / e.total) * 100);

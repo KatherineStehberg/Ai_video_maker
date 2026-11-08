@@ -70,6 +70,15 @@ export async function analyzeExistingFile(sourceFile, { label = null } = {}) {
   }
 }
 
+/** Nombre original de la subida (cabecera x-file-name), sólo el nombre base y acotado. */
+export function uploadName(header) {
+  if (typeof header !== 'string' || !header) return null;
+  let name;
+  try { name = decodeURIComponent(header); } catch { return null; }
+  name = path.basename(name.replace(/\\/g, '/')).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 200);
+  return name || null;
+}
+
 export async function analysisRoute(req,res,url) {
   if(!url.pathname.startsWith('/api/analysis')) return false;
   if(!/^(::1|::ffff:127\.|127\.)/.test(req.socket.remoteAddress || '')){reply(res,403,{error:'Análisis disponible sólo desde este equipo'});return true;}
@@ -91,7 +100,7 @@ export async function analysisRoute(req,res,url) {
         await fsp.mkdir(dir,{recursive:true});let bytes=0;
         await pipeline(req,new Transform({transform(chunk,enc,cb){bytes+=chunk.length;cb(bytes>maxBytes?new Error('Límite de subida: 2 GiB'):null,chunk);}}),fs.createWriteStream(file,{flags:'wx'}));
         if(!bytes)throw new Error('Video vacío');
-        const j={id,status:'running',progress:0,stage:'Leyendo ffprobe',createdAt:new Date().toISOString(),bytes,consent:external?{service:'Google Gemini API',at:new Date().toISOString()}:null,gemini:{status:external?'pending':'disabled',reason:external?null:'Análisis local: sin interpretación audiovisual de Gemini'},cuts:[]};
+        const j={id,status:'running',progress:0,stage:'Leyendo ffprobe',createdAt:new Date().toISOString(),bytes,fileName:uploadName(req.headers['x-file-name']),consent:external?{service:'Google Gemini API',at:new Date().toISOString()}:null,gemini:{status:external?'pending':'disabled',reason:external?null:'Análisis local: sin interpretación audiovisual de Gemini'},cuts:[]};
         jobs.set(id,j);persist(j);reply(res,202,j);void execute(j,file,dir,external);
       }catch(e){busy=false;await fsp.rm(file,{force:true});throw e;}
       return true;

@@ -17,6 +17,10 @@ export const ESTADOS = {
   generated: { texto: 'Generando', tono: 'trabajo' },
   analyzing: { texto: 'Analizando', tono: 'trabajo' },
   editing: { texto: 'Preparando montaje', tono: 'trabajo' },
+  // Cola de render (src/core/jobs.js).
+  scripting: { texto: 'Escribiendo guion', tono: 'trabajo' },
+  assets_pending: { texto: 'Buscando recursos', tono: 'trabajo' },
+  rendering: { texto: 'Renderizando', tono: 'trabajo' },
   completed: { texto: 'Listo', tono: 'ok' },
   exportado: { texto: 'Exportado', tono: 'ok' },
   aprobado: { texto: 'Aprobado', tono: 'ok' },

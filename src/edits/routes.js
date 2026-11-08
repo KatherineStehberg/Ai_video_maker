@@ -32,12 +32,16 @@ async function readJson(req, limit = 1024 * 1024) {
 
 const file = id => path.join(root, `${id}.json`);
 export const saveProposal = p => { ensureDir(root); fs.writeFileSync(file(p.id), JSON.stringify(p, null, 2), 'utf8'); return p; };
-function normalizeMusic(music) {
+// Sin audio original la música es la única pista: el 16 % pensado para ir bajo
+// una voz deja la exportación prácticamente muda.
+export const defaultMusicVolume = proposal => (proposal.audioMode === 'stretch' ? 0.16 : 1);
+
+function normalizeMusic(music, proposal) {
   if (music === null) return null;
   if (!music || typeof music.path !== 'string' || !music.path.trim()) {
     throw new Error('Selecciona una pista de música válida.');
   }
-  const volume = Number(music.volume ?? 0.16);
+  const volume = Number(music.volume ?? defaultMusicVolume(proposal));
   if (!Number.isFinite(volume) || volume < 0 || volume > 1) {
     throw new Error('El volumen de la música debe estar entre 0 y 1.');
   }
@@ -88,7 +92,7 @@ export async function editsRoute(req, res, url) {
         enableSpeedRamps: body.enableSpeedRamps ?? true,
         approvalRequired: body.approvalRequired ?? true,
       });
-      if (body.music !== undefined && body.music !== null) setProposalMusic(proposal, normalizeMusic(body.music));
+      if (body.music !== undefined && body.music !== null) setProposalMusic(proposal, normalizeMusic(body.music, proposal));
       saveProposal(proposal);
       reply(res, 201, proposal);
       return true;
@@ -136,7 +140,7 @@ export async function editsRoute(req, res, url) {
         proposal.estimatedDuration = round6(proposal.segments.at(-1).end);
         validateProposal(proposal, { duration: proposal.sourceDuration });
       }
-      if (updatesMusic) setProposalMusic(proposal, body.music === null ? null : normalizeMusic(body.music));
+      if (updatesMusic) setProposalMusic(proposal, body.music === null ? null : normalizeMusic(body.music, proposal));
       proposal.approval = { status: proposal.approvalRequired ? 'pendiente' : 'no-requerida', at: null, by: null };
       proposal.export = null;
       if (proposal.syncStatus === 'validado') proposal.syncStatus = 'propuesto';

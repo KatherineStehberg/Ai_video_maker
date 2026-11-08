@@ -192,6 +192,17 @@ code { background: var(--fondo-hueco); padding: .1em .35em; border-radius: 4px; 
 }
 .nav-item:disabled { opacity: .45; cursor: not-allowed; }
 .nav-icono { width: 18px; text-align: center; flex: none; }
+.nav-contador {
+  margin-left: auto; min-width: 1.4rem; padding: 0 .4rem; border-radius: 999px;
+  background: var(--marca-tenue); color: var(--marca-fuerte);
+  font-size: var(--txt-xs); font-weight: 600; text-align: center; line-height: 1.4rem;
+}
+
+/* Videos en la cola */
+.cola-lista { display: grid; gap: var(--e2); }
+.cola-fila { display: grid; gap: var(--e2); }
+.cola-fila-cab { display: flex; align-items: center; justify-content: space-between; gap: var(--e2); flex-wrap: wrap; }
+.cola-fila .btn { justify-self: start; }
 .nav-badge {
   margin-left: auto; font-size: .62rem; text-transform: uppercase; letter-spacing: .04em;
   background: var(--marca-tenue); color: var(--marca-fuerte);

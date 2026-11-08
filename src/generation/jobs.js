@@ -23,6 +23,7 @@ import { normalizeLogo, normalizeVoice, normalizeMusic, normalizeSubtitles, norm
 import { instantanea, ESTADO_LISTO, ESTADO_ERROR_RECUPERABLE, ESTADO_ERROR, ESTADO_EN_COLA } from './states.js';
 import { loadProject, saveProject } from '../core/project.js';
 import { listProjects } from '../core/project.js';
+import { listJobs as listRenderJobs } from '../core/jobs.js';
 
 /**
  * Trabajo de generación: prompt -> video -> análisis -> propuesta de edición.
@@ -585,6 +586,109 @@ export function listJobs({ limit = 40 } = {}) {
 }
 
 /**
+ * Subidas con nombre de archivo y su montaje más reciente, como tarjetas del inicio.
+ */
+export function listUploads() {
+  const dirAnalisis = path.join(PATHS.data, 'analyses');
+  const dirMontajes = path.join(PATHS.data, 'video-edits');
+  const leer = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+
+  const subidas = new Map();
+  let carpetas = [];
+  try { carpetas = fs.readdirSync(dirAnalisis); } catch { return []; }
+  for (const id of carpetas) {
+    const a = leer(path.join(dirAnalisis, id, 'analysis.json'));
+    if (a?.fileName && a.status === 'complete') subidas.set(a.id, { analisis: a, montaje: null });
+  }
+  if (!subidas.size) return [];
+
+  let montajes = [];
+  try { montajes = fs.readdirSync(dirMontajes).filter(f => f.endsWith('.json')); } catch { /* sin montajes */ }
+  for (const archivo of montajes) {
+    const m = leer(path.join(dirMontajes, archivo));
+    const s = m && subidas.get(m.videoJobId);
+    if (!s) continue;
+    const fecha = p => p.editedAt || p.createdAt || '';
+    if (!s.montaje || fecha(m) > fecha(s.montaje)) s.montaje = m;
+  }
+
+  return [...subidas.values()].map(({ analisis: a, montaje: m }) => {
+    const exportado = Boolean(m?.export?.file && fs.existsSync(path.resolve(PATHS.root, m.export.file)));
+    return {
+      id: a.id,
+      projectId: null,
+      subida: true,
+      titulo: a.fileName.replace(/\.[^.]+$/, ''),
+      miniatura: null,
+      estado: exportado ? 'exportado' : (m?.approval?.status === 'aprobada' ? 'aprobado' : 'borrador'),
+      exportado,
+      escenas: null,
+      duracionReal: m?.estimatedDuration ?? a.metadata?.duration ?? null,
+      formato: m?.format ?? null,
+      creado: m?.editedAt || m?.createdAt || a.createdAt,
+      progreso: null,
+      reanudable: false,
+      analysisId: a.id,
+      editId: m?.id ?? null,
+      proveedor: null,
+      error: null,
+    };
+  });
+}
+
+/**
+ * «Videos en la cola»: todo lo que todavía no es un MP4 terminado.
+ *
+ *  - enCurso:    generaciones con IA y renders que se están procesando ahora.
+ *                Sólo cuentan los que siguen en memoria: un trabajo a medias
+ *                leído del disco tras un reinicio ya se marca como fallido.
+ *  - enEspera:   renders en cola que aún no empiezan.
+ *  - pendientes: montajes (subidos o generados) sin exportar, del más reciente
+ *                al más antiguo. Tienen la misma forma que las tarjetas del
+ *                inicio, así que «Continuar» funciona igual.
+ */
+export function listQueue() {
+  const FINALES = ['completed', 'failed'];
+  const generaciones = [...jobs.values()]
+    .filter(j => !FINALES.includes(j.status))
+    .map(j => ({
+      tipo: 'generacion',
+      id: j.id,
+      titulo: j.script?.tema || j.spec?.prompt?.slice(0, 70) || 'Video con IA',
+      estado: j.status,
+      progreso: Number.isFinite(j.progress) ? j.progress : null,
+      etapa: j.stage ?? null,
+      creado: j.createdAt ?? null,
+    }));
+
+  const renders = listRenderJobs({ limit: 200 })
+    .filter(j => !FINALES.includes(j.status))
+    .map(j => {
+      let titulo = 'Render';
+      try { titulo = loadProject(j.projectId)?.title || titulo; } catch { /* proyecto borrado */ }
+      return {
+        tipo: 'render',
+        id: j.id,
+        projectId: j.projectId,
+        titulo,
+        estado: j.status,
+        progreso: Number.isFinite(j.progress) ? j.progress : null,
+        etapa: j.message ?? null,
+        creado: j.createdAt ?? null,
+      };
+    });
+
+  const pendientes = listHomeProjects({ limit: 5000 }).proyectos
+    .filter(p => (p.subida || p.editId) && !p.exportado);
+
+  return {
+    enCurso: [...generaciones, ...renders.filter(r => r.estado !== 'queued')],
+    enEspera: renders.filter(r => r.estado === 'queued'),
+    pendientes,
+  };
+}
+
+/**
  * LO QUE SE VE EN EL INICIO: los proyectos guardados, no los intentos.
  *
  * Antes se listaban los TRABAJOS de generacion. Eso enseñaba cada intento,
@@ -630,6 +734,13 @@ export function listHomeProjects({ limit = 40 } = {}) {
       error: j?.error ?? null,
     };
   });
+
+  // Videos subidos para editar: no pasan por la generación, así que no tienen
+  // proyecto guardado. Sólo se listan los que conservan su nombre de archivo;
+  // las subidas anónimas (pruebas, versiones antiguas) seguirían inundando el inicio.
+  const enTrabajos = new Set(trabajos.map(j => j.analysisId).filter(Boolean));
+  proyectos.push(...listUploads().filter(u => !enTrabajos.has(u.analysisId)));
+  proyectos.sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
 
   return {
     proyectos: proyectos.slice(0, limit),

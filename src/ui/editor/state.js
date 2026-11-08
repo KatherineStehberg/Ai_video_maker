@@ -107,6 +107,10 @@ export function reduce(current, action) {
       return { ...next, state: 'analizando', progress: action.progress ?? next.progress, stage: action.stage ?? next.stage };
     case 'analysis-complete':
       return { ...next, state: 'analisis-completado', analysisId: action.analysis.id, analysis: action.analysis, progress: 100, stage: null, busy: false, error: null };
+    // Subida ya analizada que se retoma desde el inicio, aún sin montaje.
+    case 'restore-analysis':
+      return { ...initialState(), mode: 'subir', file: action.file,
+        analysisId: action.analysis.id, analysis: action.analysis, state: 'analisis-completado', progress: 100 };
     case 'restore-proposal': {
       const approved = !action.proposal.approvalRequired || action.proposal.approval?.status === 'aprobada';
       return { ...initialState(), mode: 'subir', file: action.file,

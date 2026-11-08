@@ -41,6 +41,7 @@
     <ul class="nav-lista" id="nav">
       <li><button class="nav-item" data-seccion="inicio" aria-current="page"><span class="nav-icono">⌂</span> Inicio</button></li>
       <li><button class="nav-item" data-seccion="crear"><span class="nav-icono">✦</span> Crear video</button></li>
+      <li><button class="nav-item" data-seccion="cola"><span class="nav-icono">☰</span> Videos en la cola <span class="nav-contador" id="cola-contador" hidden></span></button></li>
       <li><button class="nav-item" data-seccion="proyectos"><span class="nav-icono">▤</span> Mis proyectos</button></li>
       <li><button class="nav-item" data-seccion="plantillas"><span class="nav-icono">◈</span> Plantillas</button></li>
       <li><button class="nav-item" data-seccion="recursos"><span class="nav-icono">◫</span> Recursos</button></li>
@@ -345,7 +346,7 @@
             </label>
             <audio id="music-preview" controls preload="none" hidden></audio>
             <label>Volumen de la música
-              <input type="range" id="music-volume" min="0" max="0.5" step="0.01" value="0.16" disabled>
+              <input type="range" id="music-volume" min="0" max="1" step="0.01" value="0.16" disabled>
               <span class="mini" id="music-volume-label">16 %</span>
             </label>
             <p class="ayuda" id="music-note">Elige una pista para escucharla antes de aprobar.</p>
@@ -426,6 +427,18 @@
           </div>
           <button class="btn btn-grande btn-bloque" id="btn-propose" disabled>Crear propuesta</button>
         </div>
+      </section>
+
+      <!-- ------------------------------ [COLA] --------------------------- -->
+      <section data-pantalla="cola" hidden>
+        <div class="tarjeta-cab"><h1>Videos en la cola</h1><span class="mini" id="cola-actualizado"></span></div>
+        <p class="ayuda" style="margin-bottom:var(--e3)">Lo que se está procesando y los montajes que aún no tienen MP4. Se actualiza solo mientras estás aquí.</p>
+
+        <div class="tarjeta-cab"><h2>En proceso</h2><span class="mini" id="cola-proceso-total"></span></div>
+        <div class="cola-lista" id="cola-proceso"></div>
+
+        <div class="tarjeta-cab" style="margin-top:var(--e4)"><h2>Pendientes de exportar</h2><span class="mini" id="cola-pendientes-total"></span></div>
+        <div class="proyectos" id="cola-pendientes"></div>
       </section>
 
       <!-- ---------------------------- [PROXIMO] -------------------------- -->

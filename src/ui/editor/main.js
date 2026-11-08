@@ -21,7 +21,7 @@ import { fileSummary, rhythmSummary, collectWarnings, summaryCards, seconds, fra
 import { renderTimeline } from './timeline.js';
 import { renderSegments, readSegments, validateSelection, hasChanges } from './segments.js';
 import { renderDraft, readDraft, validateDraft, duracionTotal, aplicarAccion, escenasIncluidas } from './draft.js';
-import { renderProjects, duracionCorta } from './projects.js';
+import { renderProjects, duracionCorta, etiquetaEstado, fechaCorta } from './projects.js';
 import { renderInspector, renderVacio } from './inspector.js';
 import { createMessages } from './messages.js';
 import { createPlayer } from './player.js';
@@ -81,6 +81,7 @@ function irA(nueva) {
   const pantalla = PROXIMAMENTE[nueva] ? 'proximamente'
     : nueva === 'crear' ? 'crear'
     : nueva === 'subir' ? 'subir'
+    : nueva === 'cola' ? 'cola'
     : 'inicio';
 
   for (const s of $('lienzo').querySelectorAll('[data-pantalla]')) {
@@ -92,6 +93,7 @@ function irA(nueva) {
     $('prox-texto').textContent = PROXIMAMENTE[nueva];
   }
   if (pantalla === 'inicio') cargarProyectos();
+  if (pantalla === 'cola') cargarCola();
   // El panel derecho sólo aparece donde sirve para algo.
   $('app').dataset.panel = pantalla === 'crear' && paso === 'editor' ? 'si' : 'no';
   $('lienzo').scrollTop = 0;
@@ -325,6 +327,9 @@ function pintarResumen() {
   $('file-facts-subir').replaceChildren(fichaArchivo);
 }
 
+// Debe coincidir con defaultMusicVolume de src/edits/routes.js.
+const volumenMusicaPorDefecto = proposal => (proposal?.audioMode === 'stretch' ? 0.16 : 1);
+
 function pintarMusica() {
   const proposal = state.proposal;
   const select = $('music-track');
@@ -342,7 +347,8 @@ function pintarMusica() {
   select.value = selectedPath;
   select.disabled = !proposal || musicTracks.length === 0;
   volume.disabled = !proposal || !select.value;
-  volume.value = String(saved?.volume ?? 0.16);
+  volume.value = String(saved?.volume ?? volumenMusicaPorDefecto(proposal));
+  preview.volume = Number(volume.value);
   $('music-volume-label').textContent = `${Math.round(Number(volume.value) * 100)} %`;
 
   const selected = musicTracks.find(track => track.path === select.value);
@@ -368,7 +374,7 @@ function pintarMusica() {
   }
 
   const changed = Boolean(proposal) && (selectedPath !== select.value
-    || Math.abs(Number(volume.value) - (saved?.volume ?? 0.16)) > 1e-6);
+    || Math.abs(Number(volume.value) - (saved?.volume ?? volumenMusicaPorDefecto(proposal))) > 1e-6);
   $('btn-apply-music').disabled = !proposal || !changed;
   if (proposal && selectedPath && !selected) {
     $('btn-apply-music').disabled = false;
@@ -382,10 +388,11 @@ function actualizarVistaMusica() {
   const selected = musicTracks.find(track => track.path === $('music-track').value);
   $('music-volume-label').textContent = `${Math.round(Number($('music-volume').value) * 100)} %`;
   const preview = $('music-preview');
-  preview.pause();
+  preview.volume = Number($('music-volume').value);   // lo que se escucha = lo que se exporta
+  if (preview.src !== (selected ? new URL(selected.url, location.href).href : '')) preview.pause();
   preview.hidden = !selected;
   if (selected) {
-    preview.src = selected.url;
+    if (preview.src !== new URL(selected.url, location.href).href) preview.src = selected.url;
     $('music-note').textContent = `${selected.ambiente || selected.genero} · ${selected.licencia}. `
       + (state.proposal?.audioMode === 'stretch'
         ? 'Se mezclará con el audio original.'
@@ -400,7 +407,7 @@ function actualizarVistaMusica() {
   const saved = state.proposal?.music || null;
   $('btn-apply-music').disabled = !state.proposal
     || ((saved?.path || '') === $('music-track').value
-      && Math.abs(Number($('music-volume').value) - (saved?.volume ?? 0.16)) <= 1e-6);
+      && Math.abs(Number($('music-volume').value) - (saved?.volume ?? volumenMusicaPorDefecto(state.proposal))) <= 1e-6);
 }
 
 const celda = (tr, txt) => { const td = document.createElement('td'); td.textContent = txt; tr.append(td); };
@@ -472,8 +479,110 @@ async function cargarProyectos() {
   }
 }
 
+// ======================================================= VIDEOS EN LA COLA
+
+let colaCargando = false;
+
+/** Una fila de «En proceso»: título, estado, barra de progreso y etapa. */
+function filaCola(item) {
+  const fila = document.createElement('article');
+  fila.className = 'cola-fila tarjeta';
+  const cab = document.createElement('div');
+  cab.className = 'cola-fila-cab';
+  const titulo = document.createElement('div');
+  titulo.className = 'proyecto-titulo';
+  titulo.textContent = item.titulo;
+  const estado = etiquetaEstado(item.estado);
+  const pill = document.createElement('span');
+  pill.className = 'pill';
+  pill.dataset.tono = estado.tono;
+  pill.textContent = estado.texto;
+  cab.append(titulo, pill);
+  fila.append(cab);
+
+  if (item.estado !== 'queued') {
+    const barra = document.createElement('progress');
+    barra.max = 100;
+    if (Number.isFinite(item.progreso)) barra.value = item.progreso;
+    else barra.removeAttribute('value');           // indeterminada
+    fila.append(barra);
+  }
+  const datos = document.createElement('div');
+  datos.className = 'proyecto-datos';
+  datos.textContent = [
+    item.tipo === 'render' ? 'Render' : 'Video con IA',
+    item.etapa,
+    Number.isFinite(item.progreso) && item.estado !== 'queued' ? `${Math.round(item.progreso)} %` : null,
+    fechaCorta(item.creado),
+  ].filter(Boolean).join(' · ');
+  fila.append(datos);
+
+  if (item.tipo === 'render' && item.estado === 'queued') {
+    const quitar = document.createElement('button');
+    quitar.className = 'btn btn-mini';
+    quitar.textContent = 'Quitar de la cola';
+    quitar.addEventListener('click', async () => {
+      quitar.disabled = true;
+      try { await api.cancelRender(item.id); messages.setStatus(`«${item.titulo}» salió de la cola.`); }
+      catch (e) { messages.setError(`No se pudo quitar: ${e.message}`); }
+      cargarCola();
+    });
+    fila.append(quitar);
+  }
+  return fila;
+}
+
+function pintarContadorCola(total) {
+  const contador = $('cola-contador');
+  contador.hidden = !total;
+  contador.textContent = total > 99 ? '99+' : String(total);
+}
+
+/** Carga la cola. Con `soloContador` sólo actualiza el número del menú. */
+async function cargarCola({ soloContador = false } = {}) {
+  if (colaCargando) return;
+  colaCargando = true;
+  try {
+    const { enCurso, enEspera, pendientes } = await api.queue();
+    pintarContadorCola(enCurso.length + enEspera.length + pendientes.length);
+    if (soloContador || seccion !== 'cola') return;
+
+    const proceso = [...enCurso, ...enEspera];
+    $('cola-proceso-total').textContent = proceso.length
+      ? [enCurso.length ? `${enCurso.length} en curso` : '', enEspera.length ? `${enEspera.length} en espera` : ''].filter(Boolean).join(' · ')
+      : '';
+    if (proceso.length) $('cola-proceso').replaceChildren(...proceso.map(filaCola));
+    else {
+      const vacio = document.createElement('p');
+      vacio.className = 'ayuda';
+      vacio.textContent = 'No hay nada procesándose ahora mismo.';
+      $('cola-proceso').replaceChildren(vacio);
+    }
+
+    $('cola-pendientes-total').textContent = pendientes.length ? `${pendientes.length} sin exportar` : '';
+    if (pendientes.length) renderProjects($('cola-pendientes'), pendientes, { onAbrir: abrirProyecto, onVer: abrirProyecto });
+    else {
+      const vacio = document.createElement('p');
+      vacio.className = 'ayuda';
+      vacio.textContent = 'Todos tus montajes están exportados.';
+      $('cola-pendientes').replaceChildren(vacio);
+    }
+    $('cola-actualizado').textContent = `Actualizado ${new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+  } catch (e) {
+    if (!soloContador && seccion === 'cola') $('cola-actualizado').textContent = `No se pudo cargar la cola: ${e.message}`;
+  } finally {
+    colaCargando = false;
+  }
+}
+
+// En la pantalla de la cola se refresca cada 4 s; fuera de ella, sólo el
+// contador del menú cada 20 s. Nada se consulta con la pestaña oculta.
+setInterval(() => { if (!document.hidden && seccion === 'cola') cargarCola(); }, 4000);
+setInterval(() => { if (!document.hidden && seccion !== 'cola') cargarCola({ soloContador: true }); }, 20000);
+
 /** Retoma un proyecto guardado: recupera su análisis y su propuesta. */
 async function abrirProyecto(p) {
+  if (p.subida) return abrirSubida(p);
   irA('crear');
   messages.setStatus(`Abriendo «${p.titulo}»…`);
   try {
@@ -492,6 +601,33 @@ async function abrirProyecto(p) {
     messages.setStatus(`Proyecto recuperado. ${proposal ? 'Puedes seguir editando.' : 'Su montaje no está disponible.'}`);
   } catch (e) {
     dispatch({ type: 'error', error: `No pudimos abrir este proyecto: ${e.message}` });
+  }
+}
+
+/** Retoma un video subido: con montaje va al editor; sin él, a «Crear propuesta». */
+async function abrirSubida(p) {
+  messages.setStatus(`Abriendo «${p.titulo}»…`);
+  try {
+    const analysis = await api.getAnalysis(p.analysisId);
+    if (analysis.status !== 'complete') throw new Error('su análisis ya no está disponible.');
+    const proposal = p.editId ? await api.getProposal(p.editId).catch(() => null) : null;
+    const file = { name: analysis.fileName || p.titulo, size: analysis.bytes || 1, type: 'video/mp4' };
+    pendingSegments = null;
+    exportPlayer.clear();
+    sourcePlayer.load(api.previewUrl(analysis.id));
+    if (proposal) {
+      dispatch({ type: 'restore-proposal', proposal, analysis, file });
+      irA('crear');
+      irPaso('editor');
+      messages.setStatus('Montaje recuperado. Puedes seguir editando.');
+    } else {
+      dispatch({ type: 'restore-analysis', analysis, file });
+      $('file-label').textContent = file.name;
+      irA('subir');
+      messages.setStatus('Video ya analizado. Pulsa «Crear propuesta» para preparar el montaje.');
+    }
+  } catch (e) {
+    dispatch({ type: 'error', error: `No pudimos abrir este video: ${e.message}` });
   }
 }
 
@@ -968,7 +1104,7 @@ $('btn-propose').addEventListener('click', async () => {
       syncMode: $('sync-mode').value,
       enableSpeedRamps: $('ramps').checked,
       approvalRequired: true,
-      music: music ? { path: music.path, volume: 0.16 } : null,
+      music: music ? { path: music.path } : null,   // el backend fija el volumen por defecto
     });
     dispatch({ type: 'proposal-ready', proposal });
     irA('crear'); irPaso('editor');
@@ -1094,5 +1230,6 @@ if (savedProposalId) {
   irA('inicio');
   irPaso('idea');
 }
+cargarCola({ soloContador: true });
 
 render();
