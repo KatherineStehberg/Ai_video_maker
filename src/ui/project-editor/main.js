@@ -381,15 +381,16 @@ async function exportar() {
     pintar();
     await api.exportar(s.id);
     if (!(await seguirTrabajo('Exportando el MP4…'))) return;
-    // Un «Listo.» suelto no se veía: se muestra el MP4 recién hecho y se dice
-    // dónde quedó, con el botón «Descargar MP4» al lado del reproductor.
+    // Exportar entrega el archivo: se descarga solo al terminar, el reproductor
+    // pasa al MP4 recién hecho y el mensaje dice dónde quedó en el equipo.
     const salida = s.derivado?.salida;
     if (salida?.url) {
       pausar();
       s = { ...s, fuentePreview: 'mp4' };
       pintar();
+      $('descargar-mp4').click();
       const d = s.derivado.dimensiones;
-      mensaje(`MP4 listo${d ? ` · ${d.width}×${d.height}` : ''} · ${Math.round(s.derivado.duracion || 0)} s. Se ve en el reproductor; «Descargar MP4» lo guarda. Archivo: ${salida.path}`);
+      mensaje(`MP4 listo y descargado${d ? ` · ${d.width}×${d.height}` : ''} · ${Math.round(s.derivado.duracion || 0)} s. Si no aparece en Descargas, usa «Descargar MP4». Archivo: ${salida.path}`);
     }
   } catch (e) { fallo(e); }
 }
