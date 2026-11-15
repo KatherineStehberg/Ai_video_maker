@@ -53,6 +53,9 @@ export function createApi({ fetchImpl = globalThis.fetch, baseUrl = '' } = {}) {
 
     musicLibrary: (query = '') => call(`${ENDPOINTS.edits}/music?q=${encodeURIComponent(query)}`),
 
+    /** Crea (o recupera) el proyecto del editor visual de un video subido. */
+    visualProjectForUpload: (analysisId) => call(`${ENDPOINTS.edits}/uploads/${encodeURIComponent(analysisId)}/visual-project`, { method: 'POST' }),
+
     updateMusic: (id, music) => call(`${ENDPOINTS.edits}/${encodeURIComponent(id)}`, {
       method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ music }),
     }),

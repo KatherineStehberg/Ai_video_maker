@@ -8,6 +8,7 @@ import { exportEdit } from './export.js';
 import { validateProposal, relayout, round6, SPEED_LIMITS } from './schema.js';
 import { ASPECTS } from '../config.js';
 import { listarMusica, creditoDeMusica } from '../project-editor/media-library.js';
+import { proyectoDesdeSubida } from './visual-project.js';
 
 const root = path.join(PATHS.data, 'video-edits');
 const UUID = /^[\da-f-]{36}$/;
@@ -76,6 +77,12 @@ export async function editsRoute(req, res, url) {
     if (req.method === 'GET' && parts.length === 2) { reply(res, 200, { formats: Object.keys(ASPECTS), aspects: ASPECTS }); return true; }
     if (req.method === 'GET' && parts.length === 3 && parts[2] === 'music') {
       reply(res, 200, await listarMusica({ consulta: url.searchParams.get('q') || '' }));
+      return true;
+    }
+    // Proyecto del editor visual para un video subido (se crea una sola vez).
+    if (req.method === 'POST' && parts.length === 5 && parts[2] === 'uploads' && parts[4] === 'visual-project') {
+      const project = proyectoDesdeSubida(parts[3]);
+      reply(res, 200, { projectId: project.id, title: project.title });
       return true;
     }
 

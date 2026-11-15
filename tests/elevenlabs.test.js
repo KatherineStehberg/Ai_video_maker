@@ -18,6 +18,12 @@ let fixtureBase64;
 let synthesisStatus = 200;
 let synthesisRequests = 0;
 const synthesisBodies = [];
+// La caché de ElevenLabs es global y persiste entre ejecuciones: con un texto
+// fijo, la segunda corrida reusaba el audio y nunca llamaba al mock.
+const RUN = Date.now().toString(36);
+const cachedText = `Hello world ${RUN}.`;
+const cacheDir = () => workDir('_elevenlabs-cache');
+let cacheAntes = new Set();
 
 function response(status, body) {
   return {
@@ -82,9 +88,15 @@ test.before(async () => {
   fixtureBase64 = fs.readFileSync(fixtureAudio).toString('base64');
   CONFIG.tts.elevenLabsApiKey = 'test-key';
   globalThis.fetch = mockFetch;
+  cacheAntes = new Set(fs.existsSync(cacheDir()) ? fs.readdirSync(cacheDir()) : []);
 });
 
 test.after(() => {
+  // Sólo se borra lo que estas pruebas añadieron a la caché; las narraciones
+  // reales que ya estaban (de pago) no se tocan.
+  for (const name of fs.existsSync(cacheDir()) ? fs.readdirSync(cacheDir()) : []) {
+    if (!cacheAntes.has(name)) fs.rmSync(path.join(cacheDir(), name), { force: true });
+  }
   CONFIG.tts.elevenLabsApiKey = originalApiKey;
   globalThis.fetch = originalFetch;
   fs.rmSync(fixtureAudio, { force: true });
@@ -118,7 +130,7 @@ test('ElevenLabs audio and word timings are cached and reused for an unchanged s
   const project = makeProject({
     language: 'en',
     voice: { provider: 'elevenlabs', name: 'voice-en' },
-    scenes: [{ text: 'Hello world.', duration: 3 }],
+    scenes: [{ text: cachedText, duration: 3 }],
   });
   try {
     const before = synthesisRequests;
@@ -126,7 +138,7 @@ test('ElevenLabs audio and word timings are cached and reused for an unchanged s
     assert.equal(first.provider, 'elevenlabs');
     assert.equal(first.errors.length, 0);
     assert.ok(await probeDuration(abs(first.narrations[0])) > 0);
-    assert.equal(project.scenes[0].captionTimingText, 'Hello world.');
+    assert.equal(project.scenes[0].captionTimingText, cachedText);
     assert.ok(project.scenes[0].captionTimings.length > 0);
     assert.equal(project.scenes[0].narrationPath, first.narrations[0]);
     assert.equal(synthesisBodies.at(-1).model_id, CONFIG.tts.elevenLabsModel, 'an unset project model uses the configured model');
@@ -152,7 +164,7 @@ test('editor voice preview returns playable ElevenLabs audio without exposing cr
       provider: 'elevenlabs',
       voice: 'voice-en',
       model: 'eleven_multilingual_v2',
-      text: 'A short voice preview.',
+      text: `A short voice preview ${RUN}.`,
       settings: { stability: 0.3, speed: 0.95 },
     });
     const result = await originalFetch(`${base}/api/project-editor/preview-voice`, {

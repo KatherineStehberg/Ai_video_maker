@@ -616,7 +616,8 @@ export function listUploads() {
     const exportado = Boolean(m?.export?.file && fs.existsSync(path.resolve(PATHS.root, m.export.file)));
     return {
       id: a.id,
-      projectId: null,
+      // Proyecto del editor visual, si ya se creó (src/edits/visual-project.js).
+      projectId: a.projectId ?? null,
       subida: true,
       titulo: a.fileName.replace(/\.[^.]+$/, ''),
       miniatura: null,
@@ -739,7 +740,12 @@ export function listHomeProjects({ limit = 40 } = {}) {
   // proyecto guardado. Sólo se listan los que conservan su nombre de archivo;
   // las subidas anónimas (pruebas, versiones antiguas) seguirían inundando el inicio.
   const enTrabajos = new Set(trabajos.map(j => j.analysisId).filter(Boolean));
-  proyectos.push(...listUploads().filter(u => !enTrabajos.has(u.analysisId)));
+  const subidas = listUploads().filter(u => !enTrabajos.has(u.analysisId));
+  // El proyecto del editor visual de una subida va en la tarjeta de la subida
+  // («Editar»), no como una tarjeta más.
+  const deSubidas = new Set(subidas.map(u => u.projectId).filter(Boolean));
+  for (let i = proyectos.length - 1; i >= 0; i--) if (deSubidas.has(proyectos[i].projectId)) proyectos.splice(i, 1);
+  proyectos.push(...subidas);
   proyectos.sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
 
   return {

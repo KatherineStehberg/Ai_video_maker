@@ -162,7 +162,8 @@ export function makeProject(partial = {}) {
       logo: partial.assets?.logo ?? null,            // null => usa el de la marca
       extra: partial.assets?.extra ?? [],
     },
-    cta: partial.cta ?? '',
+    // '' = usa la llamada a la acción de la marca; null = ninguna (ver renderer).
+    cta: partial.cta === null ? null : (partial.cta ?? ''),
     status: partial.status || STATUS.DRAFT,
     outputPath: partial.outputPath ?? null,
     outputs: partial.outputs ?? {},                  // { "16:9": "output/final/...mp4" }

@@ -434,7 +434,9 @@ function buildOverlayGraph(project, brand, ctx, subsAbs, logoAbs, totalSeconds) 
     cur = '[subbed]';
   }
 
-  if (project.cta?.trim() || brand?.cta?.trim()) {
+  // `cta: null` = sin llamada a la acción (un video subido ya trae su propio
+  // cierre y el rótulo de la marca taparía el precio). '' usa el de la marca.
+  if (project.cta !== null && (project.cta?.trim() || brand?.cta?.trim())) {
     const text = stripLangTags(project.cta || brand.cta);
     if (ctx.fontFile) {
       const size = Math.round(W / 20);
