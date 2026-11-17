@@ -6,7 +6,7 @@ Preparado para Katherine Stehberg, 4 octubre 2026.
 
 La versión actualizada inicia la cola con `npm start`. El editor incluye el enlace **Videos de cursos · revisión final**. También se puede abrir `http://127.0.0.1:4321/course-production.html`.
 
-Incluye 15 guiones y 96 escenas: siete videos de Remote Work y ocho de Corporate English + AI. Los textos completos están en `docs/courses/lc-chile-recording-scripts-20261004.md`; el paquete de producción está en `content/courses/lc-chile-20261004.json`.
+Incluye 19 guiones: siete de Remote Work, ocho de Corporate English + AI y cuatro cápsulas de Business & Socializing A1–A2 agregadas al final. El documento de guiones de octubre cubre los quince videos iniciales. Los textos completos están en `docs/courses/lc-chile-recording-scripts-20261004.md`; el paquete de producción está en `content/courses/lc-chile-20261004.json`.
 
 La cola produce un video a la vez con el pipeline local. Usa narración en inglés, formato 1920×1080, duración automática, subtítulos completos y fondo de marca blanco/azul. No solicita revisión previa de cada guion. La intervención de Katherine ocurre al abrir **Revisar edición**, comprobar el resultado y exportar la versión elegida con el editor existente. La cola no publica en WordPress.
 
@@ -14,7 +14,7 @@ La cola produce un video a la vez con el pipeline local. Usa narración en ingl�
 
 El equipo debe mantenerse encendido y el servidor debe estar ejecutándose. Se requiere una voz inglesa SAPI de Windows o un modelo inglés Piper instalado, FFmpeg y ffprobe. Sin esos requisitos se informa el bloqueo y no se genera una clase silenciosa. `npm run courses:check` valida el paquete y muestra el diagnóstico. No descarga motores, modelos ni claves.
 
-Si AI Video Maker ya estaba abierto antes de recibir esta actualización, hay que actualizar la rama `feat/personal-video-studio` y reiniciar `npm start`. El servicio que ya estaba en ejecución no incorpora código nuevo por sí mismo. No hay despliegue permanente ni servicio remoto activado por este cambio.
+Si AI Video Maker ya estaba abierto antes de recibir esta actualización, hay que incorporar el cambio de la rama `codex/cola-local-cursos-20261117` a la copia que se usa en Windows y reiniciar `npm start`. El servicio que ya estaba en ejecución no incorpora código nuevo por sí mismo. No hay despliegue permanente ni servicio remoto activado por este cambio.
 
 ## Recuperación y revisión
 
@@ -22,7 +22,7 @@ El estado se conserva localmente en `data/course-production/state.json`, excluid
 
 Antes de mostrar **Listo para revisión final**, se comprueba el MP4 con ffprobe, pista de audio, resolución, duración, archivos de narración de todas las escenas, subtítulos y coincidencia del texto completo. La calidad de la voz, la pronunciación y la sincronía requieren escuchar y mirar el video: la comprobación técnica no sustituye esa revisión.
 
-El proveedor de video se fija a `pipeline`; los guiones y escenas explícitos evitan generación de texto mediante LLM. Las imágenes usan la cadena existente de recursos locales/Pexels/fondos FFmpeg, sin proveedor de imágenes de pago. Música desactivada por defecto. No se habilitan servicios de pago ni se cambian las restricciones de red de la aplicación. Para pausar la cola al iniciar: `COURSE_PRODUCTION_ENABLED=0`.
+El proveedor de video se fija a `pipeline`; los guiones y escenas explícitos evitan generación de texto mediante LLM. La producción automática conserva los visuales existentes y genera los faltantes con FFmpeg local. La cola solo selecciona voces instaladas SAPI o Piper y bloquea la reanudación automática de trabajos con una voz externa. Música desactivada por defecto. No se habilitan servicios de pago ni se cambian las restricciones de red de la aplicación. Para pausar la cola al iniciar: `COURSE_PRODUCTION_ENABLED=0`.
 
 ## Alcance editorial
 
@@ -38,7 +38,7 @@ Los guiones constituyen videos breves de explicación y práctica; las actividad
 
 En Windows, SAPI necesita ejecutarse con la cuenta habitual del equipo; el sandbox puede ocultar las voces instaladas. El servidor debe permanecer abierto y el equipo encendido. Los enlaces `127.0.0.1` funcionan solamente en este computador. Los MP4 se conservan en `output/final/` y el estado en `data/course-production/state.json`.
 
-`npm run courses:test` prueba secuencia, persistencia, recuperación y bloqueo ante errores. `node --test tests/course-production-contract.test.js` verifica los 15 guiones y la selección de voz inglesa. `npm test` desactiva la cola de cursos para no mezclar renders de prueba con trabajo real.
+`npm run courses:test` prueba secuencia, persistencia, recuperación y bloqueo ante errores. `node --test tests/course-production-contract.test.js` verifica los 19 guiones y la selección de voz inglesa. `npm test` desactiva la cola de cursos para no mezclar renders de prueba con trabajo real.
 
 ## Video de portafolio — AI Video Maker (Upwork)
 
@@ -66,4 +66,4 @@ AI Video Maker is a project I am developing to support educational and promotion
 
 ### Material y revisión
 
-Usar grabaciones auténticas del editor y un MP4 propio cuya reproducción, audio y subtítulos estén revisados. Capturar la exportación únicamente si funciona en la versión instalada. No sustituir la demostración del producto por pantallas ficticias ni prometer funciones pendientes. Ocultar correos, claves, rutas personales y datos de clientes. Utilizar recursos con permisos de exhibición. Verificar que la narración coincida con las funciones realmente mostradas. Revisión final de Katherine antes de publicación. Este registro amplía la planificación; no cambia el paquete automático de 15 guiones de cursos ni el estado local de ejecución.
+Usar grabaciones auténticas del editor y un MP4 propio cuya reproducción, audio y subtítulos estén revisados. Capturar la exportación únicamente si funciona en la versión instalada. No sustituir la demostración del producto por pantallas ficticias ni prometer funciones pendientes. Ocultar correos, claves, rutas personales y datos de clientes. Utilizar recursos con permisos de exhibición. Verificar que la narración coincida con las funciones realmente mostradas. Revisión final de Katherine antes de publicación. Este registro amplía la planificación; no cambia el paquete automático de guiones de cursos ni el estado local de ejecución.

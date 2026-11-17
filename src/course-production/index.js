@@ -14,38 +14,38 @@ import { CONFIG } from '../config.js';
 
 export const packFile = path.join(PATHS.root, 'content/courses/lc-chile-20261004.json');
 export const loadPack = () => JSON.parse(fs.readFileSync(packFile, 'utf8'));
+const LOCAL_VOICE_PROVIDERS = ['sapi', 'piper'];
 let queue = null;
 let startupError = null;
 
 export function courseSpec(item, voice) {
+  if (!LOCAL_VOICE_PROVIDERS.includes(voice?.provider)) throw new Error('La cola requiere una voz local SAPI o Piper.');
   const contract = normalizeOrchestratorInput({
     projectId: `course:${item.id}:${item.scriptSha256}`, brandId: 'lc-chile-courses',
     title: item.title, script: item.script, format: '16:9', platform: 'lms', style: 'corporativo',
-    voice: { provider: voice.provider, name: voice.name, model: voice.model, settings: voice.settings, enabled: true, rate: -1 },
+    voice: { provider: voice.provider, name: voice.name, enabled: true, rate: -1 },
     sourceReference: { kind: 'url', id: item.sources[0], name: item.id },
     music: { enabled: false }, subtitles: { enabled: true, burnIn: true, language: 'en', style: { preset: 'curso' } },
     course: item.course,
   });
   // Explicit scenes prevent LLM rewriting, narration of production directions,
   // or paid script generation. Preserve every word of the prepared narration.
-  return normalizeSpec({ ...specDesdeContrato(contract), templateId: 'video-curso',
+  return normalizeSpec({ ...specDesdeContrato(contract), templateId: 'video-curso', visualMode: 'images',
     escenas: item.scenes, scriptSource: 'course-source-adaptation' });
 }
 
 export async function preflight() {
   const ff = await resolveFfmpeg();
-  const voices = await listAllVoices();
-  const english = voices.filter(v => /^en(?:[-_]|$)/i.test(v.language || v.locale || v.name || '') && ['sapi','piper','elevenlabs'].includes(v.provider));
-  const voice = english.find(v => v.provider === CONFIG.tts.provider) || english.find(v => ['sapi','piper'].includes(v.provider)) || english.find(v => v.provider === 'elevenlabs');
+  const voices = await listAllVoices({ providers: LOCAL_VOICE_PROVIDERS });
+  const english = voices.filter(v => /^en(?:[-_]|$)/i.test(v.language || v.locale || v.name || ''));
+  const voice = english.find(v => v.provider === CONFIG.tts.provider) || english[0];
   const reasons = [];
   if (!ff.ffmpeg || !ff.ffprobe) reasons.push('Se necesitan FFmpeg y ffprobe para producir y verificar los MP4.');
-  if (!voice) reasons.push('Se necesita una voz en inglés: SAPI/Piper local o ElevenLabs con clave configurada. No se producirán videos silenciosos ni con voz de otro idioma.');
+  if (!voice) reasons.push('Se necesita una voz en inglés instalada en SAPI o Piper. No se producirán videos silenciosos ni con voz de otro idioma.');
   return { ok: reasons.length === 0, reasons, voice: voice ? {
     name: voice.name,
     provider: voice.provider,
     language: voice.language,
-    model: voice.provider === 'elevenlabs' ? CONFIG.tts.elevenLabsModel : '',
-    settings: voice.provider === 'elevenlabs' ? CONFIG.tts.elevenLabsVoiceSettings : undefined,
   } : null };
 }
 
@@ -80,7 +80,15 @@ export function getCourseQueue() {
   const queueDir = process.env.AIVM_COURSE_QUEUE_DIR || path.join(PATHS.data,'course-production');
   queue = createCourseQueue({ pack: loadPack(), stateFile: path.join(queueDir,'state.json'), backend: {
     preflight, getJob, verify,
-    resumeJob: id => resumeJob(id, { providerName: 'pipeline' }),
+    resumeJob: id => {
+      const job = getJob(id);
+      const project = job?.projectId && loadProject(job.projectId);
+      if (!LOCAL_VOICE_PROVIDERS.includes(job?.spec?.voice?.provider) ||
+          !LOCAL_VOICE_PROVIDERS.includes(project?.voice?.provider)) {
+        throw new Error('Este trabajo usaba una voz externa o sin confirmar. Revísalo en el editor y elige SAPI o Piper antes de exportar.');
+      }
+      return resumeJob(id, { providerName: 'pipeline' });
+    },
     findJob: (id, hash) => listJobs({ limit: 100000 }).map(j => getJob(j.id)).find(j => j?.spec?.orchestratorProjectId === `course:${id}:${hash}`),
     submit: (item, voice) => createJob(courseSpec(item, voice), { providerName: 'pipeline' }),
     isBusy: error => error.message === 'Ya hay una generación en curso; espera a que termine.',
