@@ -962,9 +962,11 @@ $('btn-aprobar-guion').addEventListener('click', () => {
   if (!borrador) return;
   // El texto del área grande manda sobre las tarjetas si se editó aquí.
   const lineas = $('guion-texto').value.split('\n').map(l => l.trim()).filter(Boolean);
-  if (lineas.length === borrador.escenas.length) {
-    borrador.escenas = borrador.escenas.map((e, i) => ({ ...e, text: lineas[i] }));
+  if (lineas.length !== borrador.escenas.length) {
+    messages.setError('Usa una línea por escena o pega el guion completo en «Ya tengo el guion escrito», en el paso Idea.');
+    return;
   }
+  borrador.escenas = borrador.escenas.map((e, i) => ({ ...e, text: lineas[i] }));
   borrador.source = 'editado';
   render();
   irPaso('escenas');

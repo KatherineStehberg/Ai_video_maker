@@ -134,7 +134,7 @@ function bloqueDestacado(e, alCambiar) {
   panel.append(aviso);
   caja.append(panel);
 
-  const refrescar = () => {
+  const refrescar = (notificar = true) => {
     const encendido = casilla.checked;
     panel.hidden = !encendido;
     const texto = titulo.input.value.trim();
@@ -159,7 +159,7 @@ function bloqueDestacado(e, alCambiar) {
     previa.dataset.size = size.select.value;
     previa.dataset.bg = bg.select.value;
     rotulo.style.color = color.input.value;
-    alCambiar?.();
+    if (notificar) alCambiar?.();
   };
 
   // Escribir el rótulo a mano lo blinda: una propuesta automática posterior
@@ -178,7 +178,7 @@ function bloqueDestacado(e, alCambiar) {
     if (casilla.checked) caja.open = true;
   });
 
-  refrescar();
+  refrescar(false);
   return { caja, refrescar };
 }
 
