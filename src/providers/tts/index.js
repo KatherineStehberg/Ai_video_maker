@@ -49,9 +49,9 @@ export async function resolveProvider(preferred = 'auto') {
 }
 
 /** Todas las voces de todos los providers disponibles. */
-export async function listAllVoices({ errors = null } = {}) {
+export async function listAllVoices({ errors = null, providers = ['elevenlabs', 'edge', 'piper', 'sapi'] } = {}) {
   const out = [];
-  for (const name of ['elevenlabs', 'edge', 'piper', 'sapi']) {
+  for (const name of providers) {
     const p = REGISTRY[name];
     try {
       if (await p.isAvailable()) out.push(...(await p.listVoices()));

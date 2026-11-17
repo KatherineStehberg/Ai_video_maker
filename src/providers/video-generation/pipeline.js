@@ -7,6 +7,7 @@ import { draftScript, escenasAGuion } from '../../generation/script.js';
 import { contarPalabras, WPM_POR_DEFECTO, formatearDuracion } from '../../generation/segmenter.js';
 import { vozDisponible } from '../../generation/voice.js';
 import { listAllVoices } from '../tts/index.js';
+import { provideCourseVisual } from '../../course-production/visuals.js';
 import { abs } from '../../lib/paths.js';
 import { ffmpegRun, probeDuration } from '../../lib/ffmpeg.js';
 import { ASPECTS } from '../../config.js';
@@ -187,14 +188,17 @@ export const pipelineProvider = {
 
     // Voz: se busca una española entre las instaladas. Si no hay, se avisa y
     // se narra igualmente, pero nunca en silencio sobre el problema.
-    let voz = await vozDisponible();
+    const queuedCourse = /^course:[A-Z0-9-]+:[a-f0-9]{64}$/.test(spec.orchestratorProjectId || '');
+    let voz = queuedCourse ? { provider: 'none' } : await vozDisponible();
     const vozPedida = spec.voice || null;
     if (vozPedida?.name && vozPedida.enabled !== false) {
-      const selected = (await listAllVoices()).find(v => v.name === vozPedida.name &&
+      const voices = await listAllVoices(queuedCourse ? { providers: ['sapi', 'piper'] } : undefined);
+      const selected = voices.find(v => v.name === vozPedida.name &&
         (!vozPedida.provider || vozPedida.provider === 'auto' || v.provider === vozPedida.provider));
       if (selected) voz = { ...voz, nombre: selected.name, provider: selected.provider,
         etiqueta: selected.language, esEspanol: /^es/i.test(selected.language || ''), aviso: null };
     }
+    if (queuedCourse && voz.provider === 'none') throw new Error('La voz local del curso no está disponible.');
     const musica = spec.musicTrack || null;
     const subtitulos = spec.subtitles || { enabled: true, burnIn: true };
 
@@ -290,6 +294,18 @@ export const pipelineProvider = {
     const objetivo = spec.duration === null || spec.duration === undefined || spec.duration === 'auto'
       ? null : Number(spec.duration) || null;
 
+    if (queuedCourse) {
+      const { width, height } = ASPECTS[aspectRatio];
+      for (const scene of project.scenes) {
+        if (scene.assetPath && fs.existsSync(abs(scene.assetPath))) continue;
+        const visual = await provideCourseVisual({ project, scene, width, height });
+        scene.assetPath = visual.path;
+        scene.assetProvider = visual.provider;
+        scene.assetCredit = visual.credit;
+        scene.assetKind = 'image';
+        saveProject(project);
+      }
+    }
     const informeA = await runPipeline(project, {
       steps: ['assets', 'narration'],
       onProgress: reportar(15, 0.45),

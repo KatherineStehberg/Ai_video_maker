@@ -1858,6 +1858,302 @@
         ]
       },
       "publicationBlocked": true
+    },
+    {
+      "id": "RPM-A1A2-INTRO",
+      "title": "Introductions at Work",
+      "language": "en",
+      "script": "It is your first day at work. A colleague says, Hello, I am Maya. What can you say? Try this. Hi, I am Alex. Nice to meet you.\n\nAdd one sentence about your role. I work in customer support. Now ask, What do you do? Your colleague can answer, I work in sales.\n\nPause and say your name, your role, and one question. Use this example. Hi, I am Alex. I work in customer support. What do you do? Say it again without reading.",
+      "scriptSha256": "a11f3d5d7efe574a7c16a86c0ceff31cd41fd50c842ab87f3a9fb20d6f489b01",
+      "sections": [
+        {
+          "heading": "Say hello",
+          "narration": "It is your first day at work. A colleague says, Hello, I am Maya. What can you say? Try this. Hi, I am Alex. Nice to meet you."
+        },
+        {
+          "heading": "Introduce your role",
+          "narration": "Add one sentence about your role. I work in customer support. Now ask, What do you do? Your colleague can answer, I work in sales."
+        },
+        {
+          "heading": "Give a short introduction",
+          "narration": "Pause and say your name, your role, and one question. Use this example. Hi, I am Alex. I work in customer support. What do you do? Say it again without reading."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "It is your first day at work. A colleague says, Hello, I am Maya. What can you say? Try this. Hi, I am Alex. Nice to meet you.",
+          "onScreenTitle": "Say hello",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 16,
+          "seccion": "Say hello"
+        },
+        {
+          "role": "point",
+          "text": "Add one sentence about your role. I work in customer support. Now ask, What do you do? Your colleague can answer, I work in sales.",
+          "onScreenTitle": "Introduce your role",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 14.29,
+          "seccion": "Introduce your role"
+        },
+        {
+          "role": "cta",
+          "text": "Pause and say your name, your role, and one question. Use this example. Hi, I am Alex. I work in customer support. What do you do? Say it again without reading.",
+          "onScreenTitle": "Give a short introduction",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 17.71,
+          "seccion": "Give a short introduction"
+        }
+      ],
+      "sources": [
+        "https://github.com/KatherineStehberg/ksl-orquestador/blob/17d43c66b96e7bfe6a8575b1e00d0e3647b724c8/docs/products/lc-chile-wordpress-edits-2026-10-04.md",
+        "https://github.com/KatherineStehberg/ksl-orquestador/issues/21"
+      ],
+      "adaptation": "Original supplementary speaking practice aligned to the four mapped LMS topics. Example people and situations are fictional.",
+      "course": {
+        "courseId": "56399",
+        "courseName": "English A1?A2 Business & Socializing",
+        "moduleId": "RPM-A1A2-INTRO",
+        "moduleName": "Introductions and greetings",
+        "lessonNumber": 1,
+        "tags": [
+          "self-paced",
+          "speaking-practice",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-A1A2-SMALLTALK",
+      "title": "Small Talk Before a Meeting",
+      "language": "en",
+      "script": "You have a minute before a meeting. Say, Hi, how is your day going? Your colleague says, Good, thanks. How about you? Say, Pretty good, thanks.\n\nStart with a simple topic. It is sunny today. Is it sunny where you are? Listen to the answer. You can say, That sounds nice. Keep the exchange short.\n\nThe meeting is about to start. Say, It was nice talking to you. See you in the meeting. Pause and practice three lines. Ask a question, answer it, and close politely.",
+      "scriptSha256": "215c788a7a52585f00d5bf5e668d05477d9e0021f0ab820bf4b77f3b252facca",
+      "sections": [
+        {
+          "heading": "Open the conversation",
+          "narration": "You have a minute before a meeting. Say, Hi, how is your day going? Your colleague says, Good, thanks. How about you? Say, Pretty good, thanks."
+        },
+        {
+          "heading": "Ask one follow-up",
+          "narration": "Start with a simple topic. It is sunny today. Is it sunny where you are? Listen to the answer. You can say, That sounds nice. Keep the exchange short."
+        },
+        {
+          "heading": "Close politely",
+          "narration": "The meeting is about to start. Say, It was nice talking to you. See you in the meeting. Pause and practice three lines. Ask a question, answer it, and close politely."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "You have a minute before a meeting. Say, Hi, how is your day going? Your colleague says, Good, thanks. How about you? Say, Pretty good, thanks.",
+          "onScreenTitle": "Open the conversation",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 14.86,
+          "seccion": "Open the conversation"
+        },
+        {
+          "role": "point",
+          "text": "Start with a simple topic. It is sunny today. Is it sunny where you are? Listen to the answer. You can say, That sounds nice. Keep the exchange short.",
+          "onScreenTitle": "Ask one follow-up",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 16.57,
+          "seccion": "Ask one follow-up"
+        },
+        {
+          "role": "cta",
+          "text": "The meeting is about to start. Say, It was nice talking to you. See you in the meeting. Pause and practice three lines. Ask a question, answer it, and close politely.",
+          "onScreenTitle": "Close politely",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 17.71,
+          "seccion": "Close politely"
+        }
+      ],
+      "sources": [
+        "https://github.com/KatherineStehberg/ksl-orquestador/blob/17d43c66b96e7bfe6a8575b1e00d0e3647b724c8/docs/products/lc-chile-wordpress-edits-2026-10-04.md",
+        "https://github.com/KatherineStehberg/ksl-orquestador/issues/21"
+      ],
+      "adaptation": "Original supplementary speaking practice aligned to the four mapped LMS topics. Example people and situations are fictional.",
+      "course": {
+        "courseId": "56399",
+        "courseName": "English A1?A2 Business & Socializing",
+        "moduleId": "RPM-A1A2-SMALLTALK",
+        "moduleName": "Small talk",
+        "lessonNumber": 2,
+        "tags": [
+          "self-paced",
+          "speaking-practice",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-A1A2-MEETINGS",
+      "title": "Speak Up in a Meeting",
+      "language": "en",
+      "script": "You need to give a short update in a meeting. Start with, Today I want to talk about the schedule. Then name one change. The meeting is now on Tuesday.\n\nIf you miss a detail, ask, Could you repeat that, please? Then check what you heard. Did you say Tuesday at ten? This gives your colleague a chance to confirm.\n\nPause and give a short update with two details. Start with your topic, then say the new day and time. Finish with, Do you have any questions? Try it once more without reading.",
+      "scriptSha256": "eb8373bc539e94bd6ca04a63bb3ca43257f0b21f49e729a2bf75dbe1df063cc6",
+      "sections": [
+        {
+          "heading": "Introduce one point",
+          "narration": "You need to give a short update in a meeting. Start with, Today I want to talk about the schedule. Then name one change. The meeting is now on Tuesday."
+        },
+        {
+          "heading": "Check the details",
+          "narration": "If you miss a detail, ask, Could you repeat that, please? Then check what you heard. Did you say Tuesday at ten? This gives your colleague a chance to confirm."
+        },
+        {
+          "heading": "Practice a short update",
+          "narration": "Pause and give a short update with two details. Start with your topic, then say the new day and time. Finish with, Do you have any questions? Try it once more without reading."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "You need to give a short update in a meeting. Start with, Today I want to talk about the schedule. Then name one change. The meeting is now on Tuesday.",
+          "onScreenTitle": "Introduce one point",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 17.14,
+          "seccion": "Introduce one point"
+        },
+        {
+          "role": "point",
+          "text": "If you miss a detail, ask, Could you repeat that, please? Then check what you heard. Did you say Tuesday at ten? This gives your colleague a chance to confirm.",
+          "onScreenTitle": "Check the details",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 17.14,
+          "seccion": "Check the details"
+        },
+        {
+          "role": "cta",
+          "text": "Pause and give a short update with two details. Start with your topic, then say the new day and time. Finish with, Do you have any questions? Try it once more without reading.",
+          "onScreenTitle": "Practice a short update",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 18.86,
+          "seccion": "Practice a short update"
+        }
+      ],
+      "sources": [
+        "https://github.com/KatherineStehberg/ksl-orquestador/blob/17d43c66b96e7bfe6a8575b1e00d0e3647b724c8/docs/products/lc-chile-wordpress-edits-2026-10-04.md",
+        "https://github.com/KatherineStehberg/ksl-orquestador/issues/21"
+      ],
+      "adaptation": "Original supplementary speaking practice aligned to the four mapped LMS topics. Example people and situations are fictional.",
+      "course": {
+        "courseId": "56399",
+        "courseName": "English A1?A2 Business & Socializing",
+        "moduleId": "RPM-A1A2-MEETINGS",
+        "moduleName": "Meetings and presentations",
+        "lessonNumber": 3,
+        "tags": [
+          "self-paced",
+          "speaking-practice",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
+    },
+    {
+      "id": "RPM-A1A2-PHONE-EMAIL",
+      "title": "Confirm a Phone Message by Email",
+      "language": "en",
+      "script": "You answer a phone call at work. Say, Good morning. How can I help you? If the caller's contact is busy, say, Can I take a message? Ask for the caller's name.\n\nThe caller asks for a call back after two. Confirm the time. So, you would like a call after two. Is that right? If the name is unclear, ask, Could you spell your name, please?\n\nUse a clear subject, such as Message from Sam. In the email, write, Hi Ana. Sam called. Please call Sam back after two. Thanks, Alex. Pause and write a new message with a different name and time.",
+      "scriptSha256": "2863454b79bbbc9133e6c356daaa9941c709b689790ef179a866b32fb3209b84",
+      "sections": [
+        {
+          "heading": "Take a message",
+          "narration": "You answer a phone call at work. Say, Good morning. How can I help you? If the caller's contact is busy, say, Can I take a message? Ask for the caller's name."
+        },
+        {
+          "heading": "Check what you heard",
+          "narration": "The caller asks for a call back after two. Confirm the time. So, you would like a call after two. Is that right? If the name is unclear, ask, Could you spell your name, please?"
+        },
+        {
+          "heading": "Write a short email",
+          "narration": "Use a clear subject, such as Message from Sam. In the email, write, Hi Ana. Sam called. Please call Sam back after two. Thanks, Alex. Pause and write a new message with a different name and time."
+        }
+      ],
+      "scenes": [
+        {
+          "role": "hook",
+          "text": "You answer a phone call at work. Say, Good morning. How can I help you? If the caller's contact is busy, say, Can I take a message? Ask for the caller's name.",
+          "onScreenTitle": "Take a message",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 18.29,
+          "seccion": "Take a message"
+        },
+        {
+          "role": "point",
+          "text": "The caller asks for a call back after two. Confirm the time. So, you would like a call after two. Is that right? If the name is unclear, ask, Could you spell your name, please?",
+          "onScreenTitle": "Check what you heard",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 20,
+          "seccion": "Check what you heard"
+        },
+        {
+          "role": "cta",
+          "text": "Use a clear subject, such as Message from Sam. In the email, write, Hi Ana. Sam called. Please call Sam back after two. Thanks, Alex. Pause and write a new message with a different name and time.",
+          "onScreenTitle": "Write a short email",
+          "showOnScreenText": true,
+          "onScreenPosition": "top",
+          "onScreenTextManual": true,
+          "visualPrompt": "Original classroom graphic with English practice phrases and Language Center Chile colors",
+          "duration": 21.14,
+          "seccion": "Write a short email"
+        }
+      ],
+      "sources": [
+        "https://github.com/KatherineStehberg/ksl-orquestador/blob/17d43c66b96e7bfe6a8575b1e00d0e3647b724c8/docs/products/lc-chile-wordpress-edits-2026-10-04.md",
+        "https://github.com/KatherineStehberg/ksl-orquestador/issues/21"
+      ],
+      "adaptation": "Original supplementary speaking practice aligned to the four mapped LMS topics. Example people and situations are fictional.",
+      "course": {
+        "courseId": "56399",
+        "courseName": "English A1?A2 Business & Socializing",
+        "moduleId": "RPM-A1A2-PHONE-EMAIL",
+        "moduleName": "Phone calls and emails",
+        "lessonNumber": 4,
+        "tags": [
+          "self-paced",
+          "speaking-practice",
+          "final-edit-review"
+        ]
+      },
+      "publicationBlocked": true
     }
   ]
 }
