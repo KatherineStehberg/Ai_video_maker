@@ -4,6 +4,40 @@ Aplicación local con tres flujos: creación desde guiones (pipeline existente),
 
 El ciclo completo `video → análisis → propuesta → aprobación → MP4` funciona **sin clave Gemini y sin coste**, y desde el navegador: hay un editor web en `/editor.html`. Ver [`docs/API.md`](docs/API.md), [`COST_STRATEGY.md`](COST_STRATEGY.md), [`DEPLOY.md`](DEPLOY.md) y [`CHANGELOG.md`](CHANGELOG.md).
 
+![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518.17-339933?logo=node.js&logoColor=white)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-ffprobe-007808?logo=ffmpeg&logoColor=white)
+![Tests](https://img.shields.io/badge/node%3Atest-80%20tests-5FA04E)
+![Dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)
+
+## Resumen técnico
+
+| Aspecto | Detalle verificable en el código |
+|---|---|
+| **Tipo** | Aplicación Full Stack local: servidor HTTP en Node.js + interfaz web + CLI (`avm`) |
+| **Backend** | Servidor `node:http` sin frameworks, rutas por dominio (`studio`, `analysis`, `edits`, `generation`), ES Modules |
+| **Procesamiento** | FFmpeg/ffprobe para detección de cortes, extracción de audio, render por escena, concatenación y exportación MP4 |
+| **Algoritmos propios** | Detector de onsets en JavaScript, inferencia de tempo (BPM) con control de error de octava, medición de sincronía cortes↔beats y cálculo de rampas de velocidad |
+| **Frontend** | HTML/CSS/JavaScript modular sin paso de compilación (`src/ui/editor/`: estado, API, timeline, reproductores) |
+| **Proveedores** | Arquitectura de *providers* intercambiables (TTS local SAPI/Piper, LLM, imágenes, música, generación de video); Gemini implementado y probado con mocks |
+| **Robustez** | Jobs con estados, reanudación de proyectos largos, regeneración de una sola escena, original en solo lectura, límites de tamaño explícitos |
+| **Calidad** | 80 pruebas con `node:test` (FFmpeg real, API HTTP, exactitud temporal, exportación, contrato de proveedores) y smoke tests de navegador con Playwright |
+| **Tamaño** | ~10.000 líneas de JavaScript en `src/`; cero dependencias de runtime obligatorias |
+
+**Mi rol:** concepción del producto, arquitectura, desarrollo backend y frontend, algoritmos de análisis, pruebas y documentación técnica.
+
+```mermaid
+flowchart LR
+    U[Editor web / CLI] --> S[Servidor Node.js<br/>node:http]
+    S --> G[Generación<br/>guion → escenas → voz → subtítulos]
+    S --> A[Análisis<br/>cortes · onsets · tempo · sincronía]
+    S --> E[Propuesta de edición<br/>aprobación humana]
+    G --> FF[FFmpeg / ffprobe]
+    A --> FF
+    E --> FF
+    FF --> O[MP4 + JSON + CSV]
+    S -.opcional.-> P[Proveedores externos<br/>Gemini · Pexels]
+```
+
 ## Editor web (empieza por aquí)
 
 ```powershell
